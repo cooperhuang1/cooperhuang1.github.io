@@ -1,13 +1,98 @@
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background-color: #f4f4f4;
+/* 重置默认样式 */
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 全局样式 */
+body {
+    font-family: 'Orbitron', sans-serif; 
+    background: url('space_big.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+/* 头部样式 */
+header {
+    text-align: center;
+    padding: 50px 20px;
+    animation: fadeIn 2s ease-in;
+}
+
+header h1 {
+    font-size: 3rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+}
+
+header p {
+    font-size: 1.2rem;
+    color: #ccc;
+}
+
+/* 内容区域 */
+.content {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
     padding: 20px;
+    gap: 20px;
 }
-h1 {
-    color: #333;
+
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    width: 300px;
+    backdrop-filter: blur(5px); /* 玻璃效果 */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-p {
-    color: #666;
+
+.card:hover {
+    transform: translateY(-10px) rotate(2deg);
+    box-shadow: 0 10px 20px rgba(0, 212, 255, 0.5);
+}
+
+.card h2 {
+    color: #00d4ff;
+    margin-bottom: 10px;
+}
+
+.card p {
+    font-size: 1rem;
+}
+
+.card a {
+    color: #00d4ff;
+    text-decoration: none;
+}
+
+.card a:hover {
+    text-decoration: underline;
+}
+
+/* 页脚 */
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+    header h1 { font-size: 2rem; }
+    .card { width: 100%; }
 }
