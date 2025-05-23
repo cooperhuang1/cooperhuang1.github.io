@@ -3,3274 +3,452 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>太阳系边际探测：在线演示文稿</title>
+    <title>我的个人主页 - 炫酷3D版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        /* ==================================================================== */
-        /* 基本样式 (Base Styles) */
-        /* ==================================================================== */
+        /* 自定义字体，如果需要 */
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            background-color: #0f172a; /* 深空背景色 */
-            color: #e2e8f0; /* 浅色文本 */
-            line-height: 1.6;
-            overflow: hidden; /* 隐藏滚动条，用于演示模式 */
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* 轻微的背景色 */
+            scroll-behavior: smooth; /* 平滑滚动 */
+            overflow-x: hidden; /* 防止水平滚动 */
+        }
+        /* 英雄背景区域 */
+        .hero-background {
+            height: 600px; /* 根据需要调整高度 */
             display: flex;
-            flex-direction: column;
-            height: 100vh; /* 全视口高度 */
-        }
-        .section-title {
-            color: #818cf8; /* 标题的亮紫色 */
-            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5); /* 标题发光效果 */
-        }
-        .card {
-            background-color: #1a202c; /* 卡片深色背景 */
-            border-radius: 0.75rem; /* 圆角 */
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1); /* 阴影 */
-            border: 1px solid rgba(129, 140, 248, 0.2); /* 边框发光 */
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.3), 0 6px 10px -3px rgba(0, 0, 0, 0.15);
-        }
-        .chart-container {
+            align-items: center;
+            justify-content: center;
             position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 320px;
-            max-height: 400px;
+            overflow: hidden; /* 防止内容溢出 */
         }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 350px;
-            }
-        }
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            margin: 0.5rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.3s;
-            background-color: #334155; /* 深灰色 */
-            color: #cbd5e1; /* 浅灰色文本 */
-            font-weight: 600;
-            border: 1px solid #475569;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .tab-button:hover {
-            background-color: #475569;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        .tab-button.active {
-            background-color: #818cf8; /* 亮紫色 */
-            color: #ffffff;
-            border-color: #a78bfa;
-            box-shadow: 0 4px 10px rgba(129, 140, 248, 0.4);
-            transform: translateY(0);
-        }
-        .timeline {
-            position: relative;
-            padding-left: 2.5rem; /* 图标和线留出空间 */
-            border-left: 3px solid #6366f1; /* 时间线 */
-        }
-        .timeline-item {
-            position: relative;
-            margin-bottom: 2.5rem;
-            padding: 1rem 1.5rem;
-            background-color: #2d3748; /* 深色项目背景 */
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-        }
-        .timeline-item:hover {
-            background-color: #3a475a; /* 悬停时略浅 */
-            transform: translateY(-3px);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
-        }
-        .timeline-icon {
+        /* Three.js Canvas 样式 */
+        #threejs-background {
             position: absolute;
-            left: -1.75rem; /* 调整位置与线对齐 */
-            top: 0.75rem;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            background-color: #6366f1; /* 紫蓝色图标背景 */
-            border: 3px solid #0f172a; /* 与body背景色匹配 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            z-index: 10;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.6); /* 发光效果 */
-        }
-        .boundary-card {
-            border: 1px solid rgba(129, 140, 248, 0.3);
-            background-color: #1f2937; /* 边界卡片深色背景 */
-            color: #cbd5e1;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s;
-        }
-        .boundary-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
-            border-color: #818cf8; /* 悬停时发光 */
-        }
-        .boundary-card h3 {
-            color: #a78bfa; /* 标题浅紫色 */
-        }
-        .chartjs-tooltip {
-            background: rgba(30, 41, 59, 0.9); /* 深色提示框 */
-            color: white;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            font-size: 0.875rem;
-            border: 1px solid rgba(129, 140, 248, 0.3);
-        }
-        .llm-button {
-            background: linear-gradient(45deg, #6366f1, #818cf8); /* 渐变按钮 */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
-            border: none;
-        }
-        .llm-button:hover:not(:disabled) {
-            background: linear-gradient(45deg, #4f46e5, #6d28d9); /* 悬停时深色渐变 */
-            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.6);
-            transform: translateY(-2px);
-        }
-        .llm-button:disabled {
-            background-color: #475569;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        .llm-textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            background-color: #2d3748; /* 深色输入框 */
-            border: 1px solid #475569;
-            color: #e2e8f0;
-            resize: vertical;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
-        }
-        .loading-spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #ffffff;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 比例尺太阳系地图中的行星指示器 */
-        .planet-indicator {
-            position: absolute;
-            top: -5px; /* 调整大小 */
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid #0f172a; /* 与body背景色匹配 */
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); /* 强发光 */
-            transform: scale(0);
-            opacity: 0;
-            transition: transform 0.4s ease-out, opacity 0.4s ease-out, box-shadow 0.4s ease-out;
-            transform-origin: center center;
-        }
-        .planet-indicator.animate-in {
-            transform: scale(1);
-            opacity: 1;
-        }
-        .planet-indicator:hover {
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-            transform: scale(1.2);
-        }
-        .planet-card-item {
-            border: 1px solid #475569;
-            border-radius: 0.5rem;
-            background-color: #1f2937;
-            padding: 1.25rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            color: #cbd5e1;
-        }
-        .planet-card-item h2 {
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: #a78bfa;
-        }
-        .planet-card-item p {
-            font-size: 0.9rem;
-            color: #94a3b8;
-        }
-        .planet-modal-content {
-            padding: 1.5rem;
-            background-color: #1f2937;
-            color: #e2e8f0;
-            border-radius: 0.5rem;
-        }
-        .planet-modal-content p {
-            margin-bottom: 0.75rem;
-        }
-
-        /* 太阳系多层次边界图表 (Solar System Multiple Boundaries Diagram) */
-        .boundary-diagram-wrapper {
-            overflow-x: auto;
-            padding-bottom: 1.5rem;
-        }
-        .boundary-diagram-container {
-            position: relative;
-            width: 100%;
-            min-width: 900px; /* 增加最小宽度 */
-            height: 280px; /* 增加高度 */
-            background: linear-gradient(to right, #1f2937, #2d3748, #334155, #475569, #64748b); /* 深色、更柔和的渐变 */
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: flex-end;
-            padding: 0 1.5rem;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
-            border: 1px solid rgba(129, 140, 248, 0.2);
-        }
-        .boundary-segment {
-            flex: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            text-align: center;
-            padding: 0.75rem;
-            color: #e2e8f0;
-            font-size: 0.9rem;
-            font-weight: 500;
-            opacity: 0.9;
-            box-sizing: border-box;
-            min-width: 140px; /* 增加最小宽度 */
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background-color 0.3s;
-            border-radius: 0.5rem;
-            margin: 0.25rem; /* 分段之间的小间距 */
-        }
-        .boundary-segment:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.4);
-            background-color: rgba(129, 140, 248, 0.1); /* 悬停时微妙高亮 */
-        }
-        .boundary-segment strong {
-            font-weight: 700;
-            color: #a78bfa; /* 标题紫色 */
-            margin-bottom: 0.5rem;
-            line-height: 1.3;
-            font-size: 1.25rem;
-            text-shadow: 0 0 5px rgba(167, 139, 250, 0.5);
-        }
-        .boundary-segment .visual-cue {
-            font-size: 3.5rem; /* 更大的表情符号 */
-            line-height: 1;
-            margin-bottom: 0.75rem;
-            display: block;
-            color: #60a5fa; /* 蓝色提示 */
-            text-shadow: 0 0 10px rgba(96, 165, 250, 0.7);
-        }
-        .boundary-segment-label {
-            white-space: normal;
-            font-size: 0.8rem;
-            color: #94a3b8;
-            line-height: 1.3;
-            margin-top: auto;
-        }
-        /* 用于视觉区分的特定背景色 (更柔和) */
-        .boundary-segment:nth-child(1) { background-color: rgba(251, 191, 36, 0.05); }
-        .boundary-segment:nth-child(2) { background-color: rgba(52, 211, 153, 0.05); }
-        .boundary-segment:nth-child(3) { background-color: rgba(59, 130, 246, 0.05); }
-        .boundary-segment:nth-child(4) { background-color: rgba(239, 68, 68, 0.05); }
-        .boundary-segment:nth-child(5) { background-color: rgba(99, 102, 241, 0.05); }
-        .boundary-segment:nth-child(6) { background-color: rgba(168, 85, 247, 0.05); }
-
-        /* 旅行者时间线详情样式 (Styles for Voyager Timeline Detail) */
-        #voyagerDetailArea {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            border-radius: 0.75rem;
-            padding: 2rem;
-            margin-top: 2rem;
-            display: none;
-            box-shadow: inset 0 0 10px rgba(129, 140, 248, 0.2);
-            color: #e2e8f0;
-        }
-        #voyagerDetailArea h3 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #a78bfa;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 5px rgba(167, 139, 250, 0.5);
-        }
-        #voyagerDetailArea p {
-            color: #cbd5e1;
-            margin-bottom: 0.75rem;
-        }
-        #voyagerDetailArea ul {
-            list-style: disc;
-            list-style-position: inside;
-            margin-left: 1.5rem;
-            color: #cbd5e1;
-        }
-        #voyagerDetailArea ul li {
-            margin-bottom: 0.5rem;
-        }
-        #voyagerDetailArea h4 {
-            color: #60a5fa;
-            text-shadow: 0 0 3px rgba(96, 165, 250, 0.3);
-        }
-
-        /* 探测器设计部分样式 (Styles for Probe Design Section) */
-        .design-step {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            color: #e2e8f0;
-        }
-        .design-step h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #818cf8;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 5px rgba(129, 140, 248, 0.5);
-        }
-        .component-option {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border: 1px solid #475569;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
-            background-color: #2d3748;
-        }
-        .component-option:hover {
-            background-color: #334155;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
-        }
-        .component-option.selected {
-            background-color: #4338ca; /* 选中时深蓝色 */
-            border-color: #818cf8;
-            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.7); /* 强发光 */
-        }
-        .component-option input[type="radio"] {
-            margin-right: 1rem;
-            accent-color: #818cf8; /* 单选按钮样式 */
-        }
-        .component-info {
-            flex-grow: 1;
-        }
-        .component-info strong {
-            color: #e2e8f0;
-            font-size: 1.05rem;
-        }
-        .component-stats {
-            font-size: 0.875rem;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-        }
-        #probeSummary {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            margin-top: 2.5rem;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-            color: #e2e8f0;
-        }
-        #probeSummary h3 {
-            color: #34d399; /* 成功时绿色 */
-            text-shadow: 0 0 5px rgba(52, 211, 153, 0.5);
-        }
-        #probeSummary p {
-            color: #a7f3d0;
-        }
-        #designFeedback {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            border-radius: 0.75rem;
-            color: #e2e8f0;
-            box-shadow: inset 0 0 8px rgba(251, 191, 36, 0.2);
-        }
-        #designFeedback p {
-            color: #fcd34d; /* 反馈黄色 */
-        }
-        #totalScore {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #818cf8;
-            margin-top: 1rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            text-shadow: 0 0 10px rgba(129, 140, 248, 0.7);
-        }
-
-        /* 探测器模拟部分样式 (Styles for Probe Simulation Section) */
-        .simulation-status {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            font-size: 1.05rem;
-            color: #e2e8f0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .simulation-status p {
-            margin-bottom: 0;
-            color: #cbd5e1;
-        }
-        .simulation-status strong {
-            color: #a78bfa;
-        }
-        .simulation-log {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            max-height: 350px; /* 增加高度 */
-            overflow-y: auto;
-            margin-top: 1.5rem;
-            font-size: 0.95rem;
-            color: #94a3b8;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
-        }
-        .simulation-log p {
-            margin-bottom: 0.5rem;
-            border-bottom: 1px dashed rgba(71, 85, 105, 0.3); /* 柔和分隔线 */
-            padding-bottom: 0.5rem;
-        }
-        .simulation-log p:last-child {
-            border-bottom: none;
-        }
-        .simulation-log p.text-red-600 { color: #f87171; }
-        .simulation-log p.text-green-600 { color: #4ade80; }
-        .simulation-log p.text-blue-700 { color: #60a5fa; }
-
-        .simulation-event {
-            background-color: #2d3748;
-            border: 1px solid #475569;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            margin-top: 1.5rem;
-            font-size: 1.1rem;
-            color: #e2e8f0;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-        .simulation-event strong {
-            color: #818cf8;
-            text-shadow: 0 0 5px rgba(129, 140, 248, 0.5);
-        }
-        .simulation-choices {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-        .simulation-choices .choice-button {
-            background: linear-gradient(45deg, #60a5fa, #818cf8);
-            color: white;
-            padding: 0.9rem 1.8rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(96, 165, 250, 0.4);
-            border: none;
-        }
-        .simulation-choices .choice-button:hover {
-            background: linear-gradient(45deg, #3b82f6, #6366f1);
-            box-shadow: 0 6px 12px rgba(96, 165, 250, 0.6);
-            transform: translateY(-2px);
-        }
-        .simulation-choices .choice-button:disabled {
-            background-color: #475569;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        .simulation-result {
-            background-color: #1f2937;
-            border: 1px solid #475569;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            margin-top: 1.5rem;
-            font-size: 1.05rem;
-            color: #e2e8f0;
-            box-shadow: inset 0 0 10px rgba(52, 211, 153, 0.2);
-        }
-        .simulation-game-over {
-            background-color: #450a0a; /* 深红色 */
-            border: 2px solid #ef4444;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #f87171; /* 浅红色 */
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-        }
-        .simulation-win {
-            background-color: #064e3b; /* 深绿色 */
-            border: 2px solid #10b981;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #4ade80; /* 浅绿色 */
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
-        }
-
-        /* 3D Canvas 样式 (3D Canvas Styles) */
-        .three-d-canvas {
-            width: 100%;
-            height: 400px; /* 3D画布固定高度 */
-            background-color: #000;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(129, 140, 248, 0.2);
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
-            margin-top: 2rem;
-        }
-
-        /* 核动力3D可视化样式 (Nuclear Power 3D Visualizations) */
-        .nuclear-power-canvas {
-            width: 100%;
-            height: 250px;
-            background-color: #000;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
-            margin-top: 1.5rem;
-        }
-
-        /* ==================================================================== */
-        /* 演示模式样式 (Presentation Mode Styles) */
-        /* ==================================================================== */
-        .presentation-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100vw;
-            height: calc(100vh - 80px); /* 调整高度以适应页眉/页脚 */
-            overflow: hidden; /* 隐藏幻灯片内部滚动条 */
-            position: relative;
-        }
-
-        .slide {
-            width: 100%;
-            height: 100%;
-            display: none; /* 默认隐藏 */
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem 4rem; /* 演示时更多内边距 */
-            box-sizing: border-box;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            overflow-y: auto; /* 如果内容溢出，允许内部滚动 */
-        }
-
-        .slide.active {
-            display: flex;
-            opacity: 1;
-        }
-
-        .slide .card {
-            width: 100%;
-            max-width: 1200px; /* 限制卡片宽度以提高可读性 */
-            height: auto;
-            max-height: 100%; /* 确保卡片适应幻灯片 */
-            overflow-y: auto; /* 如果卡片内容溢出，允许内部滚动 */
-            padding: 2rem;
-        }
-
-        .slide-navigation {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #1a202c; /* 导航栏深色背景 */
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 100;
-        }
-
-        .slide-button {
-            background-color: #6366f1;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
-            border: none;
-        }
-        .slide-button:hover:not(:disabled) {
-            background-color: #4f46e5;
-            transform: translateY(-2px);
-        }
-        .slide-button:disabled {
-            background-color: #334155;
-            cursor: not-allowed;
-        }
-        .slide-indicator {
-            color: #cbd5e1;
-            font-weight: 500;
-            font-size: 1.1rem;
-        }
-
-        /* 调整页眉以适应演示模式 */
-        header.presentation-header {
-            background-color: #0f172a;
-            padding: 1rem 2rem;
-            text-align: center;
-            color: #e2e8f0;
-            font-size: 1.5rem;
-            font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 100;
-            display: flex; /* 启用flex以容纳全屏按钮 */
-            justify-content: space-between; /* 标题和按钮之间留出空间 */
-            align-items: center;
-        }
-        .presentation-header .title {
-            color: #818cf8;
-            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
-            flex-grow: 1; /* 允许标题占据可用空间 */
-        }
-        .fullscreen-button {
-            background-color: #6366f1;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
-            border: none;
-            font-size: 0.9rem;
-        }
-        .fullscreen-button:hover {
-            background-color: #4f46e5;
-            transform: translateY(-1px);
-        }
-
-        /* 全屏特定样式 */
-        body.fullscreen-active {
-            overflow: hidden; /* 隐藏滚动条 */
-        }
-        body.fullscreen-active .presentation-container {
-            width: 100vw;
-            height: 100vh;
-            padding: 0; /* 移除内边距 */
-        }
-        body.fullscreen-active .slide {
-            padding: 2rem 4rem; /* 保持幻灯片内边距 */
-        }
-        body.fullscreen-active header.presentation-header,
-        body.fullscreen-active .slide-navigation {
-            display: none; /* 在真正的全屏模式下隐藏页眉和页脚导航 */
-        }
-        /* 如果不支持真正的全屏API，仅扩展以填充窗口 */
-        .presentation-container.expanded {
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
             top: 0;
             left: 0;
-            z-index: 9999;
-            background-color: #0f172a;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* 确保在内容下方 */
         }
-        .presentation-container.expanded + .slide-navigation {
-            display: none; /* 展开时隐藏原始导航 */
+        /* 毛玻璃效果 */
+        .glass-morphism {
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.75);
+            border-radius: 12px;
+            border: 1px solid rgba(209, 213, 219, 0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        /* 鼠标悬停效果 */
+        .article-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .article-card:hover {
+            transform: translateY(-8px) perspective(1000px) rotateX(2deg) rotateY(2deg); /* 稍微上移并倾斜 */
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15); /* 阴影更明显 */
+        }
+
+        /* 导航栏滚动效果 */
+        .navbar-scrolled {
+            background-color: rgba(255, 255, 255, 0.95); /* 更实心的背景 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 更明显的阴影 */
+        }
+
+        /* 英雄区域动画 */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-hero-content {
+            animation: fadeInSlideUp 1s ease-out forwards;
+            animation-delay: 0.5s; /* 延迟动画开始 */
+            opacity: 0; /* 初始隐藏 */
+        }
+        .animate-hero-avatar {
+            animation: fadeInSlideUp 1s ease-out forwards;
+            animation-delay: 0.3s; /* 延迟动画开始 */
+            opacity: 0; /* 初始隐藏 */
+        }
+
+        /* 文章卡片进入视口动画 */
+        .article-card.hidden-on-load {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        .article-card.animate-in {
+            animation: fadeInSlideUp 0.6s ease-out forwards;
+        }
+
+        /* 社交图标悬停效果 */
+        .social-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        .social-icon:hover {
+            transform: scale(1.2);
+        }
+
+        /* 按钮悬停效果 */
+        .btn-primary {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 下拉菜单样式 */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 0.5rem; /* rounded-lg */
+            overflow: hidden; /* 确保子项圆角 */
+            top: 100%; /* 位于父元素下方 */
+            left: 50%; /* 水平居中 */
+            transform: translateX(-50%); /* 水平居中 */
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            color: black;
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        /* 暗黑模式下的下拉菜单样式 */
+        .dark .dropdown-menu {
+            background-color: #1f2937; /* gray-800 */
+        }
+        .dark .dropdown-item {
+            color: #d1d5db; /* gray-300 */
+        }
+        .dark .dropdown-item:hover {
+            background-color: #374151; /* gray-700 */
         }
     </style>
 </head>
-<body>
+<body class="text-gray-800 dark:bg-gray-900 dark:text-gray-200">
 
-    <header class="presentation-header">
-        <div class="title">太阳系边际探测：在线演示文稿</div>
-        <button id="fullscreenToggleBtn" class="fullscreen-button">进入全屏</button>
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-blue-600 dark:text-blue-400">我的主页</a>
+            
+            <div class="hidden md:flex space-x-6">
+                <div class="relative dropdown">
+                    <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400 cursor-pointer">
+                        标签 <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="frontend-development.html" class="dropdown-item">前端开发</a>
+                        <a href="backend-technology.html" class="dropdown-item">后端技术</a>
+                        <a href="personal-essays.html" class="dropdown-item">个人随笔</a>
+                        <a href="study-notes.html" class="dropdown-item">学习笔记</a>
+                    </div>
+                </div>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">分类</a>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">页面</a>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button id="theme-toggle" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-background relative">
+        <canvas id="threejs-background"></canvas> <div class="absolute inset-0 bg-black opacity-30 z-10"></div> <div class="relative z-20 text-center text-white p-6 rounded-lg glass-morphism animate-hero-content">
+            <img src="https://placehold.co/150x150/667eea/ffffff?text=Your+Avatar" alt="你的头像" class="w-36 h-36 rounded-full mx-auto mb-4 border-4 border-white shadow-lg animate-hero-avatar">
+            <h1 class="text-5xl font-extrabold mb-2">你的名字</h1>
+            <p class="text-xl mb-4">专注于现代 Web 开发技术</p>
+            <p class="text-lg max-w-2xl mx-auto">精通 Vue/Node.js 全栈开发，持续探索前沿技术方案。</p>
+        </div>
     </header>
 
-    <div class="presentation-container" id="presentationContainer">
-        <div class="slide active" id="slide-blueprint">
-            <div class="card text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">宏伟蓝图：界定太阳系的边际</h2>
-                <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">
-                    人类对宇宙的探索，始于对家园边界的求索。太阳系的边界并非单一界线，而是由多种物理现象定义的多层次区域，每一层都揭示了太阳系演化历史的不同篇章。本应用将带您一同探索这些遥远的边际，理解其科学意义与面临的技术挑战。
-                </p>
-                <div class="p-8 border border-blue-700 rounded-xl bg-gray-800 shadow-xl">
-                    <h3 class="text-2xl font-semibold text-blue-400 mb-6">太阳系多重边界示意图</h3>
-                    <div class="boundary-diagram-wrapper">
-                        <div class="boundary-diagram-container">
-                            <div class="boundary-segment">
-                                <span class="visual-cue">◎</span> <strong>行星轨道</strong>
-                                <span class="boundary-segment-label">0.4 - 30 AU</span>
-                            </div>
-                            <div class="boundary-segment">
-                                <span class="visual-cue">✶</span> <strong>柯伊伯带</strong>
-                                <span class="boundary-segment-label">30 - 1,000 AU</span>
-                            </div>
-                            <div class="boundary-segment">
-                                <span class="visual-cue">☊</span> <strong>日球层顶</strong>
-                                <span class="boundary-segment-label">~120 - 140 AU</span>
-                            </div>
-                            <div class="boundary-segment">
-                                <span class="visual-cue">♨</span> <strong>热墙</strong>
-                                <span class="boundary-segment-label">~200 AU</span>
-                            </div>
-                            <div class="boundary-segment">
-                                <span class="visual-cue">☄</span> <strong>奥尔特云</strong>
-                                <span class="boundary-segment-label">3,000 - 100,000 AU</span>
-                            </div>
-                            <div class="boundary-segment">
-                                <span class="visual-cue">♁</span> <strong>引力边界</strong>
-                                <span class="boundary-segment-label">~100,000 AU</span>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="mt-6 text-base text-slate-400 text-center">图示：太阳系多层次边界，从内行星轨道到遥远引力边界。</p>
-                    <img src="images/solar_system_boundary.png"
-                        alt="太阳系边界示意图，展示日球层、柯伊伯带和奥尔特云的艺术概念图"
-                        class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                        onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-                    <h3 class="text-2xl font-semibold text-blue-400 mb-6 mt-10">交互式3D太阳系模型</h3>
-                    <canvas id="solarSystem3DCanvas" class="three-d-canvas"></canvas>
-                    <p class="mt-4 text-base text-slate-400 text-center">图表：使用鼠标拖动旋转模型，滚轮缩放，感受太阳系的浩瀚。</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-boundaries">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">探索边界：太阳系的多重界限</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    太阳系的边界远非一条简单的线，而是由行星轨道、柯伊伯带、日球层乃至遥远的奥尔特云构成的复杂结构。点击下方卡片，深入了解每个边界的特征与探测意义。
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <div class="boundary-card p-8 rounded-xl cursor-pointer" onclick="showBoundaryDetail('kuiper')">
-                        <h3 class="text-2xl font-semibold mb-3">柯伊伯带 (Kuiper Belt)</h3>
-                        <p class="text-base text-slate-400 mb-2"><strong>距离:</strong> 30 - 1,000 AU</p>
-                        <p class="text-base text-slate-400 mb-2"><strong>组成:</strong> 冰、岩石、氨、甲烷；矮行星</p>
-                        <p class="text-base text-slate-400"><strong>探测意义:</strong> 早期太阳系残余、行星形成研究</p>
-                    </div>
-                    <div class="boundary-card p-8 rounded-xl cursor-pointer" onclick="showBoundaryDetail('heliopause')">
-                        <h3 class="text-2xl font-semibold mb-3">日球层顶 (Heliosphere)</h3>
-                        <p class="text-base text-slate-400 mb-2"><strong>距离:</strong> 123 - 140 AU</p>
-                        <p class="text-base text-slate-400 mb-2"><strong>特征:</strong> 太阳风与星际介质压力平衡处</p>
-                        <p class="text-base text-slate-400"><strong>探测意义:</strong> 太阳磁场影响、宇宙射线防护</p>
-                    </div>
-                    <div class="boundary-card p-8 rounded-xl cursor-pointer" onclick="showBoundaryDetail('hotwall')">
-                        <h3 class="text-2xl font-semibold mb-3">热墙 (Hot Wall)</h3>
-                        <p class="text-base text-slate-400 mb-2"><strong>距离:</strong> ~200 AU</p>
-                        <p class="text-base text-slate-400 mb-2"><strong>特征:</strong> 加热的星际氢原子区域</p>
-                        <p class="text-base text-slate-400"><strong>探测意义:</strong> 星际介质与日球层相互作用</p>
-                    </div>
-                    <div class="boundary-card p-8 rounded-xl cursor-pointer" onclick="showBoundaryDetail('oort')">
-                        <h3 class="text-2xl font-semibold mb-3">奥尔特云 (Oort Cloud)</h3>
-                        <p class="text-base text-slate-400 mb-2"><strong>距离:</strong> 3,000 - 100,000 AU</p>
-                        <p class="text-base text-slate-400 mb-2"><strong>组成:</strong> 冰质彗星状天体</p>
-                        <p class="text-base text-slate-400"><strong>探测意义:</strong> 彗星起源、行星迁移历史</p>
-                    </div>
-                    <div class="boundary-card p-8 rounded-xl cursor-pointer" onclick="showBoundaryDetail('ism')">
-                        <h3 class="text-2xl font-semibold mb-3">局部星际介质 (ISM)</h3>
-                        <p class="text-base text-slate-400 mb-2"><strong>距离:</strong> >140 AU (日球层外)</p>
-                        <p class="text-base text-slate-400 mb-2"><strong>组成:</strong> 氢、氦、尘埃、宇宙射线</p>
-                        <p class="text-base text-slate-400"><strong>探测意义:</strong> 太阳系“空间天气”、银河系演化</p>
-                    </div>
-                </div>
-                <div id="boundaryDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
-                    <div class="relative mx-auto p-8 border w-11/12 md:w-1/2 shadow-lg rounded-xl bg-gray-900">
-                        <div class="mt-3 text-center">
-                            <h3 id="modalTitle" class="text-3xl leading-6 font-medium text-blue-400 mb-4"></h3>
-                            <div id="modalContent" class="mt-4 px-7 py-3 text-left text-slate-300">
-                                </div>
-                            <div class="items-center px-4 py-3">
-                                <button id="closeModalButton" class="llm-button w-full">
-                                    关闭
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-scaled-map">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 text-center">比例尺太阳系地图</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    以成都理工大学校园为参照，直观感受太阳系天体的浩瀚距离。假设太阳直径1米，位于E1B215教室。<br>
-                    <span class="text-base text-slate-400">（请注意：由于太阳系尺度的巨大差异，内行星在比例尺上会非常靠近太阳。）</span>
-                </p>
-                <div class="flex flex-col items-center p-8 space-y-8 bg-gray-800 rounded-xl border border-blue-700 shadow-xl">
-                    <h1 class="text-3xl font-bold text-blue-400">成都理工大学比例尺太阳系</h1>
-                    <p class="text-lg text-slate-400">1米直径太阳位于E1B215教室</p>
-                    <div class="w-full overflow-x-auto pb-6">
-                        <div class="relative h-3 bg-gradient-to-r from-yellow-400 via-blue-400 to-gray-300 rounded-full shadow-inner" style="width: 10000px;" id="solarSystemProgressBar">
-                        </div>
-                    </div>
-                    <div id="planetCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-                        </div>
-                </div>
-            </div>
-
-            <div id="planetDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
-                <div class="relative mx-auto p-8 border w-11/12 md:w-1/3 shadow-lg rounded-xl bg-gray-900">
-                    <div class="mt-3 text-center">
-                        <h3 id="planetModalTitle" class="text-3xl leading-6 font-medium text-blue-400 mb-4"></h3>
-                        <div id="planetModalContent" class="mt-4 px-7 py-3 text-left planet-modal-content">
-                            </div>
-                        <div class="items-center px-4 py-3">
-                            <button id="closePlanetModalButton" class="llm-button w-full">
-                                关闭
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-mysteries-origin-life">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">科学奥秘：起源与宜居性</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+    <main class="container mx-auto px-4 py-12 -mt-24 relative z-30">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 glass-morphism">
+                <div class="flex items-center space-x-4 mb-6">
+                    <img src="https://placehold.co/80x80/667eea/ffffff?text=Avatar" alt="头像" class="w-20 h-20 rounded-full border-2 border-blue-400">
                     <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">太阳系的起源与演化</h3>
-                        <p class="text-lg text-slate-300 mb-4"><strong>柯伊伯带</strong>被认为是太阳系形成初期的“遗留物”，其冰冷天体是原始星子。研究它们的组成与轨道，有助于理解行星系统如何从原始星云中形成和演化。</p>
-                        <p class="text-lg text-slate-300 mb-4"><strong>奥尔特云</strong>中的天体可能是太阳系内侧形成后被抛射出去的，是长周期彗星的来源。对它的探测将提供行星迁移过程的线索。</p>
-                        <p class="mt-6 text-base text-slate-400 text-center">图示：日球层保护地球免受宇宙射线侵害的示意图。</p>
-                        <img src="images/heliosphere_protection.png"
-                            alt="日球层保护地球免受宇宙射线侵害的示意图"
-                            class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-                    </div>
-                    <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">宇宙生命与宜居性</h3>
-                        <p class="text-lg text-slate-300 mb-4"><strong>日球层</strong>是太阳系对抗银河宇宙射线的保护罩，对地球及其他行星的宜居性至关重要。</p>
-                        <div class="chart-container mx-auto h-72 md:h-80 bg-gray-800 p-4 rounded-lg shadow-inner">
-                            <canvas id="heliosphereProtectionChart"></canvas>
-                        </div>
-                        <p class="mt-4 text-base text-slate-400 text-center">图表：日球层对不同能量宇宙射线的过滤效果，展示其保护作用。</p>
-                        <p class="text-lg text-slate-300 mt-6 mb-4">对外太阳系冰卫星（如木卫二欧罗巴）的探测发现，它们可能拥有冰下液态海洋，甚至具备原始生命的条件，拓展了我们对生命宜居区域的理解。</p>
-                        <h3 class="text-3xl font-semibold text-blue-400 mt-8 mb-6">星际介质的直接探测</h3>
-                        <p class="text-lg text-slate-300">日球层顶是太阳系与星际介质直接相互作用的区域。探测这一边界能帮助我们理解太阳系如何穿越银河系，以及太阳风与星际物质的相互作用。</p>
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">你的名字</h2>
+                        <p class="text-blue-600 dark:text-blue-400">Just for fun</p>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-mysteries-unanswered-goals">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">科学奥秘：未解之谜与下一代目标</h2>
-                <div class="mt-12 p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-xl">
-                    <h3 class="text-3xl font-semibold text-blue-400 mb-6 text-center">前代任务留下的未解之谜与下一代目标</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="text-2xl font-semibold text-blue-300 mb-4">现有空白与挑战：</h4>
-                            <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4">
-                                <li><strong>旅行者号：</strong> 等离子体科学仪器失效，无法直接测量太阳风；未配备测量“拾取离子”（PUIs）的仪器，留下日球层如何抵抗星际风的谜团。其仪器套件未针对全面的星际介质测量进行优化。</li>
-                                <li><strong>新视野号：</strong> 仅穿越了柯伊伯带的一小部分，关于天体总数、碰撞状态以及离散天体起源的问题仍未解决。</li>
-                                <li><strong>IBEX/IMAP：</strong> 作为轨道器，提供的是遥感数据，而非深空原位测量。</li>
-                                <li><strong>奥尔特云：</strong> 形成、演化和确切组成在很大程度上仍停留在理论层面，缺乏直接观测数据。</li>
-                                <li><strong>星际介质：</strong> 其组成和特性直接影响日球层的形状、大小和保护能力，但缺乏详细的原位测量。</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="text-2xl font-semibold text-blue-300 mb-4">下一代探测器的主要科学目标：</h4>
-                            <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4">
-                                <li><strong>表征日球层：</strong> 确定其真实全球形状和大小，理解太阳风与星际介质的相互作用，研究粒子加速机制，并测量“拾取离子”。</li>
-                                <li><strong>星际介质原位分析：：</strong> 表征局部星际介质的组成和性质，研究磁场相互作用，探测并表征星际尘埃。</li>
-                                <li><strong>柯伊伯带与奥尔特云：：</strong> 更好地理解柯伊伯带尘埃量和天体总数，绘制黄道尘埃云，搜索离散源周围的尘埃云，确定柯伊伯带尘埃组成，调查尘埃转换区域，并解决奥尔特云的形成与演化之谜。</li>
-                                <li><strong>粒子加速与辐射环境：：</strong> 量化深空中，特别是日球层之外的银河宇宙射线（GCRs）和太阳粒子事件（SPEs）的通量和能量水平。</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-earth-importance">
-            <div class="card text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">深空探索对地球的重要性</h2>
-                <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">
-                    深空探测不仅是探索未知，更是为了更好地理解和保护我们赖以生存的地球。对太阳系边缘环境的研究，帮助我们了解宇宙射线、太阳活动对地球生态的影响。
-                </p>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-gray-800 rounded-xl shadow-xl text-left border border-blue-700">
-                        <thead class="bg-blue-900">
-                            <tr>
-                                <th class="py-4 px-6 text-base font-semibold text-blue-300 uppercase tracking-wider rounded-tl-xl">重要性方面</th>
-                                <th class="py-4 px-6 text-base font-semibold text-blue-300 uppercase tracking-wider rounded-tr-xl">简要说明</th>
-                            </tr>
-                        </thead>
-                        <tbody id="importanceTableBody">
-                            </tbody>
-                    </table>
-                </div>
-                <p class="mt-6 text-base text-slate-400 text-center">
-                    图表：深空探索对地球重要性概览。点击表格行查看更多详细信息。
-                </p>
-            </div>
-            <div id="importanceDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
-                <div class="relative mx-auto p-8 border w-11/12 md:w-1/2 shadow-lg rounded-xl bg-gray-900">
-                    <div class="mt-3 text-center">
-                        <h3 id="importanceModalTitle" class="text-3xl leading-6 font-medium text-blue-400 mb-4"></h3>
-                        <div id="importanceModalContent" class="mt-4 px-7 py-3 text-left text-slate-300"></div>
-                        <div class="items-center px-4 py-3">
-                            <button id="closeImportanceModalButton" class="llm-button w-full">
-                                关闭
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-qa">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 text-center">✨ 知识问答</h2>
-                <p class="text-xl text-slate-300 mb-6 text-center max-w-4xl mx-auto">
-                    对太阳系边际探测有任何疑问？在此提问，获取由AI模型提供的简洁答案！
-                </p>
-                <textarea id="qaInput" class="llm-textarea mb-6" rows="4" placeholder="例如：旅行者号是如何进入星际空间的？日球层顶是什么？"></textarea>
-                <button id="askQuestionBtn" class="llm-button mx-auto">
-                    <span id="qaSpinner" class="loading-spinner hidden"></span>
-                    <span id="qaButtonText">提问</span>
+                <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 mb-4 shadow-md btn-primary">
+                    About
                 </button>
-                <div id="qaOutput" class="mt-8 p-6 bg-gray-800 rounded-xl border border-blue-700 text-slate-300 min-h-[100px] shadow-inner">
-                    <p class="text-slate-400 text-center">答案将显示在此处。</p>
+                <div class="flex justify-around text-gray-600 text-2xl mb-6">
+                    <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fas fa-envelope"></i></a>
+                    <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fab fa-github"></i></a>
+                    <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fas fa-rss"></i></a>
                 </div>
-            </div>
-        </div>
+                <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">欢迎光临</h3>
+                <p class="text-gray-700 dark:text-gray-300 mb-6">青山不改，绿水长流。</p>
 
-        <div class="slide" id="slide-technology-communication">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">技术之巅：超远距离通信与数据传输</h2>
-                <p class="text-xl text-slate-300 mb-4">随着距离增加，信号衰减、延迟和带宽限制成为主要障碍。例如，新视野号从冥王星回传数据速率仅1-2 kbps，信号延迟数小时。</p>
-                <p class="text-xl text-slate-300 mb-3"><strong>解决方案与原理：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li><strong>光学通信（激光）：</strong> 利用激光束进行数据传输。相比传统无线电波，激光的波长更短，频率更高，这意味着在相同时间内可以传输更多的数据，数据速率可提高10-100倍。激光束的扩散性也更小，能量更集中，有助于信号在长距离传输中保持强度。例如，DSOC项目旨在显著提升通信性能和效率。</li>
-                    <li><strong>深空网络（DSN）与分布式容错网络（DTN）：</strong> DSN是由全球分布的巨型地面天线（如直径70米）组成的网络，用于接收和发送深空探测器信号。DTN则是一种“存储-转发”网络协议，旨在构建“太阳系互联网”，允许数据包在间歇性连接和长时间延迟下自动传输，无需实时连接。</li>
-                    <li><strong>高精度时间同步技术：：</strong> 通过原子钟和先进的算法，实现皮秒级的时间同步精度，有效补偿光速延迟、相对论效应和大气扰动带来的通信误差，确保数据传输的准确性。</li>
-                    <li><strong>纠错码：</strong> 使用卷积码、Turbo码和低密度奇偶校验码等技术，确保在信号微弱和干扰严重的情况下，数据传输的完整性。</li>
-                </ul>
-                <p class="mt-6 text-base text-slate-400 text-center">图示：深空光通信激光束从航天器射向地球的艺术概念图。</p>
-                <img src="images/optical_communication.png"
-                    alt="深空光通信激光束从航天器射向地球的艺术概念图"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-            </div>
-        </div>
-
-        <div class="slide" id="slide-technology-energy">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">技术之巅：长寿命能源系统</h2>
-                <p class="text-xl text-slate-300 mb-4">在远离太阳的区域，太阳能效率低下。放射性同位素热电发生器（RTG）是首选，但面临功率衰减和燃料供应问题。</p>
-                <p class="text-xl text-slate-300 mb-3"><strong>工作原理与未来方向：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li><strong>放射性同位素热电发生器（RTG）：</strong> 利用放射性同位素（如钚-238）衰变产生的热量。这些热量通过温差电效应（塞贝克效应）直接转化为电能，这一过程称为塞贝克效应。</li>
-                    <li><strong>斯特林放射性同位素发生器（SRG）：：</strong> 基于斯特林循环的外部燃烧发动机，利用放射性同位素产生的热量驱动活塞运动，再由线性发电机将机械能转化为电能。</li>
-                    <li><strong>核热推进（NTP）：：：</strong> 通过核反应堆加热液态推进剂（通常是液氢），使其膨胀成高温高压气体并高速喷出，产生巨大推力。</li>
-                    <li><strong>核电推进（NEP）：：：：：</strong> 核反应堆发电，电力用于驱动电推力器（如离子推力器）。电推力器通过电离惰性气体（如氙）并用电磁场加速离子产生推力。</li>
-                    <li><strong>小型裂变电源系统 (FPS)：</strong> 对于超过100千瓦的功率需求，FPS比RTGs更具成本优势。设计为冷发射并在轨道上启动反应堆，最大限度地降低放射性危害。</li>
-                    <li><strong>太阳帆与定向能推进：：</strong> 太阳帆通过利用太阳光压的动量来加速航天器，无需推进剂。定向能推进（激光帆）则涉及使用强大的地面或轨道激光来推动航天器。</li>
-                </ul>
-                <p class="mt-6 text-base text-slate-400 text-center">图示：放射性同位素热电发生器（RTG）的实物图或模型图。</p>
-                <img src="images/nuclear_power_system.png"
-                    alt="放射性同位素热电发生器（RTG）的实物图或模型图"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-                <p class="mt-6 text-base text-slate-400 text-center">图示：展开的太阳帆航天器的艺术概念图。</p>
-                <img src="images/solar_sail.jpg"
-                    alt="展开的太阳帆航天器的艺术概念图，展示其巨大的薄膜"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x200/2d3748/cbd5e1?text=图片加载失败';">
-            </div>
-        </div>
-
-        <div class="slide" id="slide-technology-survival">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">技术之巅：极端环境下的航天器生存</h2>
-                <p class="text-xl text-slate-300 mb-4">深空环境面临极端温度变化、高能宇宙射线和微流星体撞击的威胁。</p>
-                <p class="text-xl text-slate-300 mb-3"><strong>应对策略与原理：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li><strong>结构完整性与材料选择：</strong>
-                        <ul class="list-circle list-inside ml-6 space-y-2">
-                            <li><strong>先进合金：</strong> 采用轻质、坚固且耐辐射的铝合金（如“交叉”铝合金）、钛合金（如Ti-6Al-4V）和镍基高温合金，以应对真空、极端冷热循环、紫外线辐射、带电粒子辐射和微陨石撞击。</li>
-                            <li><strong>长期降解：</strong> 应对真空导致的材料“放气”和摩擦磨损；辐射引起的材料硬化或软化；以及微陨石撞击造成的表面侵蚀、穿孔和剥落。</li>
-                        </ul>
-                    </li>
-                    <li><strong>热控系统（TCS）：</strong>
-                        <ul class="list-circle list-inside ml-6 space-y-2">
-                            <li><strong>被动热控：</strong> 多层绝缘（MLI）毯用于反射太阳光并保留内部热量，涂层和光学太阳反射器（OSRs）改变表面热光学特性，百叶窗调节热辐射。</li>
-                            <li><strong>主动热控：</strong> 电加热器防止关键系统结冰，流体回路将热量传输到散热器，放射性同位素加热单元（RHUs）提供局部热量，热管高效传热，热电冷却器移走热量。RTGs产生的废热也用于维持航天器温度。</li>
-                        </ul>
-                    </li>
-                    <li><strong>辐射硬化设计保护电子设备：：：：</strong> 包括采用特殊制造工艺（如SOI技术）使芯片对辐射不敏感，以及在关键电子元件外部增加物理屏蔽层（如铅或铝）。同时，软件层面会集成错误检测与纠正（EDAC）机制，自动识别并修复由辐射引起的内存或数据错误。</li>
-                    <li><strong>任务规划规避已知流星群：：：：</strong> 通过对流星体环境的建模和实时监测，规划航天器轨道和姿态，尽量避免穿越高密度微流星体区域。对于不可避免的撞击，航天器关键部件会采用双层或多层结构设计，以分散撞击能量，降低穿透风险。</li>
-                </ul>
-                <p class="mt-6 text-base text-slate-400 text-center">图示：航天器辐射屏蔽层剖面图。</p>
-                <img src="images/radiation_shielding.png"
-                    alt="航天器辐射屏蔽层剖面图，展示多层材料如何抵御辐射"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-            </div>
-        </div>
-
-        <div class="slide" id="slide-technology-navigation">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">技术之巅：高精度导航与自主运行</h2>
-                <p class="text-xl text-slate-300 mb-4">传统地球基导航方法在远距离精度下降。通信延迟要求航天器具备高度自主性。</p>
-                <p class="text-xl text-slate-300 mb-3"><strong>创新方法与系统：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li><strong>X射线脉冲星导航（XNAV）：：：：</strong> 利用脉冲星发出的高度规律的X射线脉冲信号作为宇宙中的“灯塔”。通过测量来自多个脉冲星信号到达航天器的时间差，可以精确计算航天器的位置和速度，实现自主导航，尤其适用于远离地球的深空环境。</li>
-                    <li><strong>天体光谱测速法：：：：：</strong> 通过分析深空天体（如遥远恒星或星系）光谱中的多普勒频移，来精确测量航天器相对于这些天体的径向速度。结合其他导航数据，可以提高航天器在深空中的速度测量精度。</li>
-                    <li><strong>自主故障检测与纠正系统：：：：：</strong> 航天器搭载先进的机载计算机和人工智能算法，能够实时监控自身健康状况和性能。一旦检测到异常或故障，系统能自动诊断问题，并根据预设规则或学习到的经验采取纠正措施（如切换到冗余系统、重启模块），无需等待地球指令。</li>
-                    <li><strong>人工智能与机器学习辅助决策：：：：：：</strong> 利用AI模型分析海量传感器数据，识别模式，预测未来状态，并辅助航天器在复杂或不确定环境下做出最佳决策，例如优化轨道、调整姿态以规避障碍，或在科学观测中自主选择最有价值的目标。</li>
-                </ul>
-                <p class="mt-6 text-base text-slate-400 text-center">图示：脉冲星导航示意图。</p>
-                <img src="images/xnav_pulsar_navigation.png"
-                    alt="脉冲星导航示意图，展示X射线信号如何被航天器接收并用于定位"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-            </div>
-        </div>
-
-        <div class="slide" id="slide-technology-payloads">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">技术之巅：科学载荷与小型化</h2>
-                <p class="text-xl text-slate-300 mb-4">深空任务的科学广度直接取决于其载荷的质量和功率预算。通过微电子学和材料科学的进步实现科学仪器的小型化，是下一代探测器的关键推动力。</p>
-                <p class="text-xl text-slate-300 mb-3"><strong>边界探索的关键仪器：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li><strong>等离子体探测器：</strong> 测量等离子体的密度、组成、温度、速度，以及太阳风的相互作用。</li>
-                    <li><strong>磁力计：</strong> 探测和测量磁场的强度和方向，对研究日球层和星际磁场至关重要。</li>
-                    <li><strong>宇宙射线子系统（CRS）和低能带电粒子（LECP）探测器：</strong> 测量来自行星磁层和太阳系外源粒子的组成、能量和角分布。</li>
-                    <li><strong>尘埃探测器：</strong> 测量尘埃粒子的数量、速度、质量、电荷、飞行方向和组成，如星际尘埃分析仪（IDA）。</li>
-                    <li><strong>光谱仪：</strong> 通过吸收/发射光谱法分析物质组成，例如紫外成像光谱仪（UVIS）、可见光和红外测绘光谱仪（VIMS）、复合红外光谱仪（CIRS）和离子与中性粒子质谱仪（INMS）。</li>
-                    <li><strong>成像仪：</strong> 用于飞越成像，例如成像科学子系统（ISS）、全景相机（Pancam）和显微成像仪。</li>
-                    <li><strong>高能中性原子（ENA）相机：：</strong> 用于对日球层边界相互作用进行成像。</li>
-                    <li><strong>中性粒子质谱仪（NMS）：：</strong> 用于分析中性粒子组成。</li>
-                    <li><strong>莱曼-阿尔法光谱仪（LYA）：：：</strong> 用于探测氢原子分布。</li>
-                </ul>
-                <p class="text-xl text-slate-300 mt-6 mb-3"><strong>小型化趋势：</strong></p>
-                <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                    <li>微电子学、材料科学和制造技术的进步使得更小、功能更强的卫星和仪器成为可能。</li>
-                    <li>小型化仪器可减少质量和功耗，为其他仪器腾出空间或降低发射成本，从而最大限度地提高单次任务的科学回报。</li>
-                    <li>未来概念甚至包括“晶圆级”航天器，集成光学通信、成像、推进器、电源和传感器。</li>
-                </ul>
-                <p class="mt-6 text-base text-slate-400 text-center">图示：小型化科学仪器阵列的特写图。</p>
-                <img src="images/miniaturized_instruments.png"
-                    alt="小型化科学仪器阵列的特写图，展示其紧凑和集成度"
-                    class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                    onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-            </div>
-        </div>
-
-        <div class="slide" id="slide-nuclear-power-principles">
-            <div class="card text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">⚛️ 未来动力系统原理：互动式学习</h2>
-                <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">
-                    深空探测需要强大而持久的能源与推进系统。在这里，我们将互动式地探索四种关键的核动力与推进技术的基本原理、优势和挑战，它们是人类迈向星际空间的基石。
-                </p>
-
-                <div class="flex flex-wrap justify-center mb-8" id="systemTabs">
-                    <button class="tab-button active" data-system="RTG">放射性同位素热电发生器 (RTG)</button>
-                    <button class="tab-button" data-system="SRG">斯特林放射性同位素发生器 (SRG)</button>
-                    <button class="tab-button" data-system="NTP">核热推进 (NTP)</button>
-                    <button class="tab-button" data-system="NEP">核电推进 (NEP)</button>
-                </div>
-
-                <div id="systemContent">
-                    <div class="content-box active p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-inner" data-content="RTG">
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">放射性同位素热电发生器 (RTG)</h3>
-                        <div class="visual-representation">
-                            ☢️ ➡️ 🔥 ➡️ ⚡
-                        </div>
-                        <canvas id="rtg3DCanvas" class="nuclear-power-canvas"></canvas>
-                        <p class="mt-4 text-base text-slate-400 text-center">图表：RTG 3D模型，展示其将热能转化为电能的过程。</p>
-                        <p class="text-lg text-slate-300 mb-4"><strong>基本原理：：</strong> RTG利用放射性同位素（如钚-238）衰变过程中释放的热量。这些热量通过温差电材料（如热电偶）直接转化为电能，这一过程称为塞贝克效应。</p>
-                        <p class="key-points text-lg text-slate-300 mb-3"><strong>优势：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>长寿命：</strong> 只要放射性同位素持续衰变，就能提供稳定电力，任务寿命可达数十年（如旅行者号）。</li>
-                            <li><strong>高可靠性：：</strong> 无需移动部件，结构简单，故障率低。</li>
-                            <li><strong>环境适应性强：：：：</strong> 不依赖阳光，可在远离太阳的深空、行星表面或大气层中运行。</li>
-                        </ul>
-                        <p class="disadvantages text-lg text-slate-300 mb-3"><strong>挑战/局限：：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>功率有限且衰减：：</strong> 功率输出相对较低，且会随同位素衰变而逐年下降（例如，新视野号RTG每年衰减约3.2瓦）。</li>
-                            <li><strong>燃料稀缺与成本：：：：</strong> 钚-238等燃料生产复杂、成本高昂且供应有限。</li>
-                            <li><strong>放射性风险：：：：：</strong> 存在放射性物质，需要严格的安全措施。</li>
-                        </ul>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">成立</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">142 天</p>
                     </div>
-
-                    <div class="content-box hidden p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-inner" data-content="SRG">
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">斯特林放射性同位素发生器 (SRG)</h3>
-                        <div class="visual-representation">
-                            ☢️ ➡️ 🔥 ➡️ ⚙️ ➡️ ⚡
-                        </div>
-                        <canvas id="srg3DCanvas" class="nuclear-power-canvas"></canvas>
-                        <p class="mt-4 text-base text-slate-400 text-center">图表：SRG 3D模型，展示其通过斯特林发动机将热能转化为电能的过程。</p>
-                        <p class="text-lg text-slate-300 mb-4"><strong>基本原理：：</strong> SRG同样利用放射性同位素衰变的热量。但它通过斯特林发动机（一种外部燃烧发动机）将热能转化为机械能，再由线性发电机将机械能转化为电能。斯特林循环通过加热和冷却气体来驱动活塞运动。</p>
-                        <p class="key-points text-lg text-slate-300 mb-3"><strong>优势：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>高效率：：</strong> 能量转换效率远高于传统RTG，能从相同燃料中产生更多电能（约RTG的四倍）。</li>
-                            <li><strong>延长任务寿命/支持更多仪器：：：：</strong> 更高的效率意味着更长的任务持续时间或支持更多高功耗科学仪器。</li>
-                            <li><strong>振动小：：：：：</strong> 线性斯特林发动机振动小，对精密仪器影响小。</li>
-                        </ul>
-                        <p class="disadvantages text-lg text-slate-300 mb-3"><strong>挑战/局限：：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>技术复杂性：：：：：</strong> 包含移动部件，结构比RTG复杂，对制造精度要求高。</li>
-                            <li><strong>可靠性验证：：：：：：</strong> 作为相对较新的技术，需要更多空间任务验证其长期可靠性。</li>
-                            <li><strong>放射性风险：：：：：：：</strong> 同样涉及放射性物质。</li>
-                        </ul>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">文章</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">22 篇</p>
                     </div>
-
-                    <div class="content-box hidden p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-inner" data-content="NTP">
-                        <h3>核热推进 (NTP)</h3>
-                        <div class="visual-representation">
-                            ⚛️ ➡️ 🔥 ➕ 💧 ➡️ 💨 ➡️ 🚀
-                        </div>
-                        <canvas id="ntp3DCanvas" class="nuclear-power-canvas"></canvas>
-                        <p class="mt-4 text-base text-slate-400 text-center">图表：NTP 3D模型，展示其通过核反应堆加热推进剂产生推力的过程。</p>
-                        <p class="text-lg text-slate-300 mb-4"><strong>基本原理：：</strong> NTP利用核反应堆产生的高温加热液态推进剂（通常是液氢）。被加热的推进剂膨胀成高温高压气体，然后通过喷管高速喷出，产生巨大推力，推动航天器前进。</p>
-                        <p class="key-points text-lg text-slate-300 mb-3"><strong>优势：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>高比冲：：：：</strong> 比冲（衡量推进效率的指标）是化学火箭的两倍，意味着相同燃料可产生更长时间的推力或达到更高速度。</li>
-                            <li><strong>缩短旅行时间：：：：：</strong> 能显著缩短深空旅行时间，例如将火星任务时间从数月缩短至数周。</li>
-                            <li><strong>高推力：：：：：：</strong> 相比电推进，NTP能提供更大的推力，适合快速离轨和行星际转移。</li>
-                        </ul>
-                        <p class="disadvantages text-lg text-slate-300 mb-3"><strong>挑战/局限：：：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>技术复杂性：：：：：：</strong> 核反应堆设计、高温材料和推进剂管理复杂。</li>
-                            <li><strong>安全性：：：：：：：</strong> 涉及核反应堆的发射和运行安全，需要严格的防护措施。</li>
-                            <li><strong>燃料储存：：：：：：：：：</strong> 液氢需要极低温储存，增加了系统复杂性和质量。</li>
-                        </ul>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">评论</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">450 条</p>
                     </div>
-
-                    <div class="content-box hidden p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-inner" data-content="NEP">
-                        <h3>核电推进 (NEP)</h3>
-                        <div class="visual-representation">
-                            ⚛️ ➡️ ⚡ ➕ 💨 ➡️ ✨ ➡️ 🚀
-                        </div>
-                        <canvas id="nep3DCanvas" class="nuclear-power-canvas"></canvas>
-                        <p class="mt-4 text-base text-slate-400 text-center">图表：NEP 3D模型，展示其通过核反应堆发电并驱动离子推力器产生推力的过程。</p>
-                        <p class="text-lg text-slate-300 mb-4"><strong>基本原理：：</strong> NEP系统使用核反应堆发电，然后将电力用于驱动电推力器（如离子推力器）。电推力器通过电离惰性气体（如氙）并用电磁场加速离子，产生微小但持续的推力。</p>
-                        <p class="key-points text-lg text-slate-300 mb-3"><strong>优势：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>极高比冲：：：：</strong> 比冲远超化学推进和核热推进，燃料效率极高，显著减少所需推进剂质量。</li>
-                            <li><strong>高最终速度：：：：：</strong> 能够长时间持续加速，使得航天器能以极高的速度抵达遥远目的地。</li>
-                            <li><strong>多任务能力：：：：：：</strong> 强大的电力可同时支持推进和高功耗科学仪器。</li>
-                        </ul>
-                        <p class="disadvantages text-lg text-slate-300 mb-3"><strong>挑战/局限：：：：</strong></p>
-                        <ul class="text-left list-disc list-inside text-slate-300 space-y-2 pl-4">
-                            <li><strong>推力小：：：：：：：</strong> 推力非常小，不适合快速离轨或大质量航天器。需要长时间才能达到高速度。</li>
-                            <li><strong>反应堆与电力系统：：：：：：：</strong> 需要高效、紧凑且可靠的核反应堆和电力转换系统。</li>
-                            <li><strong>安全性：：：：：：：：</strong> 同样涉及核反应堆的发射和运行安全。</li>
-                        </ul>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">标签</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">25 个</p>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="slide" id="slide-pioneers-voyager">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">先行者之路：旅行者号</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
+                    <img src="https://placehold.co/200x120/c0c0c0/ffffff?text=Article+Image+1" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
                     <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">旅行者号：星际信使</h3>
-                        <p class="text-lg text-slate-300 mb-3">1977年发射，首次飞越所有四颗外行星，并率先进入星际空间。</p>
-                        <p class="text-lg text-slate-300 mb-2"><strong>运行寿命:</strong> <span id="voyagerLifespan" class="font-bold text-blue-300">45+</span> 年</p>
-                        <p class="text-lg text-slate-300"><strong>关键成就:</strong> 发现木卫一火山、木卫二海洋潜力，直接测量星际介质。</p>
-                        <ul class="list-disc list-inside text-slate-300 space-y-2 mt-4 pl-4">
-                            <li><strong>穿越日球层顶：：</strong> 旅行者1号于2012年，旅行者2号于2018年相继穿越日球层顶，首次直接测量了星际空间的环境。</li>
-                            <li><strong>星际磁场：：：：</strong> 探测到磁场强度显著增加，且方向与日球层内部磁场不同，证实了进入星际空间。</li>
-                            <li><strong>宇宙射线：：：：：：</strong> 银河宇宙射线（GCRs）强度急剧增加，而太阳系内部的太阳宇宙射线则几乎消失。</li>
-                            <li><strong>星际等离子体：：：：：：：</strong> 首次直接测量到星际等离子体的密度，发现其比日球层内部稀薄但温度更高。</li>
-                            <li><strong>日球层形状：：：：：：：：</strong> 通过对日球层顶内外粒子和磁场的测量，帮助科学家更好地理解日球层的真实形状和与星际介质的相互作用。</li>
-                            <li><strong>克服挑战：</strong> 曾遭遇主推进器失效、备用系统堵塞和通信数据乱码等问题，但通过团队的创造性努力和冗余设计成功解决。</li>
-                        </ul>
-                        <p class="mt-6 text-base text-slate-400 text-center">图示：旅行者号探测器的艺术概念图。</p>
-                        <img src="images/voyager_probe.png"
-                            alt="旅行者号探测器的艺术概念图"
-                            class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">临近期末的近况</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">从今天开始励志当一个高级前端工程师！</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-12-16</p>
                     </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
+                    <img src="https://placehold.co/200x120/b0b0b0/ffffff?text=Article+Image+2" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
                     <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-8 text-center">任务里程碑时间线</h3>
-                        <div class="timeline max-w-3xl mx-auto">
-                            <div class="timeline-item">
-                                <div class="timeline-icon">🚀</div>
-                                <h4 class="font-semibold text-blue-300">1977: 旅行者1号与2号发射</h4>
-                                <p class="text-base text-slate-400">开启对外太阳系巨行星的首次详细探测。</p>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-icon">🪐</div>
-                                <h4 class="font-semibold text-blue-300">1979-1989: 旅行者号飞越木、土、天、海</h4>
-                                <p class="text-base text-slate-400">揭示了行星系统众多新特征。</p>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-icon">🌌</div>
-                                <h4 class="font-semibold text-blue-300">2012 & 2018: 旅行者1号与2号进入星际空间</h4>
-                                <p class="text-base text-slate-400">成为首批飞出日球层顶的人造物体。</p>
-                            </div>
-                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">新跑表 - 华为 GT Runner</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">SUGUBO OSAKO</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-12-04</p>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="slide" id="slide-pioneers-new-horizons">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">先行者之路：新视野号</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
+                    <img src="https://placehold.co/200x120/a0a0a0/ffffff?text=Article+Image+3" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
                     <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">新视野号：柯伊伯带先锋</h3>
-                        <p class="text-lg text-slate-300 mb-3">2006年发射，首次近距离探测冥王星和柯伊伯带天体阿罗科斯。</p>
-                        <p class="text-lg text-slate-300 mb-2"><strong>冥王星数据回传:</strong> <span class="font-bold text-blue-300">15+</span> 个月</p>
-                        <p class="text-lg text-slate-300"><strong>关键成就:</strong> 揭示冥王星复杂地貌，探测最遥远天体。</p>
-                        <ul class="list-disc list-inside text-slate-300 space-y-2 mt-4 pl-4">
-                            <li><strong>飞越冥王星：</strong> 2015年首次近距离飞越冥王星及其五颗卫星，揭示了其复杂的表面地貌和直径。</li>
-                            <li><strong>飞越阿罗科斯：：</strong> 2019年飞越了阿罗科斯（2014 MU69），提供了原始星子的宝贵数据。</li>
-                            <li><strong>任务设计与故障应对：：</strong> 利用木星引力辅助缩短旅行时间。在冥王星飞越前曾遭遇计算机异常，但通过冗余系统和团队快速响应成功恢复。</li>
-                            <li><strong>数据回传挑战：：：：</strong> 由于距离遥远和传输速率限制，冥王星的6.25GB数据回传耗时超过15个月。</li>
-                        </ul>
-                        <p class="mt-6 text-base text-slate-400 text-center">图示：新视野号探测器的艺术概念图。</p>
-                        <img src="images/new_horizons_probe.png"
-                            alt="新视野号探测器的艺术概念图"
-                            class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">ZYYO 一款个人类型 typecho 主题</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3"># 实践</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-11-06</p>
                     </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
+                    <img src="https://placehold.co/200x120/909090/ffffff?text=Article+Image+4" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
                     <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-8 text-center">任务里程碑时间线 (续)</h3>
-                        <div class="timeline max-w-3xl mx-auto">
-                            <div class="timeline-item">
-                                <div class="timeline-icon">🚀</div>
-                                <h4 class="font-semibold text-blue-300">2006: 新视野号发射</h4>
-                                <p class="text-base text-slate-400">目标冥王星和柯伊伯带。</p>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-icon">🧊</div>
-                                <h4 class="font-semibold text-blue-300">2015: 新视野号飞越冥王星</h4>
-                                <p class="text-base text-slate-400">揭示了冥王星的复杂地质。</p>
-                            </div>
-                             <div class="timeline-item">
-                                <div class="timeline-icon">☄️</div>
-                                <h4 class="font-semibold text-blue-300">2019: 新视野号飞越阿罗科斯</h4>
-                                <p class="text-base text-slate-400">近距离探测最遥远的原始星子。</p>
-                            </div>
-                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">进大学第一天小记</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3"># 记录点滴</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-09-03</p>
                     </div>
+                </div>
+
+                <div class="flex justify-center items-center space-x-2 mt-8">
+                    <button class="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold shadow-md hover:bg-blue-700 transition duration-300 btn-primary">1</button>
+                    <button class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 btn-primary">2</button>
+                    <button class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 btn-primary">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         </div>
+    </main>
 
-        <div class="slide" id="slide-voyager-special">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">🚀 旅行者号专题：星际探索的传奇</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    深入了解旅行者1号和2号这两艘人类历史上最伟大的探测器。点击时间轴上的事件，探索它们的里程碑和开创性科学发现。
-                </p>
-                <div class="max-w-3xl mx-auto">
-                    <h3 class="text-3xl font-semibold text-blue-400 mb-8 text-center">旅行者号任务时间轴与发现</h3>
-                    <div class="timeline" id="voyagerTimeline">
-                        </div>
-                    <div id="voyagerDetailArea" class="hidden">
-                        <h3 id="voyagerDetailTitle"></h3>
-                        <p id="voyagerDetailDescription"></p>
-                        <div id="voyagerDetailDiscoveries">
-                            <h4 class="font-semibold text-blue-300 mt-5 mb-3">主要科学发现：</h4>
-                            <ul id="voyagerDiscoveriesList"></ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <footer class="bg-gray-800 text-white py-8 mt-12 dark:bg-gray-900">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">我的主页 © 2024</p>
+            <p class="mb-2">你的备案号 (如果需要)</p>
+            <p class="text-sm">Designed by <a href="#" class="text-blue-400 hover:underline">你的名字</a></p>
+            <p class="text-sm">Powered by HTML/CSS/Three.js</p>
         </div>
-
-        <div class="slide" id="slide-china-action">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">中国行动：迈向深空的步伐</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    中国在深空探测领域取得了举世瞩目的成就，这些探索不仅拓展了人类的认知边界，也为未来更遥远的太阳系边际探测奠定了坚实的技术和科学基础。
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-                    <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">月球与火星探测：深空技术基石</h3>
-                        <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                            <li><strong>嫦娥系列月球任务：：</strong> 成功实现了绕月探测、月球软着陆、巡视探测以及月球采样返回。这些任务积累了远距离测控通信、自主导航、长期能源保障等关键深空技术，为未来更远距离的探测提供了宝贵经验。</li>
-                            <li><strong>天问一号火星任务：：：</strong> 一次性实现“绕、落、巡”三大目标，祝融号火星车开展巡视探测。火星任务对深空通信延迟、极端环境生存和自主运行提出了更高要求，其成功是中国深空探测能力的重要体现。</li>
-                        </ul>
-                        <p class="mt-6 text-base text-slate-400 text-center">图示：中国月球或火星探测器艺术概念图。</p>
-                        <img src="images/chinese_probe_concept.png"
-                            alt="中国月球或火星探测器艺术概念图"
-                            class="w-full h-auto rounded-lg shadow-lg mt-4 mb-4 object-cover"
-                            onerror="this.onerror=null;this.src='https://placehold.co/600x400/2d3748/cbd5e1?text=图片加载失败';">
-                    </div>
-                    <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">迈向太阳系边际的未来展望</h3>
-                        <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                            <li><strong>小行星探测：：</strong> 正在规划中的小行星探测任务，将进一步验证和发展深空自主导航、精确交会与伴飞等技术，这些对于未来探测柯伊伯带等小型天体至关重要。</li>
-                            <li><strong>木星系探测：：：：</strong> 对木星及其卫星的探测任务也在论证和规划中。木星系距离遥远，辐射环境复杂，对航天器的能源、通信和抗辐射能力提出严峻挑战，这些技术突破将直接服务于未来的太阳系边际探测。</li>
-                            <li><strong>星际探测概念：：：：：</strong> 中国科学家也正在积极探讨和论证更远期的星际探测任务概念，旨在深入日球层顶和星际空间，探索太阳系真正的边界。</li>
-                        </ul>
-                    </div>
-                </div>
-                <p class="text-xl text-slate-300 mt-8 text-center">
-                    中国深空探测坚持自主创新与开放合作并重，积极推动国际交流与合作，共同应对深空探索的挑战，为构建人类命运共同体贡献力量。
-                </p>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-future">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-10 text-center">未来征程：太阳系边际探测新纪元</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    基于现有成就，未来的深空任务将更加雄心勃勃，旨在深入星际介质，探索太阳系外围的更多未知，并可能带来关于宇宙基本性质和生命普遍性的突破性发现。
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-                    <div>
-                        <h3 class="text-3xl font-semibold text-blue-400 mb-6">概念任务与前沿探测器</h3>
-                        <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4 text-lg">
-                            <li><strong>“星际探测器”计划:</strong> NASA正在考虑开发，旨在超越旅行者号，深入星际介质，从外部对日球层成像，预计需要50年或更长时间才能到达。</li>
-                            <li><strong>“星际日球层顶探测器”（IHP）概念:</strong> 欧洲空间局（ESA）的类似概念，目标是在25年内到达200 AU，计划使用太阳帆或核电推进技术。</li>
-                            <li><strong>彗星拦截器:</strong> 预计2029年发射，飞越奥尔特云彗星。</li>
-                            <li><strong>天王星/海王星探测任务:</strong> 未来可能对冰巨行星进行专门探测。</li>
-                            <li><strong>木星冰卫星探测器 (JUICE) / 欧罗巴快船:</strong> 正在进行中，研究木星冰卫星的宜居潜力。</li>
-                        </ul>
-                        <p class="text-lg text-slate-300 mt-6">未来的任务旨在提供对星际介质及其与日球层相互作用更全面的理解，超越仅仅的粒子计数，深入到详细的成分、磁场和动态过程。</p>
-                    </div>
-                    <div class="chart-container mx-auto h-80 bg-gray-800 p-4 rounded-lg shadow-inner">
-                        <canvas id="futureProbeCapabilitiesChart"></canvas>
-                    </div>
-                </div>
-                <p class="mt-4 text-base text-slate-400 text-center">图表：未来“星际探测器”概念与“旅行者号”在关键能力上的对比。</p>
-                <p class="text-lg text-slate-300 mt-8">未来的探测器将配备更先进的科学仪器，例如IMAP仪器套件，能够测量高能中性原子、宇宙尘埃组成等，提供前所未有的详细数据。国际合作在这些复杂且耗资巨大的任务中也变得越来越重要。</p>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-design-probe">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 text-center">🛠️ 设计你的太阳系边缘探测器</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    发挥你的想象力，从零开始设计一个属于你自己的太阳系边缘探测器！选择任务目标、动力系统、推进系统、通信方式和科学仪器，看看你的设计能飞多远，发现什么！
-                </p>
-
-                <div class="design-step">
-                    <h3>第一步：选择任务目标</h3>
-                    <div class="space-y-4" id="missionGoalOptions">
-                        <label class="component-option" data-type="mission" data-value="Kuiper Belt Flyby">
-                            <input type="radio" name="missionGoal" value="Kuiper Belt Flyby">
-                            <div class="component-info">
-                                <strong>柯伊伯带飞越探测</strong>
-                                <p class="text-base text-slate-400">目标：近距离飞越多个柯伊伯带天体，研究其表面特征和组成。</p>
-                                <div class="component-stats">科学产出: 中 | 距离: ~50-100 AU | 任务时长: 中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="mission" data-value="Interstellar Medium In-situ">
-                            <input type="radio" name="missionGoal" value="Interstellar Medium In-situ">
-                            <div class="component-info">
-                                <strong>星际介质原位探测</strong>
-                                <p class="text-base text-slate-400">目标：穿越日球层顶，直接测量局部星际介质的粒子、磁场和尘埃。</p>
-                                <div class="component-stats">科学产出: 高 | 距离: >150 AU | 任务时长: 长</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="mission" data-value="Oort Cloud Exploration">
-                            <input type="radio" name="missionGoal" value="Oort Cloud Exploration">
-                            <div class="component-info">
-                                <strong>奥尔特云深度探索</strong>
-                                <p class="text-base text-slate-400">目标：抵达奥尔特云，首次直接探测其冰质天体，揭示太阳系起源奥秘。</p>
-                                <div class="component-stats">科学产出: 极高 | 距离: >3000 AU | 任务时长: 极长</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="design-step">
-                    <h3>第二步：选择动力系统</h3>
-                    <div class="space-y-4" id="powerSystemOptions">
-                        <label class="component-option" data-type="power" data-value="RTG">
-                            <input type="radio" name="powerSystem" value="RTG">
-                            <div class="component-info">
-                                <strong>放射性同位素热电发生器 (RTG)</strong>
-                                <p class="text-base text-slate-400">成熟可靠，但功率有限且逐年衰减。燃料供应稀缺。</p>
-                                <div class="component-stats">功率: 稳定中低 | 寿命: 数十年 | 成本: 中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="power" data-value="ASRG">
-                            <input type="radio" name="powerSystem" value="ASRG">
-                            <div class="component-info">
-                                <strong>先进斯特林放射性同位素发生器 (ASRG)</strong>
-                                <p class="text-base text-slate-400">比RTG效率更高，相同燃料产生更多电能，但技术相对较新，有移动部件。</p>
-                                <div class="component-stats">功率: 稳定中高 | 寿命: 数十年 | 成本: 较高</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="power" data-value="Small Fission Power System">
-                            <input type="radio" name="powerSystem" value="Small Fission Power System">
-                            <div class="component-info">
-                                <strong>小型裂变电源系统 (FPS)</strong>
-                                <p class="text-base text-slate-400">提供强大且持续的电力，支持高功耗仪器和通信。复杂且成本高昂。</p>
-                                <div class="component-stats">功率: 稳定高 | 寿命: 极长 | 成本: 极高</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="design-step">
-                    <h3>第三步：选择推进系统</h3>
-                    <div class="space-y-4" id="propulsionSystemOptions">
-                        <label class="component-option" data-type="propulsion" data-value="Chemical Propulsion">
-                            <input type="radio" name="propulsionSystem" value="Chemical Propulsion">
-                            <div class="component-info">
-                                <strong>化学推进</strong>
-                                <p class="text-base text-slate-400">推力大，适合短期加速和轨道修正，但燃料消耗快，不适合超远距离加速。</p>
-                                <div class="component-stats">加速能力: 强 | 燃料效率: 低 | 适合距离: 近中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="propulsion" data-value="Ion Thruster">
-                            <input type="radio" name="propulsionSystem" value="Ion Thruster">
-                            <div class="component-info">
-                                <strong>离子推力器</strong>
-                                <p class="text-base text-slate-400">比冲高，燃料效率极高，适合长期缓慢加速以达到极高速度。推力小。</p>
-                                <div class="component-stats">加速能力: 慢 | 燃料效率: 极高 | 适合距离: 远</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="propulsion" data-value="Nuclear Thermal Propulsion">
-                            <input type="radio" name="propulsionSystem" value="Nuclear Thermal Propulsion">
-                            <div class="component-info">
-                                <strong>核热推进 (NTP)</strong>
-                                <p class="text-base text-slate-400">高推力，高比冲，能显著缩短深空旅行时间。技术复杂，安全性要求高。</p>
-                                <div class="component-stats">加速能力: 极强 | 燃料效率: 高 | 适合距离: 远</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="propulsion" data-value="Solar Sail">
-                            <input type="radio" name="propulsionSystem" value="Solar Sail">
-                            <div class="component-info">
-                                <strong>太阳帆</strong>
-                                <p class="text-base text-slate-400">无需燃料，利用光压加速。初期加速慢，但可无限加速。需要大面积薄膜。</p>
-                                <div class="component-stats">加速能力: 极慢 | 燃料效率: 无限 | 适合距离: 极远</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="design-step">
-                    <h3>第四步：选择通信系统</h3>
-                    <div class="space-y-4" id="communicationSystemOptions">
-                        <label class="component-option" data-type="communication" data-value="Radio (DSN)">
-                            <input type="radio" name="communicationSystem" value="Radio (DSN)">
-                            <div class="component-info">
-                                <strong>无线电 (深空网络)</strong>
-                                <p class="text-base text-slate-400">成熟可靠，但数据速率随距离衰减快，延迟长。带宽有限。</p>
-                                <div class="component-stats">数据速率: 低 | 延迟: 长 | 成本: 中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="communication" data-value="Optical Communication">
-                            <input type="radio" name="communicationSystem" value="Optical Communication">
-                            <div class="component-info">
-                                <strong>光学通信 (激光)</strong>
-                                <p class="text-base text-slate-400">数据速率极高，但需要高精度指向和晴朗天气，技术较新。对齐要求高。</p>
-                                <div class="component-stats">数据速率: 极高 | 延迟: 长 | 成本: 较高</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="design-step">
-                    <h3>第五步：选择科学仪器</h3>
-                    <div class="space-y-4" id="instrumentOptions">
-                        <label class="component-option" data-type="instrument" data-value="Plasma Spectrometer & Magnetometer">
-                            <input type="radio" name="instrument" value="Plasma Spectrometer & Magnetometer">
-                            <div class="component-info">
-                                <strong>等离子体光谱仪 & 磁力计</strong>
-                                <p class="text-base text-slate-400">核心载荷，测量粒子和磁场，对日球层和星际介质研究至关重要。</p>
-                                <div class="component-stats">科学价值: 高 | 功耗: 中 | 质量: 中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="instrument" data-value="Dust Analyzer & Imaging System">
-                            <input type="radio" name="instrument" value="Dust Analyzer & Imaging System">
-                            <div class="component-info">
-                                <strong>尘埃分析仪 & 成像系统</strong>
-                                <p class="text-base text-slate-400">分析星际尘埃和天体图像，对柯伊伯带/奥尔特云天体形态学研究有益。</p>
-                                <div class="component-stats">科学价值: 高 | 功耗: 高 | 质量: 高</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="instrument" data-value="Advanced Cosmic Ray Subsystem">
-                            <input type="radio" name="instrument" value="Advanced Cosmic Ray Subsystem">
-                            <div class="component-info">
-                                <strong>先进宇宙射线子系统 (CRS)</strong>
-                                <p class="text-base text-slate-400">精确测量高能宇宙射线，理解其起源和日球层调制作用。</p>
-                                <div class="component-stats">科学价值: 极高 | 功耗: 中 | 质量: 中</div>
-                            </div>
-                        </label>
-                        <label class="component-option" data-type="instrument" data-value="Neutral Mass Spectrometer & LYA Spectrometer">
-                            <input type="radio" name="instrument" value="Neutral Mass Spectrometer & LYA Spectrometer">
-                            <div class="component-info">
-                                <strong>中性粒子质谱仪 & LYA光谱仪</strong>
-                                <p class="text-base text-slate-400">分析中性粒子和氢原子分布，探测星际介质的精细结构。</p>
-                                <div class="component-stats">科学价值: 高 | 功耗: 中 | 质量: 中</div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <button id="generateProbeDesignBtn" class="llm-button mx-auto mt-10">
-                    <span id="designSpinner" class="loading-spinner hidden"></span>
-                    <span id="designButtonText">生成探测器设计</span>
-                </button>
-
-                <div id="probeSummary" class="hidden">
-                    <h3 class="text-3xl font-semibold mb-6">你的探测器设计：</h3>
-                    <p class="mb-3 text-lg"><strong>任务目标：</strong> <span id="summaryMissionGoal"></span></p>
-                    <p class="mb-3 text-lg"><strong>动力系统：：</strong> <span id="summaryPowerSystem"></span></p>
-                    <p class="mb-3 text-lg"><strong>推进系统：：</strong> <span id="summaryPropulsionSystem"></span></p>
-                    <p class="mb-3 text-lg"><strong>通信系统：：</strong> <span id="summaryCommunicationSystem"></span></p>
-                    <p class="mb-3 text-lg"><strong>科学仪器：：</strong> <span id="summaryInstrument"></span></p>
-                    <div id="totalScore" class="mt-6">总分：<span id="scoreValue">0</span></div>
-                    <div id="designFeedback" class="mt-6">
-                        <p class="text-lg"><strong>设计评估：：</strong></p>
-                        <p id="feedbackContent" class="mt-3 text-lg"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-probe-simulation">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 text-center">🎮 自主探测器模拟：星际之旅</h2>
-                <p class="text-xl text-slate-300 mb-10 text-center max-w-4xl mx-auto">
-                    你是一个自主探测器，被派往太阳系边缘执行任务。你的目标是尽可能深入星际空间，收集科学数据，并克服各种挑战。祝你好运，星际旅行者！
-                </p>
-
-                <div class="simulation-status">
-                    <p><strong>当前距离：</strong> <span id="simDistance">100</span> AU</p>
-                    <p><strong>能量剩余：：</strong> <span id="simPower">100</span> %</p>
-                    <p><strong>健康状况：：</strong> <span id="simHealth">100</span> %</p>
-                    <p><strong>数据收集：：：</strong> <span id="simData">0</span> 单位</p>
-                    <p class="col-span-2"><strong>任务得分：：：</strong> <span id="simMissionScore">0</span> 分</p>
-                </div>
-
-                <div id="simulationEventDisplay" class="simulation-event hidden">
-                    <p><strong>事件：</strong> <span id="simEventName"></span></p>
-                    <p><span id="simEventDescription"></span></p>
-                    <div id="simulationChoices" class="mt-5 simulation-choices">
-                        </div>
-                </div>
-
-                <div id="simulationResultDisplay" class="simulation-result hidden">
-                    <p><strong>结果：：：</strong> <span id="simResultDetails"></span></p>
-                </div>
-
-                <div id="simulationEndDisplay" class="hidden">
-                    </div>
-
-                <div class="flex justify-center mt-10 space-x-6">
-                    <button id="startSimulationBtn" class="llm-button">开始模拟</button>
-                    <button id="nextEventBtn" class="llm-button hidden">下一个事件</button>
-                    <button id="resetSimulationBtn" class="llm-button hidden bg-red-500 hover:bg-red-600">重新开始</button>
-                </div>
-
-                <div class="simulation-log mt-8">
-                    <h3 class="font-semibold text-blue-400 mb-4">任务日志：：</h3>
-                    <div id="simLogContent">
-                        <p class="text-slate-400">等待模拟开始...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-mission-inspiration">
-            <div class="card">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 text-center">✨ 任务灵感</h2>
-                <p class="text-xl text-slate-300 mb-6 text-center max-w-4xl mx-auto">
-                    输入一个简单的任务想法（例如：探测奥尔特云中的冰质天体），让AI为您构想一个未来任务！
-                </p>
-                <textarea id="missionConceptInput" class="llm-textarea mb-6" rows="3" placeholder="例如：探测奥尔特云中的冰质天体"></textarea>
-                <button id="generateMissionConceptBtn" class="llm-button mx-auto">
-                    <span id="missionSpinner" class="loading-spinner hidden"></span>
-                    <span id="missionButtonText">生成构想</span>
-                </button>
-                <div id="missionConceptOutput" class="mt-8 p-6 bg-gray-800 rounded-xl border border-blue-700 text-slate-300 min-h-[150px] shadow-inner">
-                    <p class="text-slate-400 text-center">任务构想将显示在此处。</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-fact-generator">
-            <div class="card text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">💡 趣味事实</h2>
-                <p class="text-xl text-slate-300 mb-6 max-w-4xl mx-auto">
-                    点击按钮，获取一个关于太阳系边际探测的随机趣味事实！
-                </p>
-                <button id="generateFactBtn" class="llm-button mx-auto">
-                    <span id="factSpinner" class="loading-spinner hidden"></span>
-                    <span id="factButtonText">生成趣味事实</span>
-                </button>
-                <div id="factOutput" class="mt-8 p-6 bg-gray-800 rounded-xl border border-blue-700 text-slate-300 min-h-[100px] flex items-center justify-center shadow-inner">
-                    <p class="text-slate-400 text-center">点击上方按钮获取事实。</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="slide" id="slide-conclusion">
-            <div class="card text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">结语：无尽的前沿</h2>
-                <p class="text-xl text-slate-300 leading-relaxed max-w-4xl mx-auto">
-                    太阳系边际的探索是人类对未知世界永恒好奇心的体现，它不仅拓展了我们对宇宙的认知边界，更提供了理解太阳系形成、演化以及生命起源的关键线索。从柯伊伯带中原始星子的残余，到奥尔特云中彗星的摇篮，再到日球层作为抵御星际宇宙射线的宇宙盾牌，每一次探测都加深了我们对自身在宇宙中位置的理解。这些遥远区域的物质组成和动力学特性，直接反映了早期行星形成过程的细节，而日球层对生命条件的塑造作用，则将地球的宜居性与更广阔的宇宙环境紧密相连。通过研究这些独特的“宇宙实验室”，我们能够推断出适用于其他恒星系统和整个银河系的普遍规律，从而更接近解答“我们在宇宙中是否孤独”这一终极问题。
-                </p>
-                <p class="text-xl text-slate-300 leading-relaxed max-w-4xl mx-auto mt-6">
-                    尽管深空探索面临着严峻的技术挑战，包括超远距离通信的信号衰减和延迟、极端环境下的航天器生存、高精度导航的复杂性以及长寿命能源系统的需求，但人类的智慧和创新精神正不断突破这些极限。旅行者号和新视野号的成功经验，特别是其冗余设计、自主故障保护能力以及任务团队的创造性和适应性，为未来的任务奠定了坚实基础。核电推进、深空光通信、先进材料和仪器小型化等前沿技术的发展，预示着一个更加雄心勃勃的深空探索新纪元。这些努力不仅服务于纯粹的科学发现，也推动了地球上的技术进步，例如GPS技术、太阳能电池板和应急信标等，都源于空间探索的需求。这种持续的探索，激发了全人类对宇宙的共同愿景，并不断拓展着人类文明的边界。
-                </p>
-                <div class="mt-10 p-8 bg-gray-800 rounded-xl border border-blue-700 shadow-xl text-left">
-                    <h3 class="text-3xl font-semibold text-blue-400 mb-6 text-center">核心发现与行动建议</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="text-2xl font-semibold text-blue-300 mb-4">核心发现：</h4>
-                            <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4">
-                                <li><strong>日球层作为动态边界：</strong> 其与星际介质的动态相互作用塑造着内部环境，现有探测器未能充分测量关键的等离子体组成（如拾取离子）。</li>
-                                <li><strong>柯伊伯带的未解之谜：</strong> 真实天体数量、尘埃生产机制以及离散天体起源仍是悬而未决的问题。</li>
-                                <li><strong>奥尔特云的理论性：</strong> 缺乏直接观测数据来验证其形成、演化和确切组成。</li>
-                                <li><strong>星际介质的关键影响：：</strong> 其组成和特性直接影响日球层的形状、大小和保护能力。</li>
-                                <li><strong>技术瓶颈与机遇：：</strong> 现有探测器无法满足未来高分辨率、高数据量、长寿命的深空探测需求，但新兴技术提供了突破可能。</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="text-2xl font-semibold text-blue-300 mb-4">行动建议：</h4>
-                            <ul class="list-disc list-inside text-slate-300 space-y-3 pl-4">
-                                <li><strong>优先发展先进推进系统：：</strong> 投入研发核电推进（NEP）和太阳帆技术，优化引力辅助与有动力近日点机动的混合轨道设计。</li>
-                                <li><strong>确保长期电源供应：：：</strong> 加大对先进斯特林放射性同位素发生器（ASRG）的研发和飞行验证，探索小型裂变电源系统。</li>
-                                <li><strong>加速深空光通信技术部署：：：</strong> 将DSOC作为下一代深空任务的标配，优化激光指向精度、抗干扰能力和地面接收基础设施。</li>
-                                <li><strong>推进材料科学与工程创新：：：：</strong> 研发耐极端环境的新型材料，优化热控系统设计。</li>
-                                <li><strong>集成小型化、多功能科学载荷：：：：：：</strong> 开发小型化、低功耗但高灵敏度的科学仪器，实现多学科交叉的科学目标。</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="slide-navigation">
-        <button id="prevSlideBtn" class="slide-button" disabled>上一页</button>
-        <span id="slideIndicator" class="slide-indicator">1 / 23</span>
-        <button id="nextSlideBtn" class="slide-button">下一页</button>
-    </div>
+    </footer>
 
     <script>
-        // --- 演示逻辑 (Presentation Logic) ---
-        var slides = [
-            'slide-blueprint',
-            'slide-boundaries',
-            'slide-scaled-map',
-            'slide-mysteries-origin-life',
-            'slide-mysteries-unanswered-goals',
-            'slide-earth-importance',
-            'slide-qa',
-            'slide-technology-communication',
-            'slide-technology-energy',
-            'slide-technology-survival',
-            'slide-technology-navigation',
-            'slide-technology-payloads',
-            'slide-nuclear-power-principles',
-            'slide-pioneers-voyager',
-            'slide-pioneers-new-horizons',
-            'slide-voyager-special',
-            'slide-china-action',
-            'slide-future',
-            'slide-design-probe',
-            'slide-probe-simulation',
-            'slide-mission-inspiration',
-            'slide-fact-generator',
-            'slide-conclusion'
-        ];
-        var currentSlideIndex = 0;
-        var prevSlideBtn = document.getElementById('prevSlideBtn');
-        var nextSlideBtn = document.getElementById('nextSlideBtn');
-        var slideIndicator = document.getElementById('slideIndicator');
-        var fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+        // Dark mode toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
 
-        function showSlide(index) {
-            // 在切换幻灯片前停止所有活跃的3D动画
-            if (activeNuclearSystem.name && nuclearPowerAnimations[activeNuclearSystem.name]) {
-                nuclearPowerAnimations[activeNuclearSystem.name].stop();
+        themeToggle.addEventListener('click', () => {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
             }
-            if (solarSystemAnimationId) {
-                cancelAnimationFrame(solarSystemAnimationId);
-                solarSystemAnimationId = null;
-                // 如果不再需要，释放太阳系场景资源
-                if (solarSystemScene) {
-                    solarSystemScene.traverse(object => {
-                        if (object.geometry) object.geometry.dispose();
-                        if (object.material) {
-                            if (Array.isArray(object.material)) {
-                                object.material.forEach(m => m.dispose());
-                            } else {
-                                object.material.dispose();
-                            }
-                        }
-                    });
-                    solarSystemRenderer.dispose();
-                    solarSystemScene = null;
-                    solarSystemCamera = null;
-                    solarSystemRenderer = null;
-                    solarSystemControls = null;
-                }
-            }
+        });
 
-            slides.forEach((id, i) => {
-                var slideElement = document.getElementById(id);
-                if (slideElement) {
-                    if (i === index) {
-                        slideElement.classList.add('active');
-                        // 当幻灯片变为活跃时，重新初始化/启动3D动画
-                        if (id === 'slide-blueprint') {
-                            initSolarSystem3D(); // 如果需要，重新初始化或确保其运行
-                        } else if (id === 'slide-nuclear-power-principles') {
-                            // 确保默认标签的3D动画活跃
-                            showSystemContent('RTG');
-                        }
-                    } else {
-                        slideElement.classList.remove('active');
-                    }
+        // Set initial theme based on local storage
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+            themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+        } else {
+            htmlElement.classList.remove('dark');
+            themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+        }
+
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) { // Add scrolled class when scrolled past 50px
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        });
+
+        // Article card fade-in on scroll animation
+        const articleCards = document.querySelectorAll('.article-card');
+
+        const observerOptions = {
+            root: null, // Use the viewport as the root
+            rootMargin: '0px',
+            threshold: 0.1 // Trigger when 10% of the item is visible
+        };
+
+        const articleObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.remove('hidden-on-load');
+                    entry.target.classList.add('animate-in');
+                    observer.unobserve(entry.target); // Stop observing once animated
                 }
             });
-            currentSlideIndex = index;
-            updateSlideNavigation();
-        }
+        }, observerOptions);
 
-        function updateSlideNavigation() {
-            slideIndicator.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
-            prevSlideBtn.disabled = currentSlideIndex === 0;
-            nextSlideBtn.disabled = currentSlideIndex === slides.length - 1;
-        }
-
-        prevSlideBtn.addEventListener('click', () => {
-            if (currentSlideIndex > 0) {
-                showSlide(currentSlideIndex - 1);
-            }
+        articleCards.forEach((card, index) => {
+            // Initially hide all cards and set staggered animation delays
+            card.classList.add('hidden-on-load');
+            card.style.animationDelay = `${index * 0.1}s`; // Stagger animation for each card
+            articleObserver.observe(card);
         });
 
-        nextSlideBtn.addEventListener('click', () => {
-            if (currentSlideIndex < slides.length - 1) {
-                showSlide(currentSlideIndex + 1);
-            }
-        });
-
-        // 全屏切换逻辑 (Fullscreen Toggle Logic)
-        if (fullscreenToggleBtn) {
-            fullscreenToggleBtn.addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    // 进入全屏
-                    document.documentElement.requestFullscreen().then(() => {
-                        document.body.classList.add('fullscreen-active');
-                        fullscreenToggleBtn.textContent = '退出全屏';
-                    }).catch(err => {
-                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                        // 浏览器不支持或在iframe中，则回退到填充窗口模式
-                        document.getElementById('presentationContainer').classList.add('expanded');
-                        fullscreenToggleBtn.textContent = '退出全屏';
-                    });
-                } else {
-                    // 退出全屏
-                    document.exitFullscreen().then(() => {
-                        document.body.classList.remove('fullscreen-active');
-                        document.getElementById('presentationContainer').classList.remove('expanded');
-                        fullscreenToggleBtn.textContent = '进入全屏';
-                    }).catch(err => {
-                        console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
-                        // 浏览器不支持或在iframe中，则回退到正常模式
-                        document.getElementById('presentationContainer').classList.remove('expanded');
-                        fullscreenToggleBtn.textContent = '进入全屏';
+        // Smooth scroll to anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
                     });
                 }
             });
-        }
-
-        // 监听全屏状态变化 (Listen for fullscreen change events)
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                document.body.classList.remove('fullscreen-active');
-                document.getElementById('presentationContainer').classList.remove('expanded'); // 确保移除expanded类
-                fullscreenToggleBtn.textContent = '进入全屏';
-            }
-        });
-        document.addEventListener('webkitfullscreenchange', () => { // For Safari
-            if (!document.webkitFullscreenElement) {
-                document.body.classList.remove('fullscreen-active');
-                document.getElementById('presentationContainer').classList.remove('expanded');
-                fullscreenToggleBtn.textContent = '进入全屏';
-            }
-        });
-        document.addEventListener('mozfullscreenchange', () => { // For Firefox
-            if (!document.mozFullScreenElement) {
-                document.body.classList.remove('fullscreen-active');
-                document.getElementById('presentationContainer').classList.remove('expanded');
-                fullscreenToggleBtn.textContent = '进入全屏';
-            }
-        });
-        document.addEventListener('msfullscreenchange', () => { // For IE/Edge
-            if (!document.msFullscreenElement) {
-                document.body.classList.remove('fullscreen-active');
-                document.getElementById('presentationContainer').classList.remove('expanded');
-                fullscreenToggleBtn.textContent = '进入全屏';
-            }
         });
 
-
-        // 初始化第一张幻灯片 (Initialize first slide on load)
-        document.addEventListener('DOMContentLoaded', () => {
-            showSlide(0);
-        });
-
-        // --- 原始JavaScript (已修改以适应演示模式和图片/图表占位符格式) ---
-
-        // 边界详情模态框逻辑 (Boundary Details Modal Logic)
-        var boundaryDetailModal = document.getElementById('boundaryDetailModal');
-        var closeModalButton = document.getElementById('closeModalButton');
-        var modalTitle = document.getElementById('modalTitle');
-        var modalContent = document.getElementById('modalContent');
-
-        var boundaryDetails = {
-            kuiper: {
-                title: "柯伊伯带 (Kuiper Belt)",
-                content: `
-                    <p><strong>定义:</strong> 海王星轨道以外的广阔冰冷天体区域，是太阳系早期历史的残余物。</p>
-                    <p><strong>距离太阳 (近似):</strong> 30 - 1,000 AU (天文单位)，其“散射盘”甚至可延伸至近1000天文单位。</p>
-                    <p><strong>组成/特征:</strong> 主要由冰（水冰、甲烷冰、氨冰）和岩石构成。包含数百万个柯伊伯带天体 (KBOs)，其中包括冥王星、阋神星等矮行星。其形状更像一个厚实的圆盘。天体多样，包括“冷”经典KBOs和“热”经典KBOs，以及被海王星散射到高度椭圆轨道的散射盘天体。</p>
-                    <p><strong>探测意义:</strong> 研究柯伊伯带天体有助于理解行星形成过程、太阳系早期物质分布和演化路径，以及彗星的起源。冥王星与海王星的3:2轨道共振使其被归类为冥王星族天体。</p>
-                `
-            },
-            heliopause: {
-                title: "日球层顶 (Heliosphere & Heliosphere)",
-                content: `
-                    <p><strong>定义:</strong> 太阳风在星际介质中吹出的巨大“气泡”称为日球层。日球层顶是太阳风压力与星际介质压力相等的边界，标志着太阳影响范围的磁性边界。</p>
-                    <p><strong>距离太阳 (近似):</strong> 约 123 - 140 AU。其形状并非完美球形，可能呈泪滴状或更复杂形态。</p>
-                    <p><strong>组成/特征::</strong> 包含终端激波（太阳风减速处）和日鞘（终端激波与日球层顶之间的区域）。主要由太阳风等离子体构成，与星际气体、尘埃和宇宙射线相互作用。</p>
-                    <p><strong>探测意义:</strong> 理解太阳系如何与星际介质相互作用，研究日球层如何保护内部行星免受有害银河宇宙射线的侵袭，这对于地球生命的宜居性至关重要。旅行者1号和2号是历史上唯一在日球层外运行的航天器。</p>
-                `
-            },
-            hotwall: {
-                title: "热墙 (Hot Wall)",
-                content: `
-                    <p><strong>定义:</strong> 位于日球层顶外侧，由被太阳风弓形激波加热的星际氢原子形成的区域。</p>
-                    <p><strong>距离太阳 (近似):</strong> 约 200 AU。</p>
-                    <p><strong>组成/特征:</strong> 主要由被加热到约6000开尔文的星际中性氢原子构成。这些原子在进入日球层顶前的弓形激波区域被加热。</p>
-                    <p><strong>探测意义:</strong> 探测热墙有助于我们理解太阳系与星际介质的精确相互作用过程，特别是星际氢原子如何穿透日球层并影响其内部环境。它是研究星际介质物理状态的关键区域。</p>
-                `
-            },
-            oort: {
-                title: "奥尔特云 (Oort Cloud)",
-                content: `
-                    <p><strong>定义:</strong> 一个理论上存在的、极其遥远的冰冷天体球状壳层，环绕着太阳系。</p>
-                    <p><strong>距离太阳 (近似):</strong> 3,000 - 100,000 AU，甚至可能达到200,000天文单位，延伸至太阳引力影响的遥远边缘，是太阳系的宇宙学边界。</p>
-                    <p><strong>组成/特征:</strong> 主要由冰质彗星状天体构成。这些天体被认为是太阳系形成初期在内侧形成后被巨行星引力抛射至外围的，是大多数长周期彗星和哈雷型彗星的来源。</p>
-                    <p><strong>探测意义:</strong> 奥尔特云作为太阳系最外层受太阳和银河引力共同影响的区域，代表了太阳系演化与银河系动力学交汇的独特区域。研究它能提供关于太阳系早期物质分布、行星迁移历史以及彗星来源的宝贵线索。凭借目前的成像技术，无法直接观测到奥尔特云。</p>
-                `
-            },
-            ism: {
-                title: "局部星际介质 (Local Interstellar Medium)",
-                content: `
-                    <p><strong>定义:</strong> 存在于星系中恒星系统之间的物质和辐射，主要由氢和氦组成，但也包含尘埃和宇宙射线。它充满着星际空间，并平滑地融入周围的星系际介质。</p>
-                    <p><strong>距离太阳 (近似):</strong> 位于日球层之外 (>140 AU)。</p>
-                    <p><strong>组成/特征:</strong> 主要由氢、氦、尘埃和宇宙射线构成。它并非一个静态的真空区域，而是一个动态环境，直接影响着日球层，并与太阳风的相互作用形成了日球层的边界。</p>
-                    <p><strong>探测意义:</strong> 理解星际介质对于理解太阳系的“空间天气”及其在银河系中的长期演化至关重要。它在天体物理学中扮演着至关重要的角色，因为恒星在其最致密的区域内形成，并通过恒星演化过程得到补充。</p>
-                `
-            }
-        };
-
-        function showBoundaryDetail(boundaryKey) {
-            if (boundaryDetails[boundaryKey]) {
-                modalTitle.textContent = boundaryDetails[boundaryKey].title;
-                modalContent.innerHTML = boundaryDetails[boundaryKey].content;
-                boundaryDetailModal.classList.remove('hidden');
-            }
-        }
-        if(closeModalButton) {
-            closeModalButton.addEventListener('click', () => {
-                boundaryDetailModal.classList.add('hidden');
-            });
-        }
-        if(boundaryDetailModal) {
-            boundaryDetailModal.addEventListener('click', (event) => {
-                if (event.target === boundaryDetailModal) {
-                    boundaryDetailModal.classList.add('hidden');
-                }
-            });
-        }
-
-        // 技术标签页逻辑 (Technology Tabs Logic)
-        var techTabsContainer = document.getElementById('techTabsContainer');
-        var techTabContents = document.querySelectorAll('#techTabContent .tab-content');
-        if (techTabsContainer) {
-            techTabsContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('tab-button')) {
-                    var tabName = e.target.dataset.tab;
-                    
-                    techTabsContainer.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-                    e.target.classList.add('active');
-                    
-                    techTabContents.forEach(content => {
-                        if (content.dataset.tabContent === tabName) {
-                            content.classList.remove('hidden');
-                            content.classList.add('active');
-                        } else {
-                            content.classList.add('hidden');
-                            content.classList.remove('active');
-                        }
-                    });
-                }
-            });
-        }
-
-        // Chart.js 工具函数 (Chart.js Utilities)
-        function processChartLabels(labels, maxLength = 16) {
-            return labels.map(label => {
-                if (typeof label === 'string' && label.length > maxLength) {
-                    var words = label.split(' ');
-                    var lines = [];
-                    var currentLine = '';
-                    for (var word of words) {
-                        if ((currentLine + word).length > maxLength && currentLine.length > 0) {
-                            lines.push(currentLine.trim());
-                            currentLine = word + ' ';
-                        } else {
-                            currentLine += word + ' ';
-                        }
-                    }
-                    lines.push(currentLine.trim());
-                    return lines;
-                }
-                return label;
-            });
-        }
-
-        var commonChartTooltipOptions = {
-            callbacks: {
-                title: function(tooltipItems) {
-                    var item = tooltipItems[0];
-                    if (!item) return '';
-                    var label = item.chart.data.labels[item.dataIndex];
-                    return Array.isArray(label) ? label.join(' ') : label;
-                }
-            }
-        };
-        
-        var commonChartOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { color: '#94a3b8' } /* 图例文本浅灰色 */
-                },
-                tooltip: commonChartTooltipOptions
-            },
-            scales: {
-                x: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { color: 'rgba(71, 85, 105, 0.3)' } /* 深色网格线 */
-                },
-                y: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { color: 'rgba(71, 85, 105, 0.3)' },
-                    beginAtZero: true
-                }
-            }
-        };
-
-        // 日球层保护图表 (Heliosphere Protection Chart)
-        var heliosphereCtx = document.getElementById('heliosphereProtectionChart');
-        if (heliosphereCtx) {
-            new Chart(heliosphereCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: processChartLabels(['被偏转/调制的GCRs', '穿透的GCRs (示意)']),
-                    datasets: [{
-                        label: '日球层对银河宇宙射线(GCRs)的防护作用',
-                        data: [85, 15],
-                        backgroundColor: ['#60a5fa', '#fcd34d'], /* 蓝色和黄色 */
-                        borderColor: '#1f2937', /* 与卡片背景色匹配 */
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { color: '#94a3b8'} },
-                        tooltip: commonChartTooltipOptions
-                    }
-                }
-            });
-        }
-
-        // 未来探测器能力图表 (Future Probe Capabilities Chart - Radar)
-        var futureProbeCtx = document.getElementById('futureProbeCapabilitiesChart');
-        if (futureProbeCtx) {
-            new Chart(futureProbeCtx, {
-                type: 'radar',
-                data: {
-                    labels: processChartLabels(['最远探测距离', '数据传输速率', '任务设计寿命', '科学仪器功率', '自主运行能力']),
-                    datasets: [
-                        {
-                            label: '旅行者号 (示意)',
-                            data: [70, 30, 90, 40, 60],
-                            backgroundColor: 'rgba(96, 165, 250, 0.2)', /* 浅蓝色透明 */
-                            borderColor: '#60a5fa', /* 浅蓝色 */
-                            pointBackgroundColor: '#60a5fa'
-                        },
-                        {
-                            label: '星际探测器概念 (示意)',
-                            data: [100, 80, 100, 85, 95],
-                            backgroundColor: 'rgba(167, 139, 250, 0.2)', /* 紫色透明 */
-                            borderColor: '#a78bfa', /* 紫色 */
-                            pointBackgroundColor: '#a78bfa'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { color: '#94a3b8'} },
-                        tooltip: commonChartTooltipOptions
-                    },
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(71, 85, 105, 0.3)' },
-                            grid: { color: 'rgba(71, 85, 105, 0.3)' },
-                            pointLabels: { color: '#94a3b8', font: {size: 12} },
-                            ticks: {
-                                backdropColor: 'rgba(0,0,0,0)',
-                                color: '#94a3b8',
-                                stepSize: 20
-                            },
-                            suggestedMin: 0,
-                            suggestedMax: 100
-                        }
-                    }
-                }
-            });
-        }
-
-        // 旅行者号寿命计算 (Voyager Lifespan calculation)
-        var voyagerLifespanElement = document.getElementById('voyagerLifespan');
-        if (voyagerLifespanElement) {
-            var launchYear = 1977;
-            var currentYear = new Date().getFullYear();
-            voyagerLifespanElement.textContent = (currentYear - launchYear) + "+";
-        }
-
-        // LLM 集成用于问答、任务灵感、趣味事实 (LLM Integration for Q&A, Mission Inspiration, Fact Generator)
-        var qaInput = document.getElementById('qaInput');
-        var askQuestionBtn = document.getElementById('askQuestionBtn');
-        var qaSpinner = document.getElementById('qaSpinner');
-        var qaButtonText = document.getElementById('qaButtonText');
-        var qaOutput = document.getElementById('qaOutput');
-
-        var missionConceptInput = document.getElementById('missionConceptInput');
-        var generateMissionConceptBtn = document.getElementById('generateMissionConceptBtn');
-        var missionSpinner = document.getElementById('missionSpinner');
-        var missionButtonText = document.getElementById('missionButtonText');
-        var missionConceptOutput = document.getElementById('missionConceptOutput');
-
-        var factOutput = document.getElementById('factOutput');
-        var generateFactBtn = document.getElementById('generateFactBtn');
-        var factSpinner = document.getElementById('factSpinner');
-        var factButtonText = document.getElementById('factButtonText');
-
-
-        // --- 修改后的 callGeminiApi 函数 (Modified callGeminiApi) ---
-        async function callGeminiApi(prompt, schema = null) {
-            // 模拟消息数组结构
-            var messages = [
-                {"role": "system", "content": "你是一个知识渊博的智能助手，专注于太阳系边际探测。"},
-                {"role": "user", "content": prompt}
-            ];
-            
-            var payload = { contents: messages }; // Gemini API 使用 'contents'
-            if (schema) {
-                payload.generationConfig = {
-                    responseMimeType: "application/json",
-                    responseSchema: schema
-                };
-            }
-
-            var apiKey = "sk-da2fcf0dde7349bf82d825814d5b8e10"; // 用户提供的API密钥
-            var baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"; // 实际的Gemini API端点
-            var apiUrl = `${baseUrl}?key=${apiKey}`;
-
-            try {
-                var response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                var result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    if (schema) {
-                        var json = result.candidates[0].content.parts[0].text;
-                        try {
-                            return JSON.parse(json);
-                        } catch (parseError) {
-                            console.error("Error parsing JSON response:", parseError, "Raw JSON:", json);
-                            return "抱歉，AI返回的结构不正确，请稍后再试。";
-                        }
-                    } else {
-                        return result.candidates[0].content.parts[0].text;
-                    }
-                } else {
-                    console.error("Unexpected API response structure:", result);
-                    return "抱歉，无法获取答案。请稍后再试。";
-                }
-            } catch (error) {
-                console.error("Error calling Gemini API:", error);
-                return "抱歉，请求失败。请检查网络连接或稍后再试。";
-            }
-        }
-        // --- 结束修改后的 callGeminiApi ---
-
-        if (askQuestionBtn) {
-            askQuestionBtn.addEventListener('click', async () => {
-                var question = qaInput.value.trim();
-                if (!question) {
-                    qaOutput.innerHTML = '<p class="text-slate-400 text-center">请输入您的问题。</p>';
-                    return;
-                }
-
-                qaSpinner.classList.remove('hidden');
-                qaButtonText.textContent = '思考中...';
-                askQuestionBtn.disabled = true;
-                qaOutput.innerHTML = '<p class="text-slate-400 text-center">正在生成答案...</p>';
-
-                var prompt = `请简洁地回答以下关于太阳系边际探测的问题："${question}"。请确保答案是中文。`;
-                var answer = await callGeminiApi(prompt);
-
-                qaOutput.innerHTML = `<p>${answer}</p>`;
-                qaSpinner.classList.add('hidden');
-                qaButtonText.textContent = '提问';
-                askQuestionBtn.disabled = false;
-            });
-        }
-
-        if (generateMissionConceptBtn) {
-            generateMissionConceptBtn.addEventListener('click', async () => {
-                var missionIdea = missionConceptInput.value.trim();
-                if (!missionIdea) {
-                    missionConceptOutput.innerHTML = '<p class="text-slate-400 text-center">请输入您的任务想法。</p>';
-                    return;
-                }
-
-                missionSpinner.classList.remove('hidden');
-                missionButtonText.textContent = '生成中...';
-                generateMissionConceptBtn.disabled = true;
-                missionConceptOutput.innerHTML = '<p class="text-slate-400 text-center">正在构想任务...</p>';
-
-                var missionSchema = {
-                    type: "OBJECT",
-                    properties: {
-                        missionName: { type: "STRING" },
-                        mainGoal: { type: "STRING" },
-                        technicalChallenges: {
-                            type: "ARRAY",
-                            items: { type: "STRING" }
-                        },
-                        potentialDiscoveries: {
-                            type: "ARRAY",
-                            items: { type: "STRING" }
-                        }
-                    },
-                    propertyOrdering: ["missionName", "mainGoal", "technicalChallenges", "potentialDiscoveries"]
-                };
-
-                var prompt = `根据这个任务想法："${missionIdea}"，构想一个未来太阳系边际探测任务。请提供任务名称、主要目标、技术挑战和潜在发现，并以中文JSON格式返回。`;
-                var concept = await callGeminiApi(prompt, missionSchema);
-
-                if (typeof concept === 'object' && concept !== null && !Array.isArray(concept)) {
-                    var outputHtml = `<h4 class="font-semibold text-blue-300 mb-3">${concept.missionName || '未知任务'}</h4>`;
-                    outputHtml += `<p class="mb-2"><strong>主要目标：</strong> ${concept.mainGoal || '无'}</p>`;
-                    if (concept.technicalChallenges && concept.technicalChallenges.length > 0) {
-                        outputHtml += `<p class="mb-2"><strong>技术挑战：</strong></p><ul class="list-disc list-inside ml-4">`;
-                        concept.technicalChallenges.forEach(challenge => {
-                            outputHtml += `<li>${challenge}</li>`;
-                        });
-                        outputHtml += `</ul>`;
-                    }
-                    if (concept.potentialDiscoveries && concept.potentialDiscoveries.length > 0) {
-                        outputHtml += `<p class="mt-2 mb-2"><strong>潜在发现：</strong></p><ul class="list-disc list-inside ml-4">`;
-                        concept.potentialDiscoveries.forEach(discovery => {
-                            outputHtml += `<li>${discovery}</li>`;
-                        });
-                        outputHtml += `</ul>`;
-                    }
-                    missionConceptOutput.innerHTML = outputHtml;
-                } else {
-                    missionConceptOutput.innerHTML = '<p class="text-red-400 text-center">无法生成有效的任务构想。请尝试其他想法。</p>';
-                }
-
-                missionSpinner.classList.add('hidden');
-                missionButtonText.textContent = '生成构想';
-                generateMissionConceptBtn.disabled = false;
-            });
-        }
-
-        var facts = [
-            "旅行者1号是距离地球最远的人造物体，目前已飞行超过240亿公里。",
-            "日球层顶是太阳风与星际介质的边界，是太阳系真正的“边缘”。",
-            "柯伊伯带是太阳系中仅次于小行星带的第二大天体带。",
-            "奥尔特云是彗星的故乡，它距离太阳比柯伊伯带远数千倍。",
-            "深空通信的信号到达地球可能需要数小时甚至数天。",
-            "核电推进系统虽然推力小，但能长时间持续加速，使航天器达到极高速度。",
-            "太阳帆利用太阳光子的压力来推进，无需携带燃料。",
-            "X射线脉冲星导航（XNAV）利用脉冲星的规律信号为深空探测器提供自主导航。",
-            "新视野号飞越冥王星时，其数据回传地球耗时超过15个月。",
-            "旅行者号探测器携带了一张“金唱片”，记录了地球的声音和图像，旨在向外星文明传递信息。"
-        ];
-
-        if (generateFactBtn) {
-            generateFactBtn.addEventListener('click', async () => {
-                factSpinner.classList.remove('hidden');
-                factButtonText.textContent = '生成中...';
-                generateFactBtn.disabled = true;
-                factOutput.innerHTML = '<p class="text-slate-400 text-center">正在获取趣味事实...</p>';
-
-                // 模拟LLM调用，实际使用预设事实
-                await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟网络延迟
-                var randomIndex = Math.floor(Math.random() * facts.length);
-                var randomFact = facts[randomIndex];
-
-                factOutput.innerHTML = `<p>${randomFact}</p>`;
-                factSpinner.classList.add('hidden');
-                factButtonText.textContent = '生成趣味事实';
-                generateFactBtn.disabled = false;
-            });
-        }
-
-        // 比例尺太阳系地图行星数据 (Scaled Solar System Map Planet Data)
-        var planets = [
-            { name: "水星", emoji: "☿", distanceAU: 0.39, diameterKM: 4879, info: "距离太阳最近的行星，表面布满陨石坑，昼夜温差极大。", color: "#e5e7eb" },
-            { name: "金星", emoji: "♀", distanceAU: 0.72, diameterKM: 12104, info: "地球的姐妹行星，拥有浓密的大气层和极高的表面温度，温室效应显著。", color: "#fcd34d" },
-            { name: "地球", emoji: "🜨", distanceAU: 1.00, diameterKM: 12742, info: "我们赖以生存的家园，拥有液态水和适宜的温度，孕育了生命。", color: "#3b82f6" },
-            { name: "火星", emoji: "♂", distanceAU: 1.52, diameterKM: 6779, info: "红色星球，拥有稀薄的大气层和极地冰盖，是人类未来探索的重点目标。", color: "#ef4444" },
-            { name: "木星", emoji: "♃", distanceAU: 5.20, diameterKM: 139820, info: "太阳系最大的行星，一颗气态巨行星，拥有大红斑和众多卫星。", color: "#fbbf24" },
-            { name: "土星", emoji: "♄", distanceAU: 9.58, diameterKM: 116460, info: "以其美丽的行星环而闻名，也是一颗气态巨行星，拥有复杂的卫星系统。", color: "#fde047" },
-            { name: "天王星", emoji: "⛢", distanceAU: 19.23, diameterKM: 50724, info: "一颗冰巨行星，其自转轴几乎与轨道平面平行，导致独特的季节变化。", color: "#67e8f9" },
-            { name: "海王星", emoji: "♆", distanceAU: 30.10, diameterKM: 49244, info: "最外层的冰巨行星，拥有强大的风暴和活跃的大气层，被认为是太阳系最遥远的行星。", color: "#2563eb" },
-            { name: "冥王星", emoji: "⯓", distanceAU: 39.50, diameterKM: 2376, info: "一颗矮行星，位于柯伊伯带，曾被认为是第九大行星，拥有复杂的地质特征。", color: "#94a3b8" },
-            { name: "柯伊伯带", emoji: "✶", distanceAU: 50, diameterKM: null, info: "海王星轨道外的冰冷天体区域，是太阳系形成初期的残余物。", color: "#a78bfa" },
-            { name: "日球层顶", emoji: "☊", distanceAU: 120, diameterKM: null, info: "太阳风与星际介质压力平衡的边界，是太阳系磁场影响的终点。", color: "#60a5fa" },
-            { name: "奥尔特云", emoji: "☄", distanceAU: 50000, diameterKM: null, info: "理论上存在的、极其遥远的冰冷天体球状壳层，是长周期彗星的来源。", color: "#cbd5e1" }
-        ];
-
-        var solarSystemProgressBar = document.getElementById('solarSystemProgressBar');
-        var planetCardsGrid = document.getElementById('planetCardsGrid');
-        var planetDetailModal = document.getElementById('planetDetailModal');
-        var closePlanetModalButton = document.getElementById('closePlanetModalButton');
-        var planetModalTitle = document.getElementById('planetModalTitle');
-        var planetModalContent = document.getElementById('planetModalContent');
-
-        function initializeScaledMap() {
-            // 清空现有内容
-            solarSystemProgressBar.innerHTML = '';
-            planetCardsGrid.innerHTML = '';
-
-            // 假设太阳直径1米，E1B215教室
-            // 比例尺：1 AU = 100 像素 (示例，可调整)
-            // 1 AU = 1.496亿公里
-            // 1 AU = 100px => 1px = 1.496亿公里 / 100 = 149.6万公里
-            // 太阳系最大范围（奥尔特云）约 100,000 AU
-            // 100,000 AU * 100 px/AU = 10,000,000 px = 10,000 米 = 10 公里
-            // 进度条的宽度需要足够大才能显示奥尔特云
-            var scaleFactor = 100; // 1 AU = 100 pixels for the progress bar visualization
-
-            planets.forEach(planet => {
-                // Add planet indicator to the progress bar
-                var positionPx = planet.distanceAU * scaleFactor;
-                var indicator = document.createElement('div');
-                indicator.className = 'planet-indicator';
-                indicator.style.left = `${positionPx}px`;
-                indicator.style.backgroundColor = planet.color;
-                indicator.title = `${planet.name}: ${planet.distanceAU} AU`;
-                indicator.innerHTML = planet.emoji; // Use emoji as visual cue
-                
-                // Add click listener for modal
-                indicator.addEventListener('click', () => showPlanetDetail(planet));
-                solarSystemProgressBar.appendChild(indicator);
-
-                // Animate indicators in
-                setTimeout(() => {
-                    indicator.classList.add('animate-in');
-                }, 100 + positionPx / 50); // Stagger animation
-
-                // Add planet card
-                var card = document.createElement('div');
-                card.className = 'planet-card-item cursor-pointer';
-                card.innerHTML = `
-                    <h2 class="text-xl">${planet.emoji} ${planet.name}</h2>
-                    <p><strong>距离太阳:</strong> ${planet.distanceAU} AU</p>
-                    ${planet.diameterKM ? `<p><strong>直径:</strong> ${planet.diameterKM} km</p>` : ''}
-                    <p class="text-slate-400 text-sm mt-2">${planet.info.split('.')[0]}...</p>
-                `;
-                card.addEventListener('click', () => showPlanetDetail(planet));
-                planetCardsGrid.appendChild(card);
-            });
-
-            // Adjust the width of the progress bar to encompass all planets
-            // Max distance is Oort Cloud at 100,000 AU. Let's make it visible up to Oort Cloud.
-            var maxProgressBarWidth = planets[planets.length - 1].distanceAU * scaleFactor + 200; // Add some buffer
-            solarSystemProgressBar.style.width = `${maxProgressBarWidth}px`;
-        }
-
-        function showPlanetDetail(planet) {
-            planetModalTitle.textContent = planet.name;
-            planetModalContent.innerHTML = `
-                <p class="text-lg"><strong>符号：</strong> ${planet.emoji}</p>
-                <p class="text-lg"><strong>距离太阳：</strong> ${planet.distanceAU} AU</p>
-                ${planet.diameterKM ? `<p class="text-lg"><strong>直径：</strong> ${planet.diameterKM} km</p>` : ''}
-                <p class="text-lg mt-4">${planet.info}</p>
-            `;
-            planetDetailModal.classList.remove('hidden');
-        }
-
-        if (closePlanetModalButton) {
-            closePlanetModalButton.addEventListener('click', () => {
-                planetDetailModal.classList.add('hidden');
-            });
-        }
-        if (planetDetailModal) {
-            planetDetailModal.addEventListener('click', (event) => {
-                if (event.target === planetDetailModal) {
-                    planetDetailModal.classList.add('hidden');
-                }
-            });
-        }
-
-        // 重要性表格数据 (Importance Table Data)
-        var importanceData = [
-            {
-                aspect: "宇宙射线防护",
-                summary: "了解日球层如何偏转有害宇宙射线，对地球生命和未来载人深空任务至关重要。",
-                details: "银河宇宙射线（GCRs）是来自银河系外的高能粒子，对宇航员健康和航天器电子设备构成威胁。日球层作为太阳系的保护罩，能偏转大部分GCRs。研究日球层边界有助于我们更好地理解这种防护机制，并开发更有效的辐射防护技术。"
-            },
-            {
-                aspect: "太阳系起源与演化",
-                summary: "柯伊伯带和奥尔特云保存了太阳系形成初期的原始物质，是研究行星形成的关键。",
-                details: "柯伊伯带和奥尔特云中的冰质天体被认为是太阳系形成初期遗留下来的原始星子。通过探测这些天体的组成和轨道，科学家可以回溯太阳系从原始星云中形成和演化的过程，揭示行星迁移、气体巨行星形成等关键事件。"
-            },
-            {
-                aspect: "地外生命探索",
-                summary: "冰卫星和柯伊伯带天体可能存在液态水，拓展了对生命宜居区域的理解。",
-                details: "对外太阳系冰卫星（如木卫二欧罗巴、土卫二恩塞拉多斯）的探测发现，它们可能拥有冰下液态海洋，甚至具备原始生命的条件。这拓展了我们对生命宜居区域的传统认知，不再局限于恒星宜居带内，也促使我们思考太阳系边缘是否存在其他生命形式。"
-            },
-            {
-                aspect: "空间天气预警",
-                summary: "研究太阳风与星际介质的相互作用，有助于预测和减轻空间天气对地球的影响。",
-                details: "太阳风暴和日冕物质抛射（CMEs）等太阳活动会产生高能粒子流，这些粒子在日球层内传播，可能引发地球上的地磁暴，影响电网、卫星通信和导航系统。通过研究日球层顶内外太阳风与星际介质的相互作用，可以更准确地预测空间天气事件，为地球提供更长的预警时间。"
-            },
-            {
-                aspect: "基础物理学验证",
-                summary: "深空极端环境是检验广义相对论和新物理理论的独特实验室。",
-                details: "在远离太阳引力场和地球磁场干扰的深空环境中，可以进行更精确的物理学实验，例如检验广义相对论在极端条件下的有效性，或者寻找暗物质、暗能量等新物理现象的线索。这些实验有助于我们加深对宇宙基本规律的理解。"
-            },
-            {
-                aspect: "技术创新与应用",
-                summary: "深空探测推动了通信、能源、材料等领域的技术突破，惠及地球生活。",
-                details: "为了克服深空探测的巨大挑战，科学家和工程师们不断开发新的技术，如高精度深空光通信、长寿命核电源、辐射硬化电子设备、自主导航系统等。这些前沿技术往往会转化为民用技术，例如GPS、太阳能电池板、医疗成像设备等，极大地改善了我们的日常生活。"
-            }
-        ];
-
-        var importanceTableBody = document.getElementById('importanceTableBody');
-        var importanceDetailModal = document.getElementById('importanceDetailModal');
-        var closeImportanceModalButton = document.getElementById('closeImportanceModalButton');
-        var importanceModalTitle = document.getElementById('importanceModalTitle');
-        var importanceModalContent = document.getElementById('importanceModalContent');
-
-        function initializeImportanceTable() {
-            importanceTableBody.innerHTML = ''; // Clear existing content
-            importanceData.forEach(item => {
-                var row = document.createElement('tr');
-                row.className = 'border-b border-slate-700 last:border-b-0 cursor-pointer hover:bg-gray-700 transition-colors';
-                row.innerHTML = `
-                    <td class="py-3 px-6 text-slate-300 font-medium">${item.aspect}</td>
-                    <td class="py-3 px-6 text-slate-400">${item.summary}</td>
-                `;
-                row.addEventListener('click', () => showImportanceDetail(item));
-                importanceTableBody.appendChild(row);
-            });
-        }
-
-        function showImportanceDetail(item) {
-            importanceModalTitle.textContent = item.aspect;
-            importanceModalContent.innerHTML = `<p>${item.details}</p>`;
-            importanceDetailModal.classList.remove('hidden');
-        }
-
-        if (closeImportanceModalButton) {
-            closeImportanceModalButton.addEventListener('click', () => {
-                importanceDetailModal.classList.add('hidden');
-            });
-        }
-        if (importanceDetailModal) {
-            importanceDetailModal.addEventListener('click', (event) => {
-                if (event.target === importanceDetailModal) {
-                    importanceDetailModal.classList.add('hidden');
-                }
-            });
-        }
-
-        // 旅行者号时间线数据 (Voyager Timeline Data)
-        var voyagerTimelineData = [
-            {
-                year: "1977",
-                icon: "🚀",
-                title: "旅行者1号与2号发射",
-                description: "两艘旅行者号探测器分别于8月20日和9月5日发射，开启了对木星、土星、天王星和海王星的宏伟探测之旅。",
-                discoveries: [
-                    "利用行星引力辅助（Gravity Assist）技术，大大缩短了前往外太阳系的旅行时间。",
-                    "携带了著名的“金唱片”，旨在向可能存在的外星文明传递地球的信息。"
-                ]
-            },
-            {
-                year: "1979-1981",
-                icon: "🪐",
-                title: "旅行者号飞越木星和土星",
-                description: "旅行者1号和2号相继飞越木星和土星，传回了前所未有的高清图像和科学数据。",
-                discoveries: [
-                    "发现木星有活跃的火山卫星木卫一（Io），首次观测到地外火山活动。",
-                    "发现土星环的复杂结构和新的卫星。",
-                    "揭示了木星和土星大气层中复杂的风暴系统和云层结构。"
-                ]
-            },
-            {
-                year: "1986",
-                icon: "🧊",
-                title: "旅行者2号飞越天王星",
-                description: "旅行者2号成为唯一一艘近距离飞越天王星的探测器。",
-                discoveries: [
-                    "首次揭示天王星拥有独特的倾斜磁场，其磁轴与自转轴夹角达59度。",
-                    "发现天王星的10颗新卫星和两道新行星环。",
-                    "测量了天王星大气层的温度和组成。"
-                ]
-            },
-            {
-                year: "1989",
-                icon: "🌊",
-                title: "旅行者2号飞越海王星",
-                description: "旅行者2号完成对太阳系所有四颗巨行星的首次飞越探测，并发现了海王星的“大黑斑”。",
-                discoveries: [
-                    "首次近距离观测海王星，发现其大气层有巨大的风暴系统，包括“大黑斑”。",
-                    "发现海王星的五颗新卫星，包括海卫一（Triton）上活跃的冰火山。",
-                    "测量了海王星的磁场和大气组成。"
-                ]
-            },
-            {
-                year: "2007",
-                icon: "💨",
-                title: "旅行者1号穿越终端激波",
-                description: "旅行者1号穿越了终端激波（Termination Shock），进入日鞘区域。",
-                discoveries: [
-                    "探测到太阳风速度急剧下降，粒子被加热，标志着太阳风减速的边界。"
-                ]
-            },
-            {
-                year: "2012",
-                icon: "🌌",
-                title: "旅行者1号进入星际空间",
-                description: "旅行者1号穿越日球层顶，成为第一个进入星际空间的人造物体。",
-                discoveries: [
-                    "太阳系内部的太阳粒子（来自太阳的带电粒子）急剧减少。",
-                    "银河宇宙射线（来自银河系外的高能粒子）强度显著增加。",
-                    "磁场强度和方向发生变化，与星际磁场特征一致。",
-                    "首次直接测量到星际等离子体的密度。"
-                ]
-            },
-            {
-                year: "2018",
-                icon: "🌠",
-                title: "旅行者2号进入星际空间",
-                description: "旅行者2号也穿越日球层顶，成为第二个进入星际空间的人造物体。",
-                discoveries: [
-                    "再次验证了日球层顶的存在和特征，提供了来自不同方向的星际空间数据。",
-                    "与旅行者1号的数据相互印证，帮助科学家更全面地理解日球层的形状和与星际介质的相互作用。"
-                ]
-            }
-        ];
-
-        var voyagerTimelineDiv = document.getElementById('voyagerTimeline');
-        var voyagerDetailArea = document.getElementById('voyagerDetailArea');
-        var voyagerDetailTitle = document.getElementById('voyagerDetailTitle');
-        var voyagerDetailDescription = document.getElementById('voyagerDetailDescription');
-        var voyagerDiscoveriesList = document.getElementById('voyagerDiscoveriesList');
-
-        function initializeVoyagerTimeline() {
-            voyagerTimelineDiv.innerHTML = ''; // Clear existing content
-            voyagerTimelineData.forEach((event, index) => {
-                var item = document.createElement('div');
-                item.className = 'timeline-item';
-                item.innerHTML = `
-                    <div class="timeline-icon">${event.icon}</div>
-                    <h4 class="font-semibold text-blue-300">${event.year}: ${event.title}</h4>
-                    <p class="text-base text-slate-400">${event.description}</p>
-                `;
-                item.addEventListener('click', () => showVoyagerDetail(index));
-                voyagerTimelineDiv.appendChild(item);
-            });
-        }
-
-        function showVoyagerDetail(index) {
-            var event = voyagerTimelineData[index];
-            voyagerDetailTitle.textContent = event.title;
-            voyagerDetailDescription.textContent = event.description;
-            voyagerDiscoveriesList.innerHTML = '';
-            if (event.discoveries) {
-                event.discoveries.forEach(discovery => {
-                    var li = document.createElement('li');
-                    li.textContent = discovery;
-                    voyagerDiscoveriesList.appendChild(li);
-                });
-            }
-            voyagerDetailArea.classList.remove('hidden');
-        }
-
-        // 探测器设计逻辑 (Probe Design Logic)
-        var missionGoalOptions = document.getElementById('missionGoalOptions');
-        var powerSystemOptions = document.getElementById('powerSystemOptions');
-        var propulsionSystemOptions = document.getElementById('propulsionSystemOptions');
-        var communicationSystemOptions = document.getElementById('communicationSystemOptions');
-        var instrumentOptions = document.getElementById('instrumentOptions');
-        var generateProbeDesignBtn = document.getElementById('generateProbeDesignBtn');
-        var designSpinner = document.getElementById('designSpinner');
-        var designButtonText = document.getElementById('designButtonText');
-        var probeSummary = document.getElementById('probeSummary');
-        var summaryMissionGoal = document.getElementById('summaryMissionGoal');
-        var summaryPowerSystem = document.getElementById('summaryPowerSystem');
-        var summaryPropulsionSystem = document.getElementById('summaryPropulsionSystem');
-        var summaryCommunicationSystem = document.getElementById('summaryCommunicationSystem');
-        var summaryInstrument = document.getElementById('summaryInstrument');
-        var totalScore = document.getElementById('totalScore');
-        var scoreValue = document.getElementById('scoreValue');
-        var designFeedback = document.getElementById('designFeedback');
-        var feedbackContent = document.getElementById('feedbackContent');
-
-        var selectedComponents = {
-            mission: null,
-            power: null,
-            propulsion: null,
-            communication: null,
-            instrument: null
-        };
-
-        function setupOptionListeners(container, type) {
-            container.querySelectorAll('.component-option').forEach(label => {
-                label.addEventListener('click', () => {
-                    // Remove 'selected' from all siblings
-                    container.querySelectorAll('.component-option').forEach(sibling => {
-                        sibling.classList.remove('selected');
-                    });
-                    // Add 'selected' to the clicked one
-                    label.classList.add('selected');
-                    // Update selectedComponents
-                    selectedComponents[type] = label.dataset.value;
-                });
-            });
-        }
-
-        setupOptionListeners(missionGoalOptions, 'mission');
-        setupOptionListeners(powerSystemOptions, 'power');
-        setupOptionListeners(propulsionSystemOptions, 'propulsion');
-        setupOptionListeners(communicationSystemOptions, 'communication');
-        setupOptionListeners(instrumentOptions, 'instrument');
-
-        var componentScores = {
-            mission: {
-                "Kuiper Belt Flyby": { score: 70, feedback: "柯伊伯带飞越探测是可行的目标，但科学产出可能不如更深入的任务。" },
-                "Interstellar Medium In-situ": { score: 90, feedback: "星际介质原位探测是极具挑战但科学回报丰厚的目标！" },
-                "Oort Cloud Exploration": { score: 100, feedback: "奥尔特云深度探索是终极挑战，如果成功将是人类的里程碑！" }
-            },
-            power: {
-                "RTG": { score: 60, feedback: "RTG是成熟可靠的选择，但功率和寿命有限。" },
-                "ASRG": { score: 80, feedback: "ASRG是RTG的升级版，效率更高，是优秀的选择。" },
-                "Small Fission Power System": { score: 100, feedback: "小型裂变电源系统提供强大电力，是深空任务的理想选择。" }
-            },
-            propulsion: {
-                "Chemical Propulsion": { score: 40, feedback: "化学推进适合近距离任务，但无法达到深空所需的速度。" },
-                "Ion Thruster": { score: 70, feedback: "离子推力器适合长期加速，能达到高速度，但初期加速慢。" },
-                "Nuclear Thermal Propulsion": { score: 90, feedback: "核热推进能显著缩短旅行时间，是未来深空任务的强大选择。" },
-                "Solar Sail": { score: 80, feedback: "太阳帆是极具潜力的无燃料推进方式，但初期加速极慢，需要长时间才能达到高速度。" }
-            },
-            communication: {
-                "Radio (DSN)": { score: 60, feedback: "深空网络无线电通信是标准配置，但数据速率有限。" },
-                "Optical Communication": { score: 90, feedback: "光学通信是未来趋势，能提供极高数据速率，但技术挑战大。" }
-            },
-            instrument: {
-                "Plasma Spectrometer & Magnetometer": { score: 70, feedback: "等离子体和磁力计是探测日球层和星际介质的核心仪器。" },
-                "Dust Analyzer & Imaging System": { score: 80, feedback: "尘埃分析仪和成像系统对研究柯伊伯带天体和星际尘埃至关重要。" },
-                "Advanced Cosmic Ray Subsystem": { score: 90, feedback: "先进宇宙射线子系统能提供关于高能粒子环境的关键数据。" },
-                "Neutral Mass Spectrometer & LYA Spectrometer": { score: 85, feedback: "中性粒子质谱仪和LYA光谱仪能深入分析星际介质的组成。" }
-            }
-        };
-
-        if (generateProbeDesignBtn) {
-            generateProbeDesignBtn.addEventListener('click', () => {
-                designSpinner.classList.remove('hidden');
-                designButtonText.textContent = '生成中...';
-                generateProbeDesignBtn.disabled = true;
-                probeSummary.classList.add('hidden'); // Hide previous summary
-
-                var totalScoreValue = 0;
-                var feedbackMessages = [];
-
-                for (var key in selectedComponents) {
-                    if (selectedComponents[key]) {
-                        var component = selectedComponents[key];
-                        totalScoreValue += componentScores[key][component].score;
-                        feedbackMessages.push(componentScores[key][component].feedback);
-                    } else {
-                        feedbackMessages.push(`请为您的探测器选择${key === 'mission' ? '任务目标' : key === 'power' ? '动力系统' : key === 'propulsion' ? '推进系统' : key === 'communication' ? '通信系统' : '科学仪器'}。`);
-                        totalScoreValue = 0; // Reset score if any component is missing
-                        break;
-                    }
-                }
-
-                if (totalScoreValue > 0) {
-                    summaryMissionGoal.textContent = selectedComponents.mission;
-                    summaryPowerSystem.textContent = selectedComponents.power;
-                    summaryPropulsionSystem.textContent = selectedComponents.propulsion;
-                    summaryCommunicationSystem.textContent = selectedComponents.communication;
-                    summaryInstrument.textContent = selectedComponents.instrument;
-                    scoreValue.textContent = totalScoreValue;
-                    feedbackContent.innerHTML = feedbackMessages.map(msg => `<p>${msg}</p>`).join('');
-                    probeSummary.classList.remove('hidden');
-                } else {
-                    probeSummary.classList.remove('hidden'); // Show summary to display error
-                    summaryMissionGoal.textContent = '未选择';
-                    summaryPowerSystem.textContent = '未选择';
-                    summaryPropulsionSystem.textContent = '未选择';
-                    summaryCommunicationSystem.textContent = '未选择';
-                    summaryInstrument.textContent = '未选择';
-                    scoreValue.textContent = '0';
-                    feedbackContent.innerHTML = '<p class="text-red-400">请确保所有探测器组件都已选择！</p>';
-                }
-
-                designSpinner.classList.add('hidden');
-                designButtonText.textContent = '生成探测器设计';
-                generateProbeDesignBtn.disabled = false;
-            });
-        }
-
-        // 模拟游戏逻辑 (Simulation Game Logic)
-        var simDistance = document.getElementById('simDistance');
-        var simPower = document.getElementById('simPower');
-        var simHealth = document.getElementById('simHealth');
-        var simData = document.getElementById('simData');
-        var simMissionScore = document.getElementById('simMissionScore');
-        var simulationEventDisplay = document.getElementById('simulationEventDisplay');
-        var simEventName = document.getElementById('simEventName');
-        var simEventDescription = document.getElementById('simEventDescription');
-        var simulationChoices = document.getElementById('simulationChoices');
-        var simulationResultDisplay = document.getElementById('simulationResultDisplay');
-        var simResultDetails = document.getElementById('simResultDetails');
-        var simulationEndDisplay = document.getElementById('simulationEndDisplay');
-        var startSimulationBtn = document.getElementById('startSimulationBtn');
-        var nextEventBtn = document.getElementById('nextEventBtn');
-        var resetSimulationBtn = document.getElementById('resetSimulationBtn');
-        var simLogContent = document.getElementById('simLogContent');
-
-        var currentSimState = {};
-        var simulationEvents = [
-            {
-                name: "穿越小行星带",
-                description: "探测器正穿越密集的小行星带，存在撞击风险。",
-                choices: [
-                    { text: "加速通过 (消耗能量，降低健康)", outcome: { power: -15, health: -10, data: 5, log: "加速通过小行星带，受到轻微损伤。" } },
-                    { text: "谨慎规避 (消耗能量，无损伤)", outcome: { power: -20, health: 0, data: 2, log: "成功规避小行星，但消耗了更多能量。" } }
-                ]
-            },
-            {
-                name: "遭遇太阳风暴",
-                description: "强大的太阳风暴来袭，可能影响电子设备。",
-                choices: [
-                    { text: "启动辐射屏蔽 (消耗能量，保护健康)", outcome: { power: -20, health: -5, data: 10, log: "启动辐射屏蔽，成功抵御太阳风暴，收集到风暴数据。" } },
-                    { text: "节约能量 (健康受损，数据可能丢失)", outcome: { power: -5, health: -20, data: 0, log: "节约能量，但探测器受到较大辐射损伤。" } }
-                ]
-            },
-            {
-                name: "发现未知冰质天体",
-                description: "探测器在柯伊伯带边缘发现一个前所未见的冰质天体，值得近距离探测。",
-                choices: [
-                    { text: "抵近探测 (消耗能量，高数据收益)", outcome: { power: -25, health: 0, data: 30, log: "成功抵近探测未知天体，获得大量宝贵数据！" } },
-                    { text: "保持航向 (无额外消耗，错过机会)", outcome: { power: 0, health: 0, data: 5, log: "保持航向，错过了近距离探测机会，但节省了能量。" } }
-                ]
-            },
-            {
-                name: "进入日球层顶",
-                description: "探测器即将穿越日球层顶，这是太阳系与星际空间的真正边界。",
-                choices: [
-                    { text: "全速穿越并测量 (消耗能量，高数据收益)", outcome: { power: -30, health: -5, data: 40, log: "全速穿越日球层顶，首次直接测量星际介质，数据价值极高！" } },
-                    { text: "缓慢穿越 (低能量消耗，数据收益一般)", outcome: { power: -10, health: 0, data: 20, log: "缓慢穿越日球层顶，获得了常规数据。" } }
-                ]
-            },
-            {
-                name: "通信中断",
-                description: "与地球的通信信号突然中断，需要自主解决。",
-                choices: [
-                    { text: "启动备用通信系统 (消耗能量，恢复通信)", outcome: { power: -15, health: 0, data: 0, log: "启动备用通信系统，通信恢复正常。" } },
-                    { text: "等待自动恢复 (无消耗，但可能长时间失联)", outcome: { power: 0, health: 0, data: -5, log: "等待通信自动恢复，数据传输延迟，部分数据丢失。" } }
-                ]
-            },
-            {
-                name: "发现星际尘埃云",
-                description: "探测器进入一片密集的星际尘埃云，这是研究星际介质组成的好机会。",
-                choices: [
-                    { text: "部署尘埃分析仪 (消耗能量，高数据收益)", outcome: { power: -10, health: -5, data: 25, log: "部署尘埃分析仪，成功收集到星际尘埃样本数据。" } },
-                    { text: "规避尘埃云 (无消耗，无数据收益)", outcome: { power: 0, health: 0, data: 0, log: "规避尘埃云，未收集到新数据。" } }
-                ]
-            },
-            {
-                name: "能量危机",
-                description: "探测器能量储备过低，必须采取措施。",
-                choices: [
-                    { text: "关闭部分非必要系统 (数据收益降低，节约能量)", outcome: { power: +20, health: 0, data: -10, log: "关闭非必要系统，能量得到补充，但科学数据收集受影响。" } },
-                    { text: "尝试能量回收 (有风险，可能失败)", outcome: { power: Math.random() > 0.5 ? +30 : -10, health: Math.random() > 0.5 ? 0 : -15, data: 0, log: Math.random() > 0.5 ? "能量回收成功，获得额外能量！" : "能量回收失败，反而损失了能量和健康！" } }
-                ]
-            },
-            {
-                name: "未知辐射源",
-                description: "探测器附近出现异常辐射源，来源不明。",
-                choices: [
-                    { text: "全方位扫描 (消耗能量，可能发现新信息)", outcome: { power: -15, health: 0, data: 15, log: "进行全方位扫描，发现辐射源可能与宇宙射线加速有关。" } },
-                    { text: "迅速撤离 (消耗能量，避免风险)", outcome: { power: -10, health: 0, data: 0, log: "迅速撤离辐射区域，避免了潜在风险。" } }
-                ]
-            }
-        ];
-
-        function initializeSimulation() {
-            currentSimState = {
-                distance: 100, // AU
-                power: 100, // %
-                health: 100, // %
-                data: 0, // Units
-                missionScore: 0,
-                eventsCompleted: 0
-            };
-            updateSimulationUI();
-            simLogContent.innerHTML = '<p class="text-slate-400">等待模拟开始...</p>';
-            simulationEventDisplay.classList.add('hidden');
-            simulationResultDisplay.classList.add('hidden');
-            simulationEndDisplay.classList.add('hidden');
-            startSimulationBtn.classList.remove('hidden');
-            nextEventBtn.classList.add('hidden');
-            resetSimulationBtn.classList.add('hidden');
-        }
-
-        function updateSimulationUI() {
-            simDistance.textContent = currentSimState.distance;
-            simPower.textContent = currentSimState.power;
-            simHealth.textContent = currentSimState.health;
-            simData.textContent = currentSimState.data;
-            simMissionScore.textContent = currentSimState.missionScore;
-
-            // Update color based on health/power
-            simPower.style.color = currentSimState.power > 50 ? '#4ade80' : currentSimState.power > 20 ? '#facc15' : '#f87171';
-            simHealth.style.color = currentSimState.health > 50 ? '#4ade80' : currentSimState.health > 20 ? '#facc15' : '#f87171';
-        }
-
-        function addLog(message, type = 'info') {
-            var p = document.createElement('p');
-            p.textContent = message;
-            if (type === 'error') p.classList.add('text-red-600');
-            if (type === 'success') p.classList.add('text-green-600');
-            if (type === 'event') p.classList.add('text-blue-700');
-            simLogContent.prepend(p); // Add to top
-            // Limit log entries to prevent overflow
-            while (simLogContent.children.length > 10) {
-                simLogContent.lastChild.remove();
-            }
-        }
-
-        function checkGameOver() {
-            if (currentSimState.power <= 0) {
-                endSimulation("能量耗尽！任务失败。", 'game-over');
-                return true;
-            }
-            if (currentSimState.health <= 0) {
-                endSimulation("探测器严重受损，无法继续任务！", 'game-over');
-                return true;
-            }
-            if (currentSimState.distance >= 100000 && currentSimState.eventsCompleted >= simulationEvents.length) { // Reached Oort Cloud and completed events
-                endSimulation("恭喜！您已成功完成星际之旅，抵达太阳系最远边界！", 'win');
-                return true;
-            }
-            return false;
-        }
-
-        function endSimulation(message, type) {
-            simulationEventDisplay.classList.add('hidden');
-            simulationResultDisplay.classList.add('hidden');
-            simulationEndDisplay.classList.remove('hidden');
-            simulationEndDisplay.innerHTML = `<p class="text-3xl font-bold ${type === 'win' ? 'text-gold-500' : 'text-red-500'}">${message}</p><p class="text-xl mt-4">最终得分：${currentSimState.missionScore}</p>`;
-            simulationEndDisplay.classList.add(type);
-            nextEventBtn.classList.add('hidden');
-            resetSimulationBtn.classList.remove('hidden');
-            addLog(message, type === 'win' ? 'success' : 'error');
-        }
-
-        function triggerNextEvent() {
-            if (checkGameOver()) return;
-
-            simulationResultDisplay.classList.add('hidden');
-            simulationChoices.innerHTML = '';
-
-            var eventIndex = Math.floor(Math.random() * simulationEvents.length);
-            var event = simulationEvents[eventIndex];
-
-            simEventName.textContent = event.name;
-            simEventDescription.textContent = event.description;
-            addLog(`事件：${event.name} - ${event.description}`, 'event');
-
-            event.choices.forEach(choice => {
-                var button = document.createElement('button');
-                button.className = 'choice-button';
-                button.textContent = choice.text;
-                button.addEventListener('click', () => handleChoice(choice));
-                simulationChoices.appendChild(button);
-            });
-
-            simulationEventDisplay.classList.remove('hidden');
-            nextEventBtn.classList.add('hidden'); // Hide next event button until choice is made
-        }
-
-        function handleChoice(choice) {
-            // Disable all choice buttons
-            simulationChoices.querySelectorAll('button').forEach(btn => btn.disabled = true);
-
-            var outcome = choice.outcome;
-            currentSimState.power = Math.max(0, currentSimState.power + outcome.power);
-            currentSimState.health = Math.max(0, currentSimState.health + outcome.health);
-            currentSimState.data = Math.max(0, currentSimState.data + outcome.data);
-            currentSimState.distance += Math.floor(Math.random() * 50) + 10; // Advance distance
-            currentSimState.missionScore += outcome.data * 2 + Math.floor(Math.random() * 10); // Score based on data and randomness
-            currentSimState.eventsCompleted++;
-
-            updateSimulationUI();
-            simResultDetails.textContent = outcome.log;
-            simulationResultDisplay.classList.remove('hidden');
-            addLog(outcome.log, 'info');
-
-            if (!checkGameOver()) {
-                nextEventBtn.classList.remove('hidden');
-            }
-        }
-
-        startSimulationBtn.addEventListener('click', () => {
-            initializeSimulation();
-            startSimulationBtn.classList.add('hidden');
-            nextEventBtn.classList.remove('hidden');
-            addLog("模拟开始！探测器踏上星际之旅。", 'success');
-            triggerNextEvent();
-        });
-
-        nextEventBtn.addEventListener('click', triggerNextEvent);
-        resetSimulationBtn.addEventListener('click', initializeSimulation);
-
-
-        // 3D 太阳系模型 (3D Solar System Model)
-        var solarSystemScene, solarSystemCamera, solarSystemRenderer, solarSystemControls, solarSystemAnimationId;
-        var sun, planets3D = [];
-
-        function initSolarSystem3D() {
-            var canvas = document.getElementById('solarSystem3DCanvas');
-            if (!canvas) return; // Exit if canvas not found (e.g., on other slides)
-
-            // Clear previous scene if exists
-            if (solarSystemScene) {
-                solarSystemScene.traverse(object => {
-                    if (object.geometry) object.geometry.dispose();
-                    if (object.material) {
-                        if (Array.isArray(object.material)) {
-                            object.material.forEach(m => m.dispose());
-                        } else {
-                            object.material.dispose();
-                        }
-                    }
-                });
-                solarSystemRenderer.dispose();
-            }
-
-            solarSystemScene = new THREE.Scene();
-            solarSystemCamera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 10000);
-            solarSystemRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            solarSystemRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
-            solarSystemRenderer.setClearColor(0x0f172a); // Deep space background
-
-            // Controls
-            solarSystemControls = new THREE.OrbitControls(solarSystemCamera, solarSystemRenderer.domElement);
-            solarSystemControls.enableDamping = true; // smooth zoom/pan
-            solarSystemControls.dampingFactor = 0.05;
-            solarSystemControls.screenSpacePanning = false;
-            solarSystemControls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
-
-            // Lighting
-            var ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-            solarSystemScene.add(ambientLight);
-            var pointLight = new THREE.PointLight(0xffffff, 1, 0); // White light
-            pointLight.position.set(0, 0, 0); // At the center (Sun's position)
-            solarSystemScene.add(pointLight);
-
-            // Sun
-            var sunGeometry = new THREE.SphereGeometry(5, 32, 32);
-            var sunMaterial = new THREE.MeshBasicMaterial({ color: 0xfacc15 }); // Yellow
-            sun = new THREE.Mesh(sunGeometry, sunMaterial);
-            solarSystemScene.add(sun);
-
-            // Planets (simplified for visualization)
-            // Scale: 1 AU in real solar system = 10 units in 3D scene
-            // Earth's orbit: 1 AU -> 10 units radius
-            // Jupiter's orbit: 5.2 AU -> 52 units radius
-            // Pluto's orbit: 39.5 AU -> 395 units radius
-            // Heliosphere: ~120 AU -> 1200 units radius
-            // Oort Cloud (inner edge): ~3000 AU -> 30000 units radius (too big for this scale)
-            // Let's use a more compressed scale for outer regions for visualization
-            var auScale = 10; // 1 AU = 10 units
-
-            var planetData = [
-                { name: "水星", size: 0.3, orbit: 0.39 * auScale, speed: 0.04, color: 0xcccccc },
-                { name: "金星", size: 0.5, orbit: 0.72 * auScale, speed: 0.015, color: 0xfcd34d },
-                { name: "地球", size: 0.6, orbit: 1.00 * auScale, speed: 0.01, color: 0x3b82f6 },
-                { name: "火星", size: 0.4, orbit: 1.52 * auScale, speed: 0.008, color: 0xef4444 },
-                { name: "木星", size: 2.0, orbit: 5.20 * auScale, speed: 0.002, color: 0xfbbf24 },
-                { name: "土星", size: 1.8, orbit: 9.58 * auScale, speed: 0.001, color: 0xfde047 },
-                { name: "天王星", size: 1.2, orbit: 19.23 * auScale, speed: 0.0005, color: 0x67e8f9 },
-                { name: "海王星", size: 1.1, orbit: 30.10 * auScale, speed: 0.0003, color: 0x2563eb }
-            ];
-
-            planets3D = [];
-            planetData.forEach(data => {
-                var geometry = new THREE.SphereGeometry(data.size, 16, 16);
-                var material = new THREE.MeshLambertMaterial({ color: data.color });
-                var planetMesh = new THREE.Mesh(geometry, material);
-                planetMesh.position.x = data.orbit;
-                solarSystemScene.add(planetMesh);
-
-                // Add orbit line
-                var orbitGeometry = new THREE.RingGeometry(data.orbit - 0.05, data.orbit + 0.05, 64);
-                var orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
-                var orbitMesh = new THREE.Mesh(orbitGeometry, orbitMaterial);
-                orbitMesh.rotation.x = Math.PI / 2; // Rotate to lie flat
-                solarSystemScene.add(orbitMesh);
-
-                planets3D.push({ mesh: planetMesh, orbit: data.orbit, speed: data.speed });
-            });
-
-            // Outer Solar System / Heliopause / Oort Cloud (simplified rings)
-            var heliopauseRadius = 120 * auScale * 2; // Exaggerate for visibility
-            var heliopauseGeometry = new THREE.RingGeometry(heliopauseRadius - 1, heliopauseRadius + 1, 64);
-            var heliopauseMaterial = new THREE.MeshBasicMaterial({ color: 0x818cf8, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
-            var heliopauseMesh = new THREE.Mesh(heliopauseGeometry, heliopauseMaterial);
-            heliopauseMesh.rotation.x = Math.PI / 2;
-            solarSystemScene.add(heliopauseMesh);
-
-            var oortCloudRadius = 3000 * auScale * 0.5; // Compressed scale
-            var oortCloudGeometry = new THREE.RingGeometry(oortCloudRadius - 2, oortCloudRadius + 2, 64);
-            var oortCloudMaterial = new THREE.MeshBasicMaterial({ color: 0xa78bfa, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
-            var oortCloudMesh = new THREE.Mesh(oortCloudGeometry, oortCloudMaterial);
-            oortCloudMesh.rotation.x = Math.PI / 2;
-            solarSystemScene.add(oortCloudMesh);
-
-            solarSystemCamera.position.set(0, 150, 200); // Initial camera position
-            solarSystemControls.update();
-
-            // Handle window resize
-            function onWindowResize() {
-                var newWidth = canvas.clientWidth;
-                var newHeight = canvas.clientHeight;
-                solarSystemCamera.aspect = newWidth / newHeight;
-                solarSystemCamera.updateProjectionMatrix();
-                solarSystemRenderer.setSize(newWidth, newHeight);
-            }
-            window.addEventListener('resize', onWindowResize, false);
-
-            // Animation loop
-            function animateSolarSystem() {
-                solarSystemAnimationId = requestAnimationFrame(animateSolarSystem);
-
-                planets3D.forEach(planet => {
-                    planet.mesh.rotation.y += 0.01; // Self-rotation
-                    var angle = Date.now() * planet.speed;
-                    planet.mesh.position.x = planet.orbit * Math.cos(angle);
-                    planet.mesh.position.z = planet.orbit * Math.sin(angle);
-                });
-
-                solarSystemControls.update();
-                solarSystemRenderer.render(solarSystemScene, solarSystemCamera);
-            }
-            animateSolarSystem();
-        }
-
-
-        // 核动力系统3D可视化 (Nuclear Power System 3D Visualizations)
-        var nuclearPowerAnimations = {};
-        var activeNuclearSystem = {
-            name: null,
-            scene: null,
-            camera: null,
-            renderer: null,
-            animationId: null
-        };
-
-        function initNuclearPower3D(canvasId, systemType) {
-            var canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-
-            // Stop previous animation if running
-            if (activeNuclearSystem.animationId) {
-                cancelAnimationFrame(activeNuclearSystem.animationId);
-                activeNuclearSystem.animationId = null;
-                // Dispose previous scene resources
-                if (activeNuclearSystem.scene) {
-                    activeNuclearSystem.scene.traverse(object => {
-                        if (object.geometry) object.geometry.dispose();
-                        if (object.material) {
-                            if (Array.isArray(object.material)) {
-                                object.material.forEach(m => m.dispose());
-                            } else {
-                                object.material.dispose();
-                            }
-                        }
-                    });
-                    activeNuclearSystem.renderer.dispose();
-                }
-            }
-
-            var scene = new THREE.Scene();
-            var camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-            var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-            renderer.setClearColor(0x000000, 0); // Transparent background
-
-            var ambientLight = new THREE.AmbientLight(0x404040);
-            scene.add(ambientLight);
-            var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 5, 5).normalize();
-            scene.add(directionalLight);
-
-            var object;
-            switch (systemType) {
-                case 'RTG':
-                    // Simple RTG: a cylinder with fins
-                    var core = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 3, 32), new THREE.MeshPhongMaterial({ color: 0x888888 }));
-                    core.rotation.x = Math.PI / 2;
-                    object = new THREE.Group();
-                    object.add(core);
-                    for (let i = 0; i < 8; i++) {
-                        let fin = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.5, 2), new THREE.MeshPhongMaterial({ color: 0x666666 }));
-                        fin.position.set(0, 0, 0);
-                        fin.rotation.y = i * Math.PI / 4;
-                        object.add(fin);
-                    }
-                    // Add a glowing core to simulate heat
-                    var glowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffa500, transparent: true, opacity: 0.6 }));
-                    object.add(glowSphere);
-                    break;
-                case 'SRG':
-                    // Simple SRG: a cylinder with a piston/rod animation
-                    object = new THREE.Group();
-                    var srgCore = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 3.5, 32), new THREE.MeshPhongMaterial({ color: 0x555555 }));
-                    srgCore.rotation.x = Math.PI / 2;
-                    object.add(srgCore);
-
-                    var piston = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16), new THREE.MeshPhongMaterial({ color: 0xaaaaaa }));
-                    piston.position.set(0, 0, 2);
-                    object.add(piston);
-
-                    // Animation for piston
-                    nuclearPowerAnimations.SRG = {
-                        mesh: piston,
-                        animate: function() {
-                            this.mesh.position.z = 2 + Math.sin(Date.now() * 0.005) * 0.5;
-                        },
-                        stop: function() { this.mesh.position.z = 2; } // Reset position
-                    };
-                    break;
-                case 'NTP':
-                    // Simple NTP: reactor core and nozzle
-                    object = new THREE.Group();
-                    var reactorCore = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2.5), new THREE.MeshPhongMaterial({ color: 0x444444 }));
-                    reactorCore.position.z = -1;
-                    object.add(reactorCore);
-
-                    var nozzle = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3, 32), new THREE.MeshPhongMaterial({ color: 0x333333 }));
-                    nozzle.position.z = 2;
-                    nozzle.rotation.x = Math.PI; // Pointing backwards
-                    object.add(nozzle);
-
-                    // Simulate exhaust
-                    var exhaustParticles = new THREE.Group();
-                    for (let i = 0; i < 100; i++) {
-                        let particle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffa500, transparent: true, opacity: 0.8 }));
-                        particle.position.set(0, 0, Math.random() * 2 - 1);
-                        particle.velocity = new THREE.Vector3(0, 0, Math.random() * 0.1 + 0.05);
-                        exhaustParticles.add(particle);
-                    }
-                    object.add(exhaustParticles);
-
-                    nuclearPowerAnimations.NTP = {
-                        mesh: exhaustParticles,
-                        animate: function() {
-                            this.mesh.children.forEach(p => {
-                                p.position.z += p.velocity.z;
-                                p.material.opacity -= 0.01;
-                                if (p.material.opacity <= 0) {
-                                    p.position.set(0, 0, Math.random() * 2 - 1);
-                                    p.material.opacity = 0.8;
-                                }
-                            });
-                        },
-                        stop: function() {
-                            this.mesh.children.forEach(p => { p.material.opacity = 0; });
-                        }
-                    };
-                    break;
-                case 'NEP':
-                    // Simple NEP: reactor core and ion thruster
-                    object = new THREE.Group();
-                    var nepCore = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshPhongMaterial({ color: 0x444444 }));
-                    nepCore.position.z = -1;
-                    object.add(nepCore);
-
-                    var thruster = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.5, 1.5, 32), new THREE.MeshPhongMaterial({ color: 0x333333 }));
-                    thruster.position.z = 1.5;
-                    thruster.rotation.x = Math.PI / 2;
-                    object.add(thruster);
-
-                    // Ion beam
-                    var ionBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.05, 5, 16), new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7 }));
-                    ionBeam.position.set(0, 0, 4);
-                    ionBeam.rotation.x = Math.PI / 2;
-                    object.add(ionBeam);
-
-                    nuclearPowerAnimations.NEP = {
-                        mesh: ionBeam,
-                        animate: function() {
-                            this.mesh.material.opacity = 0.5 + Math.sin(Date.now() * 0.01) * 0.2;
-                        },
-                        stop: function() { this.mesh.material.opacity = 0; }
-                    };
-                    break;
-                default:
-                    object = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-            }
-
-            scene.add(object);
+        // Three.js scene setup
+        let scene, camera, renderer, particles, mouseX = 0, mouseY = 0;
+        const canvas = document.getElementById('threejs-background');
+
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / canvas.clientHeight, 0.1, 1000);
             camera.position.z = 5;
 
-            function animate() {
-                activeNuclearSystem.animationId = requestAnimationFrame(animate);
-                object.rotation.y += 0.005;
-                if (nuclearPowerAnimations[systemType] && nuclearPowerAnimations[systemType].animate) {
-                    nuclearPowerAnimations[systemType].animate();
-                }
-                renderer.render(scene, camera);
-            }
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true }); // alpha: true allows transparent background
+            renderer.setSize(window.innerWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
 
-            // Store active system
-            activeNuclearSystem.name = systemType;
-            activeNuclearSystem.scene = scene;
-            activeNuclearSystem.camera = camera;
-            activeNuclearSystem.renderer = renderer;
+            // Particle geometry
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const particleCount = 1000; // Number of particles
+
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.random() - 0.5) * 20;
+                const y = (Math.random() - 0.5) * 20;
+                const z = (Math.random() - 0.5) * 20;
+                vertices.push(x, y, z);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            // Particle material
+            const material = new THREE.PointsMaterial({
+                color: 0x888888, // Particle color
+                size: 0.05, // Particle size
+                transparent: true,
+                opacity: 0.7
+            });
+
+            // Particle system
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            // Add mouse move event listener
+            document.addEventListener('mousemove', onDocumentMouseMove);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onDocumentMouseMove(event) {
+            mouseX = (event.clientX - window.innerWidth / 2) / 200;
+            mouseY = (event.clientY - canvas.clientHeight / 2) / 200;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, canvas.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Particle animation
+            particles.rotation.x += 0.0005;
+            particles.rotation.y += 0.001;
+
+            // Camera movement based on mouse position for parallax effect
+            camera.position.x += (mouseX - camera.position.x) * 0.05;
+            camera.position.y += (-mouseY - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize Three.js after the page loads
+        window.onload = function () {
+            initThreeJS();
             animate();
-        }
-
-        // 切换核动力系统内容 (Switch Nuclear Power System Content)
-        var systemTabs = document.getElementById('systemTabs');
-        var systemContents = document.querySelectorAll('#systemContent .content-box');
-
-        function showSystemContent(systemName) {
-            systemTabs.querySelectorAll('.tab-button').forEach(button => {
-                if (button.dataset.system === systemName) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-            });
-
-            systemContents.forEach(content => {
-                if (content.dataset.content === systemName) {
-                    content.classList.remove('hidden');
-                    // Initialize 3D for the active system
-                    switch (systemName) {
-                        case 'RTG': initNuclearPower3D('rtg3DCanvas', 'RTG'); break;
-                        case 'SRG': initNuclearPower3D('srg3DCanvas', 'SRG'); break;
-                        case 'NTP': initNuclearPower3D('ntp3DCanvas', 'NTP'); break;
-                        case 'NEP': initNuclearPower3D('nep3DCanvas', 'NEP'); break;
-                    }
-                } else {
-                    content.classList.add('hidden');
-                }
-            });
-        }
-
-        if (systemTabs) {
-            systemTabs.addEventListener('click', (e) => {
-                if (e.target.classList.contains('tab-button')) {
-                    showSystemContent(e.target.dataset.system);
-                }
-            });
-        }
-
-
-        // DOMContentLoaded ensures all elements are available before script runs
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeScaledMap();
-            initializeImportanceTable();
-            initializeVoyagerTimeline();
-            initializeSimulation();
-            // Initial call for the first 3D model on blueprint slide
-            if (document.getElementById('slide-blueprint').classList.contains('active')) {
-                initSolarSystem3D();
-            }
-        });
+        };
     </script>
 </body>
 </html>
