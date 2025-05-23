@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的书架 - 3D交互式 (跳转三级页)</title>
+    <!--
+        引入 Tailwind CSS CDN：
+        这是一个CSS框架，帮助你快速构建响应式和美观的界面。
+        我们用它来快速布局和样式化页面。
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+        引入 Font Awesome 图标库：
+        提供各种图标，用于导航栏、社交链接等。
+    -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!--
+        引入 Three.js 库：
+        用于在背景中创建动态的3D粒子效果。
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!--
+        注意：<base href="/"> 标签已移除。
+        为了确保GitHub Pages上的相对路径正确解析，我们将直接在JavaScript中构建完整的URL。
+    -->
+    <style>
+        /*
+            -------------------------------------------------------------------
+            自定义 CSS 样式部分：
+            这里定义了一些额外的CSS规则，用于实现更精细的控制、动画和3D效果，
+            这些是纯粹的CSS，与Tailwind CSS配合使用。
+            -------------------------------------------------------------------
+        */
+
+        /* 全局字体设置 */
+        body {
+            font-family: 'Inter', sans-serif; /* 设置页面默认字体 */
+            background-color: #f0f2f5; /* 默认背景色 */
+            scroll-behavior: smooth; /* 平滑滚动 */
+            overflow-x: hidden; /* 防止水平滚动条 */
+        }
+
+        /* 英雄背景区域 (主视觉区域) */
+        .hero-background {
+            height: 300px; /* 调整高度以适应二级页面，可以根据需要修改 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Three.js Canvas 样式 */
+        #threejs-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* 毛玻璃效果样式 */
+        .glass-morphism {
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.75);
+            border-radius: 12px;
+            border: 1px solid rgba(209, 213, 219, 0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 导航栏滚动时的样式变化 */
+        .navbar-scrolled {
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 按钮悬停效果 */
+        .btn-primary {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /*
+            -------------------------------------------------------------------
+            书籍3D效果相关样式：
+            这是实现“拿出打开”3D动画的核心CSS。
+            -------------------------------------------------------------------
+        */
+        .book-shelf-item {
+            /* 确保每个书本元素能触发3D效果 */
+            perspective: 1000px; /* 定义3D透视效果的深度 */
+            cursor: pointer; /* 鼠标悬停时显示手型光标 */
+            transition: transform 0.5s ease-in-out; /* 基础过渡效果 */
+            position: relative; /* 用于定位书本内容 */
+            height: 280px; /* 书本高度，可根据封面图调整 */
+            width: 200px; /* 书本宽度，可根据封面图调整 */
+            margin: 1rem; /* 书本间距 */
+        }
+
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d; /* 关键：使子元素在3D空间中定位 */
+            transition: transform 1s ease-in-out; /* 书本整体3D旋转过渡 */
+            transform-origin: left center; /* 旋转中心点为左侧中心 */
+        }
+
+        .book-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* 隐藏背面，防止翻转时内容倒置 */
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px; /* 圆角 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .front-cover {
+            background-image: url('https://placehold.co/200x280/87CEEB/ffffff?text=Book+Cover'); /* 默认封面图 */
+            transform: rotateY(0deg) translateZ(1px); /* 封面在最前面 */
+        }
+
+        .back-cover {
+            background-image: url('https://placehold.co/200x280/A9A9A9/ffffff?text=Back+Cover'); /* 默认封底图 */
+            transform: rotateY(180deg) translateZ(1px); /* 封底翻转180度 */
+        }
+
+        .book-side {
+            position: absolute;
+            width: 20px; /* 书本厚度 */
+            height: 100%;
+            background-color: #ccc; /* 书脊颜色 */
+            transform-origin: left center;
+            transform: rotateY(90deg) translateZ(-10px); /* 定位到书本侧面 */
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .book-pages {
+            position: absolute;
+            width: calc(100% - 20px); /* 页面宽度 */
+            height: calc(100% - 16px); /* 页面高度 */
+            background-color: #f8f8f8; /* 页面颜色 */
+            top: 8px;
+            left: 10px; /* 稍微内缩 */
+            transform-origin: left center;
+            transform: rotateY(0deg) translateZ(2px); /* 页面在封面和封底之间 */
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+            border-radius: 0 4px 4px 0;
+            overflow: hidden; /* 隐藏页面内容溢出 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+        }
+
+        /* `.is-open` 类：当书本被点击打开时的状态 */
+        .book.is-open {
+            transform: translateX(100px) rotateY(-160deg); /* 移出书架并翻开 */
+        }
+    </style>
+</head>
+<body class="text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+
+    <!--
+        -------------------------------------------------------------------
+        顶部导航栏 (Navbar) 部分：
+        与主页保持一致，提供统一的导航体验。
+        -------------------------------------------------------------------
+    -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-blue-600 dark:text-blue-400">我的主页</a>
+            
+            <div class="hidden md:flex space-x-6">
+                <div class="relative dropdown">
+                    <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400 cursor-pointer">
+                        标签 <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="frontend-development.html" class="dropdown-item">前端开发</a>
+                        <a href="backend-technology.html" class="dropdown-item">后端技术</a>
+                        <a href="personal-essays.html" class="dropdown-item">个人随笔</a>
+                        <a href="study-notes.html" class="dropdown-item">学习笔记</a>
+                    </div>
+                </div>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">分类</a>
+                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">页面</a>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button id="theme-toggle" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!--
+        -------------------------------------------------------------------
+        主视觉区域 (Hero Section)：
+        用于展示页面标题和Three.js背景。
+        -------------------------------------------------------------------
+    -->
+    <header class="hero-background relative">
+        <canvas id="threejs-background"></canvas>
+        <div class="absolute inset-0 bg-black opacity-30 z-10"></div>
+        <div class="relative z-20 text-center text-white p-6 rounded-lg glass-morphism">
+            <h1 class="text-5xl font-extrabold mb-2">我的书架</h1>
+            <p class="text-xl max-w-2xl mx-auto">探索我的知识宝库</p>
+        </div>
+    </header>
+
+    <!--
+        -------------------------------------------------------------------
+        书架内容区域 (Main Content Section)：
+        展示书籍列表，每本书都可点击并触发3D打开效果。
+        -------------------------------------------------------------------
+    -->
+    <main class="container mx-auto px-4 py-12 relative z-20">
+        <h2 class="text-4xl font-bold text-gray-900 dark:text-white mb-8 text-center">前端开发书籍</h2>
+        
+        <div id="bookshelf-container" class="flex flex-wrap justify-center gap-8">
+            <!--
+                书本示例 1：
+                复制此 `book-shelf-item` 块以添加更多书籍。
+                请替换 `data-title`, `data-author`, `data-page-url` 和 `front-cover` 的 `background-image`。
+                `data-page-url` 是点击后跳转到的三级标签页的URL。
+            -->
+            <div class="book-shelf-item"
+                 data-title="深入理解Vue.js"
+                 data-author="张三"
+                 data-page-url="vue-js-details.html"
+                 data-cover-url="https://placehold.co/200x280/FFD700/000000?text=Vue.js+Book">
+                <div class="book">
+                    <div class="book-face front-cover"></div>
+                    <div class="book-face back-cover"></div>
+                    <div class="book-side"></div>
+                    <div class="book-pages">
+                        <p class="text-center">点击查看</p>
+                    </div>
+                </div>
+                <p class="text-center mt-2 font-semibold text-gray-700 dark:text-gray-300">深入理解Vue.js</p>
+            </div>
+
+            <div class="book-shelf-item"
+                 data-title="React高级指南"
+                 data-author="李四"
+                 data-page-url="react-advanced.html"
+                 data-cover-url="https://placehold.co/200x280/87CEEB/000000?text=React+Book">
+                <div class="book">
+                    <div class="book-face front-cover"></div>
+                    <div class="book-face back-cover"></div>
+                    <div class="book-side"></div>
+                    <div class="book-pages">
+                        <p class="text-center">点击查看</p>
+                    </div>
+                </div>
+                <p class="text-center mt-2 font-semibold text-gray-700 dark:text-gray-300">React高级指南</p>
+            </div>
+
+            <div class="book-shelf-item"
+                 data-title="JavaScript设计模式"
+                 data-author="王五"
+                 data-page-url="js-design-patterns.html"
+                 data-cover-url="https://placehold.co/200x280/FF6347/ffffff?text=JS+Patterns">
+                <div class="book">
+                    <div class="book-face front-cover"></div>
+                    <div class="book-face back-cover"></div>
+                    <div class="book-side"></div>
+                    <div class="book-pages">
+                        <p class="text-center">点击查看</p>
+                    </div>
+                </div>
+                <p class="text-center mt-2 font-semibold text-gray-700 dark:text-gray-300">JavaScript设计模式</p>
+            </div>
+
+            <div class="book-shelf-item"
+                 data-title="CSS揭秘"
+                 data-author="赵六"
+                 data-page-url="css-secrets.html"
+                 data-cover-url="https://placehold.co/200x280/90EE90/000000?text=CSS+Secrets">
+                <div class="book">
+                    <div class="book-face front-cover"></div>
+                    <div class="book-face back-cover"></div>
+                    <div class="book-side"></div>
+                    <div class="book-pages">
+                        <p class="text-center">点击查看</p>
+                    </div>
+                </div>
+                <p class="text-center mt-2 font-semibold text-gray-700 dark:text-gray-300">CSS揭秘</p>
+            </div>
+
+            <div class="book-shelf-item"
+                 data-title="Web性能优化"
+                 data-author="钱七"
+                 data-page-url="web-performance.html"
+                 data-cover-url="https://placehold.co/200x280/DA70D6/ffffff?text=Web+Perf">
+                <div class="book">
+                    <div class="book-face front-cover"></div>
+                    <div class="book-face back-cover"></div>
+                    <div class="book-side"></div>
+                    <div class="book-pages">
+                        <p class="text-center">点击查看</p>
+                    </div>
+                </div>
+                <p class="text-center mt-2 font-semibold text-gray-700 dark:text-gray-300">Web性能优化</p>
+            </div>
+        </div>
+    </main>
+
+    <!--
+        -------------------------------------------------------------------
+        底部 (Footer) 部分：
+        与主页保持一致。
+        -------------------------------------------------------------------
+    -->
+    <footer class="bg-gray-800 text-white py-8 mt-12 dark:bg-gray-900">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2">我的主页 © 2024</p>
+            <p class="mb-2">你的备案号 (如果需要)</p>
+            <p class="text-sm">Designed by <a href="#" class="text-blue-400 hover:underline">你的名字</a></p>
+            <p class="text-sm">Powered by HTML/CSS/Three.js</p>
+        </div>
+    </footer>
+
+    <!--
+        -------------------------------------------------------------------
+        JavaScript 脚本部分：
+        用于实现页面的交互和动态效果，包括暗黑模式、导航栏、Three.js背景和书籍3D效果。
+        -------------------------------------------------------------------
+    -->
+    <script>
+        /*
+            暗黑模式切换功能：
+            与主页功能一致，控制页面的亮色/暗色主题。
+        */
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+
+        themeToggle.addEventListener('click', () => {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+            }
+        });
+
+        // 根据本地存储设置初始主题
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+            themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+        } else {
+            htmlElement.classList.remove('dark');
+            themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+        }
+
+        /*
+            导航栏滚动效果：
+            与主页功能一致，滚动时导航栏背景和阴影变化。
+        */
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        });
+
+        /*
+            Three.js 3D 场景设置和动画：
+            创建并管理背景中的动态粒子效果，与主页功能一致。
+        */
+        let scene, camera, renderer, particles, mouseX = 0, mouseY = 0;
+        const canvas = document.getElementById('threejs-background');
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / canvas.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            renderer.setSize(window.innerWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const particleCount = 1000;
+
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.random() - 0.5) * 20;
+                const y = (Math.random() - 0.5) * 20;
+                const z = (Math.random() - 0.5) * 20;
+                vertices.push(x, y, z);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0x888888,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            document.addEventListener('mousemove', onDocumentMouseMove);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onDocumentMouseMove(event) {
+            mouseX = (event.clientX - window.innerWidth / 2) / 200;
+            mouseY = (event.clientY - canvas.clientHeight / 2) / 200;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, canvas.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.x += 0.0005;
+            particles.rotation.y += 0.001;
+            camera.position.x += (mouseX - camera.position.x) * 0.05;
+            camera.position.y += (-mouseY - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+
+        /*
+            -------------------------------------------------------------------
+            书籍3D交互和页面跳转处理：
+            点击书本时，触发3D翻开动画，然后跳转到对应的三级标签页。
+            -------------------------------------------------------------------
+        */
+        const bookShelfItems = document.querySelectorAll('.book-shelf-item'); // 获取所有书本元素
+
+        bookShelfItems.forEach(item => {
+            // 为每本书本添加点击事件监听器
+            item.addEventListener('click', () => {
+                const book = item.querySelector('.book'); // 获取书本内部的3D元素
+                const pageUrl = item.dataset.pageUrl; // 获取要跳转的页面URL
+
+                // 切换 `is-open` 类，触发CSS 3D动画
+                book.classList.add('is-open'); // 确保添加类以触发动画
+
+                // 动画结束后跳转页面
+                // 动画时长为1秒 (transition: transform 1s ease-in-out;)
+                setTimeout(() => {
+                    if (pageUrl) {
+                        // 动态构建完整的URL，以确保在GitHub Pages上正确解析
+                        const currentPath = window.location.pathname;
+                        // 获取当前页面的目录路径（例如：/my-repo/ 或 /）
+                        const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                        const fullUrl = window.location.origin + currentDir + pageUrl;
+                        window.location.href = fullUrl; // 跳转到指定页面
+                    }
+                }, 1000); // 等待动画完成（1000毫秒 = 1秒）
+            });
+
+            // 设置书籍封面图片
+            const frontCover = item.querySelector('.front-cover');
+            const coverUrl = item.dataset.coverUrl;
+            if (coverUrl) {
+                frontCover.style.backgroundImage = `url('${coverUrl}')`;
+            }
+        });
+
+        // 页面加载完成后执行：初始化 Three.js
+        window.onload = function () {
+            initThreeJS(); // 初始化Three.js
+            animate(); // 启动动画循环
+        };
+    </script>
+</body>
+</html>
