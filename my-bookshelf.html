@@ -32,7 +32,8 @@
         /* 全局字体设置 */
         body {
             font-family: 'Inter', sans-serif; /* 设置页面默认字体 */
-            background-color: #f0f2f5; /* 默认背景色 */
+            background-color: #1a202c; /* 深色背景，与主页保持一致 */
+            color: #e2e8f0; /* 浅色文本 */
             scroll-behavior: smooth; /* 平滑滚动 */
             overflow-x: hidden; /* 防止水平滚动条 */
         }
@@ -61,16 +62,16 @@
         .glass-morphism {
             backdrop-filter: blur(10px) saturate(180%);
             -webkit-backdrop-filter: blur(10px) saturate(180%);
-            background-color: rgba(255, 255, 255, 0.75);
+            background-color: rgba(255, 255, 255, 0.15); /* 更透明的白色背景，适应深色背景 */
             border-radius: 12px;
-            border: 1px solid rgba(209, 213, 219, 0.3);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(209, 213, 219, 0.1); /* 细边框，更透明 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         /* 导航栏滚动时的样式变化 */
         .navbar-scrolled {
-            background-color: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: rgba(26, 32, 44, 0.95); /* 滚动后背景更实心，深色 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* 滚动后阴影更明显 */
         }
 
         /* 按钮悬停效果 */
@@ -79,7 +80,7 @@
         }
         .btn-primary:hover {
             transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
         }
 
         /*
@@ -90,11 +91,11 @@
         */
         /* 定义CSS变量，方便统一管理书本尺寸 */
         :root {
-            --book-actual-width: 200px;    /* 书本封面实际宽度 */
-            --book-actual-height: 280px;   /* 书本实际高度 */
-            --book-thickness: 20px;        /* 书本厚度 (书脊宽度) */
-            --book-spacing-x: 1rem;        /* 书本之间的水平间距 */
-            --book-spacing-y: 1rem;        /* 书架层之间的垂直间距 */
+            --book-actual-width: 200px;     /* 书本封面实际宽度 */
+            --book-actual-height: 280px;    /* 书本实际高度 */
+            --book-thickness: 20px;         /* 书本厚度 (书脊宽度) */
+            --book-spacing-x: 1rem;         /* 书本之间的水平间距 */
+            --book-spacing-y: 1rem;         /* 书架层之间的垂直间距 */
         }
 
         .book-shelf-item {
@@ -103,20 +104,36 @@
             cursor: pointer; /* 鼠标悬停时显示手型光标 */
             position: relative;
             height: var(--book-actual-height);
-            /* 初始宽度为书本的厚度，因为我们只显示书脊 */
             width: var(--book-thickness); /* 初始宽度设置为书脊厚度 */
             margin: var(--book-spacing-y) var(--book-spacing-x); /* 垂直和水平间距 */
             transform-style: preserve-3d; /* 关键：使子元素在3D空间中定位 */
             /* 初始状态：书本侧着放，书脊朝前，稍微倾斜 */
-            /* rotateY(-80deg) 使书本侧向显示，rotateX(5deg) 模拟书架的轻微倾斜 */
-            transform: rotateX(5deg) rotateY(-80deg) translateY(var(--wave-translate-y, 0px)); /* 增加波浪动画的 translateY */
-            /* 调整过渡时间，使波浪动画更丝滑，点击动画也更迅速 */
+            transform: rotateX(5deg) rotateY(-80deg);
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-            opacity: var(--wave-opacity, 1); /* 增加波浪动画的 opacity */
+            opacity: 1;
             z-index: 20; /* 确保书本在书架之上 */
-            /* 调整 transform-origin 以便旋转时围绕书脊进行 */
-            transform-origin: left center;
+            transform-origin: left center; /* 调整 transform-origin 以便旋转时围绕书脊进行 */
+            
+            /* 波浪动画 */
+            animation: waveAnimation 3s ease-in-out infinite;
         }
+
+        /* 波浪动画的关键帧 */
+        @keyframes waveAnimation {
+            0%, 100% { transform: rotateX(5deg) rotateY(-80deg) translateY(0px); opacity: 1; }
+            50% { transform: rotateX(5deg) rotateY(-80deg) translateY(-5px); opacity: 0.95; }
+        }
+
+        /* 为每个书本设置不同的动画延迟，创建波浪效果 */
+        .book-shelf-item:nth-child(3n+1) { animation-delay: 0s; }
+        .book-shelf-item:nth-child(3n+2) { animation-delay: 0.1s; }
+        .book-shelf-item:nth-child(3n+3) { animation-delay: 0.2s; }
+        .book-shelf-item:nth-child(5n+1) { animation-delay: 0.3s; } /* 更多随机性 */
+        .book-shelf-item:nth-child(5n+2) { animation-delay: 0.4s; }
+        .book-shelf-item:nth-child(5n+3) { animation-delay: 0.5s; }
+        .book-shelf-item:nth-child(5n+4) { animation-delay: 0.6s; }
+        .book-shelf-item:nth-child(5n+5) { animation-delay: 0.7s; }
+
 
         .book-container { /* 新增容器，用于包裹书本主体和封面，实现整体3D变换 */
             width: var(--book-actual-width);
@@ -125,8 +142,6 @@
             top: 0;
             left: 0;
             transform-style: preserve-3d;
-            /* 初始状态：将整个书本向右移动，使其书脊与 book-shelf-item 的左边缘对齐 */
-            /* 这里需要将书本整体向右移动，使其书脊位于 book-shelf-item 的左边缘 */
             transform: translateX(calc(var(--book-thickness) / 2));
         }
 
@@ -135,7 +150,6 @@
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
-            /* 初始无额外变换，其内部元素会根据自身变换定位 */
         }
 
         /* 书本的各个面基础样式 */
@@ -153,7 +167,6 @@
         /* 封面 */
         .front-cover {
             background-image: url('https://placehold.co/200x280/87CEEB/ffffff?text=Book+Cover'); /* 默认封面图 */
-            /* 封面位于书本厚度的一半位置，使其在3D空间中正确显示 */
             transform: translateZ(calc(var(--book-thickness) / 2));
             transition: transform 1s ease-in-out; /* 封面翻开动画过渡 */
             transform-origin: left center; /* 封面翻开的旋转中心点为左侧中心 (书脊) */
@@ -162,7 +175,6 @@
         /* 封底 */
         .back-cover {
             background-image: url('https://placehold.co/200x280/A9A9A9/ffffff?text=Back+Cover'); /* 默认封底图 */
-            /* 封底翻转180度，并位于书本厚度的一半位置 */
             transform: rotateY(180deg) translateZ(calc(var(--book-thickness) / 2));
         }
 
@@ -172,7 +184,6 @@
             width: var(--book-thickness); /* 书脊的实际厚度 */
             height: 100%;
             background-color: #ccc; /* 书脊颜色 */
-            /* 旋转Y轴-90度使其成为侧面，并移动到书本的左边缘 */
             transform: rotateY(-90deg) translateZ(calc(var(--book-thickness) / 2));
             box-shadow: -2px 0 5px rgba(0,0,0,0.1);
             border-radius: 8px 0 0 8px; /* 左侧圆角 */
@@ -196,7 +207,6 @@
             width: var(--book-thickness); /* 右侧的实际厚度 */
             height: 100%;
             background-color: #ccc; /* 右侧颜色 */
-            /* 旋转Y轴90度使其成为侧面，并移动到书本的右边缘 */
             transform: rotateY(90deg) translateZ(calc(var(--book-thickness) / 2));
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             border-radius: 0 8px 8px 0; /* 右侧圆角 */
@@ -225,23 +235,15 @@
 
         /* `.is-pulled-out` 类：当书本被点击“拿出”时的状态 */
         .book-shelf-item.is-pulled-out {
-            /* 移出书架，并旋转Y轴使其正面朝向用户，同时取消X轴倾斜 */
-            /* 关键：将 `rotateY(-80deg)` 变为 `rotateY(0deg)` */
             transform: translateX(0px) translateY(-50px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
-            transform-origin: center center; /* 拿出后旋转中心点回到中心 */
-            opacity: 1 !important; /* 确保拿出时完全不透明 */
+            transform-origin: center center;
+            opacity: 1 !important;
+            animation: none; /* 拿出时停止波浪动画 */
         }
 
         /* `.is-open` 类：当书本封面被点击“翻开”时的状态 */
-        /* 这个类现在应用于 `front-cover` 元素 */
         .front-cover.is-open {
-            /* 修复：调整旋转角度，使其向右前方翻开，更像真实书籍 */
-            /* 负值表示逆时针旋转，正值表示顺时针旋转。
-               rotateY(-160deg) 意味着封面会向左侧或向后翻转。
-               rotateY(160deg) 意味着封面会向右侧翻转，露出内页。
-               translateZ 保持其在书本厚度上的位置。
-            */
-            transform: rotateY(160deg) translateZ(calc(var(--book-thickness) / 2));
+            transform: rotateY(160deg) translateZ(calc(var(--book-thickness) / 2)); /* 调整旋转角度，使其向右前方翻开 */
         }
 
 
@@ -365,15 +367,20 @@
             align-items: center;
             margin-bottom: 2rem;
             gap: 0.5rem;
+            width: 100%; /* 确保搜索容器响应式 */
+            max-width: 600px; /* 限制最大宽度 */
+            margin-left: auto;
+            margin-right: auto;
         }
         .search-input {
             padding: 0.75rem 1rem;
             border: 1px solid #d1d5db;
             border-radius: 0.5rem;
             font-size: 1rem;
-            width: 100%;
-            max-width: 400px;
+            flex-grow: 1; /* 允许输入框填充可用空间 */
             transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            background-color: #fff; /* 亮色模式背景 */
+            color: #333; /* 亮色模式文本 */
         }
         .search-input:focus {
             outline: none;
@@ -386,6 +393,7 @@
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+            white-space: nowrap; /* 防止按钮文本换行 */
         }
         .search-button {
             background-color: #3b82f6;
@@ -417,41 +425,57 @@
             box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
         }
 
-        /* 鼠标悬停提示框样式 */
-        .book-tooltip {
-            position: absolute;
-            background-color: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            white-space: normal; /* 允许文本换行 */
-            max-width: 250px; /* 限制提示框宽度 */
-            pointer-events: none; /* 确保鼠标事件穿透到下面的书本 */
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-            z-index: 50; /* 确保在书本和书架之上 */
-            transform: translate(-50%, -110%); /* 向上居中定位 */
-            left: 50%;
+        /* 悬停预览面板样式 */
+        .book-hover-preview {
+            position: fixed;
             top: 0;
-            text-align: left;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            left: -300px; /* 默认隐藏在左侧 */
+            width: 280px; /* 预览面板宽度 */
+            max-width: 80%; /* 响应式调整 */
+            height: 100%;
+            padding: 2rem 1.5rem;
+            z-index: 80; /* 在主内容之上，在详情面板之下 */
+            transition: left 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0; /* 默认透明 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* 垂直居中内容 */
+            text-align: center;
+            pointer-events: none; /* 确保鼠标事件穿透到下面的书本 */
         }
-        .book-tooltip.show {
-            opacity: 1;
+        .book-hover-preview.show {
+            left: 0; /* 显示时滑入 */
+            opacity: 1; /* 完全不透明 */
         }
-        .book-tooltip h4 {
+        .book-hover-preview .preview-cover {
+            width: 120px;
+            height: 168px; /* 保持封面比例 */
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            margin-bottom: 1rem;
+        }
+        .book-hover-preview h4 {
+            font-size: 1.25rem;
             font-weight: bold;
-            margin-bottom: 0.25rem;
-            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #e2e8f0; /* 适应暗黑模式 */
         }
-        .book-tooltip p {
-            font-size: 0.85rem;
-            line-height: 1.3;
+        .book-hover-preview p {
+            font-size: 0.9rem;
+            color: #cbd5e1; /* 适应暗黑模式 */
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 4; /* 限制简介行数 */
+            -webkit-box-orient: vertical;
         }
 
-        /* 左侧信息面板样式 */
-        .book-info-panel {
+        /* 左侧信息面板样式 (现在是详情面板) */
+        .book-details-panel { /* 重命名为 book-details-panel */
             position: fixed;
             top: 0;
             left: -100%; /* 初始状态隐藏在左侧 */
@@ -470,11 +494,12 @@
             align-items: center;
             overflow-y: auto; /* 内容过多时可滚动 */
             border-right: 1px solid rgba(209, 213, 219, 0.3);
+            color: #333; /* 亮色模式文本 */
         }
-        .book-info-panel.show {
+        .book-details-panel.show {
             left: 0; /* 显示时滑入 */
         }
-        .book-info-panel .close-panel-btn {
+        .book-details-panel .close-panel-btn {
             position: absolute;
             top: 1rem;
             right: 1rem;
@@ -483,10 +508,10 @@
             color: #666;
             transition: color 0.2s;
         }
-        .book-info-panel .close-panel-btn:hover {
+        .book-details-panel .close-panel-btn:hover {
             color: #333;
         }
-        .book-info-panel .book-cover-display {
+        .book-details-panel .book-cover-display {
             width: 180px;
             height: 252px; /* 保持封面比例 */
             background-size: cover;
@@ -496,52 +521,102 @@
             margin-bottom: 1.5rem;
             flex-shrink: 0; /* 防止封面缩小 */
         }
-        .book-info-panel h3 {
+        .book-details-panel h3 {
             font-size: 1.75rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
             text-align: center;
         }
-        .book-info-panel p {
+        .book-details-panel p {
             text-align: center;
             margin-bottom: 1rem;
             line-height: 1.5;
         }
-        .book-info-panel .panel-buttons {
+        .book-details-panel .panel-buttons {
             display: flex;
             gap: 1rem;
             margin-top: auto; /* 推到底部 */
         }
 
         /* 暗黑模式下的左侧信息面板 */
-        .dark .book-info-panel {
+        .dark .book-details-panel {
             background-color: rgba(31, 41, 55, 0.95); /* gray-800 */
             color: #d1d5db; /* gray-300 */
             border-color: rgba(75, 85, 99, 0.3);
         }
-        .dark .book-info-panel .close-panel-btn {
+        .dark .book-details-panel .close-panel-btn {
             color: #d1d5db;
         }
-        .dark .book-info-panel .close-panel-btn:hover {
+        .dark .book-details-panel .close-panel-btn:hover {
             color: #ffffff;
         }
 
         /* 媒体查询：小屏幕适配 */
         @media (max-width: 768px) {
-            .book-info-panel {
+            .book-details-panel, .book-hover-preview {
                 width: 100%; /* 小屏幕下全宽 */
                 padding: 1.5rem;
             }
-            .book-info-panel .book-cover-display {
+            .book-details-panel .book-cover-display {
                 width: 150px;
                 height: 210px;
             }
-            .book-info-panel h3 {
+            .book-details-panel h3 {
                 font-size: 1.5rem;
             }
-            .book-info-panel p {
+            .book-details-panel p {
                 font-size: 0.9rem;
             }
+        }
+
+        /* 滚动到顶部按钮 */
+        #scrollToTopBtn {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: background-color 0.3s, opacity 0.3s;
+        }
+        #scrollToTopBtn:hover {
+            background-color: #2563eb;
+        }
+        #scrollToTopBtn.show {
+            display: flex; /* 使用flexbox居中图标 */
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 类别筛选按钮样式 */
+        .category-button {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px; /* pill shape */
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            border: 1px solid rgba(209, 213, 219, 0.1);
+        }
+        .category-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .category-button.active {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
         }
     </style>
 </head>
@@ -553,40 +628,48 @@
         与主页保持一致，提供统一的导航体验。
         -------------------------------------------------------------------
     -->
-    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-70 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold text-blue-600 dark:text-blue-400">我的主页</a>
+            <a href="personal-homepage.html" class="text-2xl font-bold text-blue-400">我的主页</a>
             
             <div class="hidden md:flex space-x-6">
-                <div class="relative dropdown">
-                    <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400 cursor-pointer">
-                        标签 <i class="fas fa-chevron-down text-xs ml-1"></i>
-                    </a>
-                    <div class="dropdown-menu">
-                        <a href="frontend-development.html" class="dropdown-item">前端开发</a>
-                        <a href="backend-technology.html" class="dropdown-item">后端技术</a>
-                        <a href="personal-essays.html" class="dropdown-item">个人随笔</a>
-                        <a href="study-notes.html" class="dropdown-item">学习笔记</a>
-                        <a href="my-bookshelf.html" class="dropdown-item">我的书架</a>
-                    </div>
-                </div>
-                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">分类</a>
-                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">页面</a>
+                <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
+                <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center">
+                    <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
+                </a>
             </div>
 
             <div class="flex items-center space-x-4">
-                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
-                    <i class="fas fa-search"></i>
-                </button>
-                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
-                    <i class="fas fa-user"></i>
-                </button>
-                <button id="theme-toggle" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
-                    <i class="fas fa-moon"></i>
+                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+                    <i class="fas fa-search"></i> </button>
+                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+                    <i class="fas fa-user"></i> </button>
+                <button id="theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
+                    <i class="fas fa-moon"></i> </button>
+                <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-blue-400 transition duration-300">
+                    <i class="fas fa-bars"></i>
                 </button>
             </div>
         </div>
     </nav>
+
+    <div id="mobile-menu" class="mobile-menu">
+        <button id="close-mobile-menu" class="close-btn"><i class="fas fa-times"></i></button>
+        <a href="personal-homepage.html" class="text-gray-300 hover:text-blue-400 transition duration-300">返回主页</a>
+        <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
+        <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center justify-center">
+            <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
+        </a>
+        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-search"></i> 搜索
+        </button>
+        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-user"></i> 登录
+        </button>
+        <button id="mobile-theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-moon"></i> 主题
+        </button>
+    </div>
 
     <!--
         -------------------------------------------------------------------
@@ -610,7 +693,7 @@
         -------------------------------------------------------------------
     -->
     <main id="main-content" class="container mx-auto px-4 py-12 relative z-20">
-        <h2 class="text-4xl font-bold text-gray-900 dark:text-white mb-8 text-center">前端开发书籍</h2>
+        <h2 class="text-4xl font-bold text-gray-100 mb-8 text-center">我的精选藏书</h2>
         
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="搜索书名、作者或简介..." class="search-input">
@@ -622,149 +705,40 @@
             </button>
         </div>
 
-        <div class="flex flex-col items-center">
-            <div class="bookshelf-row"></div>
-            <div id="bookshelf-container-1" class="bookshelf-books-display">
-                <!--
-                    书本示例 1：
-                    复制此 `book-shelf-item` 块以添加更多书籍。
-                    请替换 `data-title`, `data-author`, `data-page-url`, `data-summary`, `data-cover-url` 和 `data-spine-text`。
-                    `data-page-url` 是点击“进入详情页”后跳转到的三级标签页的URL (可以是HTML或PDF)。
-                    `data-summary` 是在模态框中显示的书籍简介。
-                    `data-spine-text` 是显示在书脊上的文本。
-                    
-                    注意：对于PDF文件，`data-cover-url` 应该指向预先生成的PDF第一页缩略图。
-                -->
-                <div class="book-shelf-item"
-                     data-title="太阳系边际探索"
-                     data-author="黄俊鑫 孙导航"
-                     data-page-url="sun_explorer.html"
-                     data-summary="本书详细介绍了Vue.js的核心概念、组件化开发、状态管理以及性能优化等内容，是前端开发者学习Vue的必备指南。"
-                     data-cover-url="https://placehold.co/200x280/FFD700/000000?text=Vue.js+Book"
-                     data-spine-text="Vue.js">
-                    <div class="book-container">
-                        <div class="book-body">
-                            <div class="book-face back-cover"></div>
-                            <div class="book-spine"></div>
-                            <div class="book-right-side"></div>
-                            <div class="book-pages"></div>
-                        </div>
-                        <div class="book-face front-cover"></div>
-                    </div>
-                    <div class="book-tooltip">
-                        <h4 class="tooltip-title"></h4>
-                        <p class="tooltip-author"></p>
-                        <p class="tooltip-summary"></p>
-                    </div>
-                </div>
-
-                <div class="book-shelf-item"
-                     data-title="React高级指南"
-                     data-author="李四"
-                     data-page-url="react-advanced.html"
-                     data-summary="本书从Hooks、Context API到性能优化、服务端渲染，全面讲解React高级特性，助你成为React专家。"
-                     data-cover-url="https://placehold.co/200x280/87CEEB/000000?text=React+Book"
-                     data-spine-text="React">
-                    <div class="book-container">
-                        <div class="book-body">
-                            <div class="book-face back-cover"></div>
-                            <div class="book-spine"></div>
-                            <div class="book-right-side"></div>
-                            <div class="book-pages"></div>
-                        </div>
-                        <div class="book-face front-cover"></div>
-                    </div>
-                    <div class="book-tooltip">
-                        <h4 class="tooltip-title"></h4>
-                        <p class="tooltip-author"></p>
-                        <p class="tooltip-summary"></p>
-                    </div>
-                </div>
-
-                <div class="book-shelf-item"
-                     data-title="JavaScript设计模式"
-                     data-author="王五"
-                     data-page-url="js-design-patterns.pdf"
-                     data-summary="探索JavaScript中常用的设计模式，提升代码的可维护性和扩展性，编写更优雅的JavaScript代码。这是一个PDF示例。"
-                     data-cover-url="https://placehold.co/200x280/FF6347/ffffff?text=JS+Patterns"
-                     data-spine-text="JS设计模式">
-                    <div class="book-container">
-                        <div class="book-body">
-                            <div class="book-face back-cover"></div>
-                            <div class="book-spine"></div>
-                            <div class="book-right-side"></div>
-                            <div class="book-pages"></div>
-                        </div>
-                        <div class="book-face front-cover"></div>
-                    </div>
-                    <div class="book-tooltip">
-                        <h4 class="tooltip-title"></h4>
-                        <p class="tooltip-author"></p>
-                        <p class="tooltip-summary"></p>
-                    </div>
-                </div>
+        <div class="flex flex-wrap justify-center gap-3 mb-8">
+            <button class="category-button active" data-category="all">全部</button>
+            <button class="category-button" data-category="前端开发">前端开发</button>
+            <button class="category-button" data-category="AI">AI</button>
+            <button class="category-button" data-category="物理">物理</button>
+            <button class="category-button" data-category="个人成长">个人成长</button>
             </div>
 
-            <div class="bookshelf-row"></div>
-            <div id="bookshelf-container-2" class="bookshelf-books-display">
-                <div class="book-shelf-item"
-                     data-title="CSS揭秘"
-                     data-author="赵六"
-                     data-page-url="css-secrets.html"
-                     data-summary="本书揭示了CSS的许多不为人知的技巧和高级用法，让你能够创作出更具创意和表现力的网页界面。"
-                     data-cover-url="https://placehold.co/200x280/90EE90/000000?text=CSS+Secrets"
-                     data-spine-text="CSS揭秘">
-                    <div class="book-container">
-                        <div class="book-body">
-                            <div class="book-face back-cover"></div>
-                            <div class="book-spine"></div>
-                            <div class="book-right-side"></div>
-                            <div class="book-pages"></div>
-                        </div>
-                        <div class="book-face front-cover"></div>
-                    </div>
-                    <div class="book-tooltip">
-                        <h4 class="tooltip-title"></h4>
-                        <p class="tooltip-author"></p>
-                        <p class="tooltip-summary"></p>
-                    </div>
+        <div class="flex flex-col items-center">
+            <div id="bookshelf-display-area" class="w-full flex flex-col items-center">
                 </div>
-
-                <div class="book-shelf-item"
-                     data-title="Web性能优化"
-                     data-author="钱七"
-                     data-page-url="web-performance.pdf"
-                     data-summary="从网络、渲染到资源加载，全面讲解Web性能优化策略，提升用户体验和网站加载速度。这是一个PDF示例。"
-                     data-cover-url="https://placehold.co/200x280/DA70D6/ffffff?text=Web+Perf"
-                     data-spine-text="Web性能">
-                    <div class="book-container">
-                        <div class="book-body">
-                            <div class="book-face back-cover"></div>
-                            <div class="book-spine"></div>
-                            <div class="book-right-side"></div>
-                            <div class="book-pages"></div>
-                        </div>
-                        <div class="book-face front-cover"></div>
-                    </div>
-                    <div class="book-tooltip">
-                        <h4 class="tooltip-title"></h4>
-                        <p class="tooltip-author"></p>
-                        <p class="tooltip-summary"></p>
-                    </div>
-                </div>
-
-                </div>
-            <div class="bookshelf-row"></div> </div>
+        </div>
     </main>
 
     <!--
         -------------------------------------------------------------------
-        左侧信息面板 (Book Info Panel)：
+        悬停预览面板 (Book Hover Preview)：
+        鼠标悬停在书本上时从左侧滑入，展示书籍简要信息。
+        -------------------------------------------------------------------
+    -->
+    <div id="bookHoverPreview" class="book-hover-preview glass-morphism">
+        <div class="preview-cover" id="previewBookCover"></div>
+        <h4 id="previewBookTitle"></h4>
+        <p id="previewBookAuthor"></p>
+        <p id="previewBookSummary"></p>
+    </div>
+
+    <!--
+        -------------------------------------------------------------------
+        左侧信息面板 (Book Details Panel)：
         点击书本后从左侧滑入，展示书籍详细信息。
         -------------------------------------------------------------------
     -->
-    <div id="bookInfoPanel" class="book-info-panel">
-        <span class="close-panel-btn">&times;</span>
+    <div id="bookDetailsPanel" class="book-details-panel"> <span class="close-panel-btn">&times;</span>
         <div class="book-cover-display" id="panelBookCover"></div>
         <h3 id="panelBookTitle" class="text-gray-900 dark:text-white"></h3>
         <p id="panelBookAuthor" class="text-gray-700 dark:text-gray-300"></p>
@@ -785,7 +759,7 @@
         与主页保持一致。
         -------------------------------------------------------------------
     -->
-    <footer class="bg-gray-800 text-white py-8 mt-12 dark:bg-gray-900">
+    <footer class="bg-gray-900 text-white py-8 mt-12">
         <div class="container mx-auto px-4 text-center">
             <p class="mb-2">我的主页 © 2024</p>
             <p class="mb-2">你的备案号 (如果需要)</p>
@@ -793,6 +767,10 @@
             <p class="text-sm">Powered by HTML/CSS/Three.js</p>
         </div>
     </footer>
+
+    <button id="scrollToTopBtn" title="回到顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 
     <!--
         -------------------------------------------------------------------
@@ -808,30 +786,32 @@
         const themeToggle = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
 
-        themeToggle.addEventListener('click', () => {
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
-            } else {
+        function applyTheme(isDark) {
+            if (isDark) {
                 htmlElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
                 themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+            } else {
+                htmlElement.classList.remove('dark');
+                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
             }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            applyTheme(!htmlElement.classList.contains('dark'));
+            localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
         });
 
         // 根据本地存储设置初始主题
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            htmlElement.classList.add('dark');
-            themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+            applyTheme(true);
         } else {
-            htmlElement.classList.remove('dark');
-            themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+            applyTheme(false);
         }
 
         /*
             导航栏滚动效果：
-            与主页功能一致，滚动时导航栏背景和阴影变化。
+            当页面向下滚动超过一定距离时，导航栏会添加一个 `navbar-scrolled` 类，
+            从而改变其背景和阴影，使其更突出。
         */
         const navbar = document.getElementById('navbar');
         window.addEventListener('scroll', () => {
@@ -843,41 +823,76 @@
         });
 
         /*
-            Three.js 3D 场景设置和动画：
-            创建并管理背景中的动态粒子效果，与主页功能一致。
+            移动端菜单切换功能
         */
-        let scene, camera, renderer, particles, mouseX = 0, mouseY = 0;
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeMobileMenuButton = document.getElementById('close-mobile-menu');
+        const mobileThemeToggle = document.getElementById('mobile-theme-toggle'); // 移动端主题切换按钮
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+        });
+
+        closeMobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+        });
+
+        mobileThemeToggle.addEventListener('click', () => {
+            applyTheme(!htmlElement.classList.contains('dark'));
+            localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+
+        /*
+            -------------------------------------------------------------------
+            Three.js 3D 场景设置和动画：
+            创建并管理背景中的动态粒子效果。
+            -------------------------------------------------------------------
+        */
+        let scene, camera, renderer, particles, backgroundSphere, mouseX = 0, mouseY = 0;
         const canvas = document.getElementById('threejs-background');
+        const textureLoader = new THREE.TextureLoader();
 
         function initThreeJS() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / canvas.clientHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 5;
+
             renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
-            renderer.setSize(window.innerWidth, canvas.clientHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
 
             const geometry = new THREE.BufferGeometry();
             const vertices = [];
-            const particleCount = 1000;
+            const particleCount = 1500;
 
             for (let i = 0; i < particleCount; i++) {
-                const x = (Math.random() - 0.5) * 20;
-                const y = (Math.random() - 0.5) * 20;
-                const z = (Math.random() - 0.5) * 20;
+                const x = (Math.random() - 0.5) * 40;
+                const y = (Math.random() - 0.5) * 40;
+                const z = (Math.random() - 0.5) * 40;
                 vertices.push(x, y, z);
             }
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
             const material = new THREE.PointsMaterial({
-                color: 0x888888,
-                size: 0.05,
+                color: 0x00FFFF,
+                size: 0.08,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8
             });
 
             particles = new THREE.Points(geometry, material);
             scene.add(particles);
+
+            const backgroundSphereGeometry = new THREE.SphereGeometry(500, 32, 32);
+            const backgroundTexture = textureLoader.load('https://placehold.co/1024x1024/000000/FFFFFF?text=GALAXY+BACKGROUND');
+            const backgroundMaterial = new THREE.MeshBasicMaterial({
+                map: backgroundTexture,
+                side: THREE.BackSide
+            });
+            backgroundSphere = new THREE.Mesh(backgroundSphereGeometry, backgroundMaterial);
+            scene.add(backgroundSphere);
 
             document.addEventListener('mousemove', onDocumentMouseMove);
             window.addEventListener('resize', onWindowResize);
@@ -885,300 +900,371 @@
 
         function onDocumentMouseMove(event) {
             mouseX = (event.clientX - window.innerWidth / 2) / 200;
-            mouseY = (event.clientY - canvas.clientHeight / 2) / 200;
+            mouseY = (event.clientY - window.innerHeight / 2) / 200;
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / canvas.clientHeight;
+            camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, canvas.clientHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
+        function animateThreeJS() {
+            requestAnimationFrame(animateThreeJS);
+
             particles.rotation.x += 0.0005;
             particles.rotation.y += 0.001;
+
+            if (backgroundSphere) {
+                backgroundSphere.rotation.y += 0.0001;
+            }
+
             camera.position.x += (mouseX - camera.position.x) * 0.05;
             camera.position.y += (-mouseY - camera.position.y) * 0.05;
             camera.lookAt(scene.position);
+
             renderer.render(scene, camera);
         }
 
         /*
             -------------------------------------------------------------------
-            书籍3D交互、信息面板和页面跳转处理：
-            这是实现书籍“拿出打开”效果、显示信息面板和处理跳转/复原的JavaScript逻辑。
+            书籍数据、3D交互、信息面板和搜索/过滤功能：
             -------------------------------------------------------------------
         */
-        const bookShelfItems = document.querySelectorAll('.book-shelf-item'); // 获取所有书本元素
-        const bookInfoPanel = document.getElementById('bookInfoPanel'); // 获取左侧信息面板
-        const closePanelBtn = document.querySelector('.close-panel-btn'); // 信息面板关闭按钮 (X)
-        const panelCloseBtn = document.getElementById('panelCloseBtn'); // 信息面板中的“关闭”按钮
-        const panelGoToDetailsBtn = document.getElementById('panelGoToDetailsBtn'); // 信息面板中的“进入详情页”按钮
-        const mainContent = document.getElementById('main-content'); // 获取主内容区域，用于模糊效果
+        // 书籍数据数组
+        const booksData = [
+            {
+                title: "太阳系边际探索",
+                author: "黄俊鑫 孙导航",
+                pageUrl: "sun_explorer.html",
+                summary: "本书详细介绍了Vue.js的核心概念、组件化开发、状态管理以及性能优化等内容，是前端开发者学习Vue的必备指南。",
+                coverUrl: "https://placehold.co/200x280/FFD700/000000?text=Vue.js+Book",
+                spineText: "Vue.js",
+                category: "前端开发"
+            },
+            {
+                title: "React高级指南",
+                author: "李四",
+                pageUrl: "react-advanced.html",
+                summary: "本书从Hooks、Context API到性能优化、服务端渲染，全面讲解React高级特性，助你成为React专家。",
+                coverUrl: "https://placehold.co/200x280/87CEEB/000000?text=React+Book",
+                spineText: "React",
+                category: "前端开发"
+            },
+            {
+                title: "JavaScript设计模式",
+                author: "王五",
+                pageUrl: "js-design-patterns.pdf",
+                summary: "探索JavaScript中常用的设计模式，提升代码的可维护性和扩展性，编写更优雅的JavaScript代码。这是一个PDF示例。",
+                coverUrl: "https://placehold.co/200x280/FF6347/ffffff?text=JS+Patterns",
+                spineText: "JS设计模式",
+                category: "前端开发"
+            },
+            {
+                title: "CSS揭秘",
+                author: "赵六",
+                pageUrl: "css-secrets.html",
+                summary: "本书揭示了CSS的许多不为人知的技巧和高级用法，让你能够创作出更具创意和表现力的网页界面。",
+                coverUrl: "https://placehold.co/200x280/90EE90/000000?text=CSS+Secrets",
+                spineText: "CSS揭秘",
+                category: "前端开发"
+            },
+            {
+                title: "Web性能优化",
+                author: "钱七",
+                pageUrl: "web-performance.pdf",
+                summary: "从网络、渲染到资源加载，全面讲解Web性能优化策略，提升用户体验和网站加载速度。这是一个PDF示例。",
+                coverUrl: "https://placehold.co/200x280/DA70D6/ffffff?text=Web+Perf",
+                spineText: "Web性能",
+                category: "前端开发"
+            },
+            {
+                title: "深度学习",
+                author: "伊恩·古德费洛等",
+                pageUrl: "deep-learning.html",
+                summary: "深度学习领域的“圣经”，全面涵盖了深度学习的理论、算法和应用。",
+                coverUrl: "https://placehold.co/200x280/5F9EA0/000000?text=Deep+Learning",
+                spineText: "深度学习",
+                category: "AI"
+            },
+            {
+                title: "原子习惯",
+                author: "詹姆斯·克利尔",
+                pageUrl: "atomic-habits.html",
+                summary: "通过微小改变，养成良好习惯，实现个人成长的实用指南。",
+                coverUrl: "https://placehold.co/200x280/FFB6C1/000000?text=Atomic+Habits",
+                spineText: "原子习惯",
+                category: "个人成长"
+            },
+            {
+                title: "宇宙的琴弦",
+                author: "布莱恩·格林",
+                pageUrl: "elegant-universe.html",
+                summary: "一本深入浅出地介绍弦理论的科普巨著，带你领略宇宙最深层的奥秘。",
+                coverUrl: "https://placehold.co/200x280/ADD8E6/000000?text=Elegant+Universe",
+                spineText: "宇宙的琴弦",
+                category: "物理"
+            },
+            // 添加更多书籍...
+        ];
 
-        const panelBookCover = document.getElementById('panelBookCover'); // 面板中的封面
-        const panelBookTitle = document.getElementById('panelBookTitle'); // 面板中的标题
-        const panelBookAuthor = document.getElementById('panelBookAuthor'); // 面板中的作者
-        const panelBookSummary = document.getElementById('panelBookSummary'); // 面板中的简介
-
-        let currentOpenedBook = null; // 用于存储当前被点击打开的书本元素
-        let tooltipTimeout = null; // 用于控制鼠标悬停提示框的延迟显示
-
-        bookShelfItems.forEach(item => {
-            // 设置书脊文本
-            const bookSpine = item.querySelector('.book-spine');
-            const spineText = item.dataset.spineText;
-            if (spineText) {
-                bookSpine.textContent = spineText;
-            }
-
-            // 设置书籍封面图片
-            const frontCover = item.querySelector('.front-cover');
-            const coverUrl = item.dataset.coverUrl;
-            if (coverUrl) {
-                frontCover.style.backgroundImage = `url('${coverUrl}')`;
-            }
-
-            // 鼠标悬停显示信息 (Tooltip)
-            item.addEventListener('mouseover', (event) => {
-                // 如果有书本被点击打开，则不显示 tooltip
-                if (currentOpenedBook) return;
-
-                const tooltip = item.querySelector('.book-tooltip');
-                if (tooltip) {
-                    // 清除之前的延迟，防止快速移动时闪烁
-                    clearTimeout(tooltipTimeout);
-                    tooltipTimeout = setTimeout(() => {
-                        tooltip.querySelector('.tooltip-title').textContent = item.dataset.title || '无标题';
-                        tooltip.querySelector('.tooltip-author').textContent = `作者: ${item.dataset.author || '未知'}`;
-                        tooltip.querySelector('.tooltip-summary').textContent = item.dataset.summary || '无简介';
-                        
-                        // 获取鼠标位置，并相对于书本元素定位提示框
-                        const itemRect = item.getBoundingClientRect();
-                        // 将tooltip定位在书本上方，并水平居中
-                        tooltip.style.left = `${itemRect.width / 2}px`;
-                        // 调整 top 值，使其在书本上方留出一些空间
-                        tooltip.style.top = `${-tooltip.offsetHeight - 15}px`; // 15px 偏移量
-                        tooltip.classList.add('show');
-                    }, 300); // 延迟300ms显示
-                }
-            });
-
-            item.addEventListener('mouseout', () => {
-                clearTimeout(tooltipTimeout); // 鼠标移开时立即清除延迟
-                const tooltip = item.querySelector('.book-tooltip');
-                if (tooltip) {
-                    tooltip.classList.remove('show');
-                }
-            });
-
-
-            // 为每本书本添加点击事件监听器
-            item.addEventListener('click', () => {
-                const frontCoverElement = item.querySelector('.front-cover'); // 获取封面元素
-                
-                // 如果有其他书本已经打开，先复原它们
-                if (currentOpenedBook && currentOpenedBook !== item) {
-                    currentOpenedBook.classList.remove('is-pulled-out');
-                    currentOpenedBook.querySelector('.front-cover').classList.remove('is-open'); // 确保关闭旧书的封面
-                }
-
-                // 记录当前打开的书本
-                currentOpenedBook = item;
-
-                // 1. 触发“拿出”动画
-                item.classList.add('is-pulled-out');
-                // 确保点击的书本在拿出时透明度为1，不受波浪效果影响
-                item.style.setProperty('--wave-opacity', '1');
-                item.style.setProperty('--wave-translate-y', '0px');
-
-
-                // 2. 延迟后触发“翻开”动画并显示信息面板
-                setTimeout(() => {
-                    frontCoverElement.classList.add('is-open'); // 触发封面翻开动画
-
-                    // 填充信息面板内容
-                    panelBookCover.style.backgroundImage = `url('${item.dataset.coverUrl}')`;
-                    panelBookTitle.textContent = item.dataset.title;
-                    panelBookAuthor.textContent = `作者: ${item.dataset.author}`;
-                    panelBookSummary.textContent = item.dataset.summary;
-
-                    // 设置“进入详情页”按钮的跳转URL
-                    panelGoToDetailsBtn.dataset.pageUrl = item.dataset.pageUrl;
-
-                    // 显示信息面板并添加模糊效果
-                    bookInfoPanel.classList.add('show');
-                    mainContent.classList.add('main-blurred'); // 添加模糊效果
-                }, 600); // 等待“拿出”动画完成 (book-shelf-item transition 0.6s)
-            });
-        });
-
-        // 关闭信息面板逻辑 (通过X按钮或“关闭”按钮)
-        function closeInfoPanel() {
-            bookInfoPanel.classList.remove('show'); // 移除 'show' 类，触发面板关闭动画
-            mainContent.classList.remove('main-blurred'); // 移除模糊效果
-            setTimeout(() => {
-                // 复原当前打开的书本
-                if (currentOpenedBook) {
-                    currentOpenedBook.classList.remove('is-pulled-out');
-                    currentOpenedBook.querySelector('.front-cover').classList.remove('is-open'); // 确保关闭封面
-                    currentOpenedBook = null; // 清空当前打开的书本
-                }
-                // 确保在关闭面板后，波浪效果可以重新作用于所有书籍
-                resetWaveEffect();
-            }, 400); // 面板关闭动画时间 (与CSS transition 0.4s 匹配)
-        }
-
-        closePanelBtn.addEventListener('click', closeInfoPanel); // X按钮
-        panelCloseBtn.addEventListener('click', closeInfoPanel); // “关闭”按钮
-
-        // “进入详情页”按钮点击逻辑
-        panelGoToDetailsBtn.addEventListener('click', () => {
-            const pageUrl = panelGoToDetailsBtn.dataset.pageUrl;
-            if (pageUrl) {
-                // 动态构建完整的URL，以确保在GitHub Pages上正确解析
-                const currentPath = window.location.pathname;
-                // 获取当前页面的目录路径（例如：/my-repo/ 或 /）
-                const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                const fullUrl = window.location.origin + currentDir + pageUrl;
-
-                // 判断文件类型：如果是PDF，则直接打开；否则，按HTML页面跳转
-                if (pageUrl.toLowerCase().endsWith('.pdf')) {
-                    window.open(fullUrl, '_blank'); // 在新标签页打开PDF
-                } else {
-                    window.location.href = fullUrl; // 跳转到HTML页面
-                }
-            }
-        });
-
-        /*
-            -------------------------------------------------------------------
-            搜索功能逻辑：
-            根据用户输入的关键词过滤显示的书籍。
-            -------------------------------------------------------------------
-        */
+        const bookshelfDisplayArea = document.getElementById('bookshelf-display-area');
+        const bookDetailsPanel = document.getElementById('bookDetailsPanel'); // 重命名
+        const closeDetailsPanelBtn = bookDetailsPanel.querySelector('.close-panel-btn'); // 重命名
+        const panelBookCover = document.getElementById('panelBookCover');
+        const panelBookTitle = document.getElementById('panelBookTitle');
+        const panelBookAuthor = document.getElementById('panelBookAuthor');
+        const panelBookSummary = document.getElementById('panelBookSummary');
+        const panelGoToDetailsBtn = document.getElementById('panelGoToDetailsBtn');
+        const mainContent = document.getElementById('main-content');
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
         const clearSearchButton = document.getElementById('clearSearchButton');
-        // 收集所有书本容器，包括不同书架上的
-        const allBookShelfItems = document.querySelectorAll('.bookshelf-books-display .book-shelf-item');
+        const categoryButtons = document.querySelectorAll('.category-button');
+        const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
-        function filterBooks() {
-            const query = searchInput.value.toLowerCase().trim(); // 获取搜索关键词并转换为小写，去除首尾空格
+        // 新增悬停预览面板元素
+        const bookHoverPreview = document.getElementById('bookHoverPreview');
+        const previewBookCover = document.getElementById('previewBookCover');
+        const previewBookTitle = document.getElementById('previewBookTitle');
+        const previewBookAuthor = document.getElementById('previewBookAuthor');
+        const previewBookSummary = document.getElementById('previewBookSummary');
 
-            allBookShelfItems.forEach(item => {
-                const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
-                const author = item.dataset.author ? item.dataset.author.toLowerCase() : '';
-                const summary = item.dataset.summary ? item.dataset.summary.toLowerCase() : '';
-                const spineText = item.dataset.spineText ? item.dataset.spineText.toLowerCase() : '';
 
-                // 检查书名、作者、简介或书脊文本是否包含关键词
-                // 现有的 includes() 方法已经支持中英文搜索
-                if (title.includes(query) || author.includes(query) || summary.includes(query) || spineText.includes(query)) {
-                    item.style.display = 'block'; // 显示匹配的书本
-                } else {
-                    item.style.display = 'none'; // 隐藏不匹配的书本
+        let activeBook = null; // 存储当前被激活的书本元素
+        let currentCategory = 'all'; // 当前选中的分类
+
+        // 渲染书籍到书架
+        function renderBooks(booksToRender) {
+            bookshelfDisplayArea.innerHTML = ''; // 清空现有书籍
+            const booksPerRow = 4; // 每行显示的书籍数量 (可根据设计调整)
+            let currentRowContainer = null;
+            let currentBookCount = 0;
+
+            // 添加顶部的书架板
+            const topShelfRow = document.createElement('div');
+            topShelfRow.classList.add('bookshelf-row');
+            bookshelfDisplayArea.appendChild(topShelfRow);
+
+            const bookDisplayDiv = document.createElement('div');
+            bookDisplayDiv.classList.add('bookshelf-books-display');
+            bookshelfDisplayArea.appendChild(bookDisplayDiv);
+            currentRowContainer = bookDisplayDiv;
+
+
+            booksToRender.forEach((bookData, index) => {
+                // 如果当前行已满，或不是第一本书，则创建新行
+                if (currentBookCount >= booksPerRow) {
+                    const newShelfRow = document.createElement('div');
+                    newShelfRow.classList.add('bookshelf-row');
+                    bookshelfDisplayArea.appendChild(newShelfRow);
+
+                    const newBookDisplayDiv = document.createElement('div');
+                    newBookDisplayDiv.classList.add('bookshelf-books-display');
+                    bookshelfDisplayArea.appendChild(newBookDisplayDiv);
+                    currentRowContainer = newBookDisplayDiv;
+                    currentBookCount = 0; // 重置计数器
                 }
+
+                const bookItem = document.createElement('div');
+                bookItem.classList.add('book-shelf-item');
+                bookItem.setAttribute('data-title', bookData.title);
+                bookItem.setAttribute('data-author', bookData.author);
+                bookItem.setAttribute('data-page-url', bookData.pageUrl);
+                bookItem.setAttribute('data-summary', bookData.summary);
+                bookItem.setAttribute('data-cover-url', bookData.coverUrl);
+                bookItem.setAttribute('data-spine-text', bookData.spineText);
+                bookItem.setAttribute('data-category', bookData.category);
+
+                bookItem.innerHTML = `
+                    <div class="book-container">
+                        <div class="book-body">
+                            <div class="book-face back-cover"></div>
+                            <div class="book-spine"></div>
+                            <div class="book-right-side"></div>
+                            <div class="book-pages"></div>
+                        </div>
+                        <div class="book-face front-cover"></div>
+                    </div>
+                    `;
+
+                // 设置封面图片
+                bookItem.querySelector('.front-cover').style.backgroundImage = `url('${bookData.coverUrl}')`;
+                // 设置书脊文本
+                bookItem.querySelector('.book-spine').textContent = bookData.spineText;
+
+                // 绑定事件监听器
+                setupBookEventListeners(bookItem);
+
+                currentRowContainer.appendChild(bookItem);
+                currentBookCount++;
+            });
+
+            // 如果最后一排不满，也要添加一个书架板
+            if (booksToRender.length > 0) {
+                const bottomShelfRow = document.createElement('div');
+                bottomShelfRow.classList.add('bookshelf-row');
+                bookshelfDisplayArea.appendChild(bottomShelfRow);
+            }
+        }
+
+        // 设置单个书籍的事件监听器
+        function setupBookEventListeners(bookItem) {
+            const frontCover = bookItem.querySelector('.front-cover');
+
+            // 鼠标悬停显示悬停预览面板
+            bookItem.addEventListener('mouseenter', (e) => {
+                // 如果详情面板已经打开，则不显示悬停预览
+                if (bookDetailsPanel.classList.contains('show')) {
+                    return;
+                }
+
+                const bookData = bookItem.dataset;
+                previewBookCover.style.backgroundImage = `url('${bookData.coverUrl}')`;
+                previewBookTitle.textContent = bookData.title;
+                previewBookAuthor.textContent = `作者: ${bookData.author}`;
+                previewBookSummary.textContent = bookData.summary;
+                
+                bookHoverPreview.classList.add('show');
+            });
+
+            bookItem.addEventListener('mouseleave', () => {
+                // 只有当详情面板未打开时，才隐藏悬停预览
+                if (!bookDetailsPanel.classList.contains('show')) {
+                    bookHoverPreview.classList.remove('show');
+                }
+            });
+
+            // 点击书本触发拿出和翻开动画，并显示信息面板
+            bookItem.addEventListener('click', () => {
+                if (activeBook && activeBook !== bookItem) {
+                    // 如果有其他书本是激活状态，先关闭它
+                    resetBookState(activeBook);
+                }
+
+                activeBook = bookItem;
+                const pageUrl = bookItem.dataset.pageUrl;
+
+                // 1. 拿出书本动画
+                bookItem.classList.add('is-pulled-out');
+                mainContent.classList.add('main-blurred'); // 模糊背景
+                bookHoverPreview.classList.remove('show'); // 点击时隐藏悬停预览
+
+                // 2. 翻开封面动画 (延迟执行，在拿出动画之后)
+                setTimeout(() => {
+                    frontCover.classList.add('is-open');
+                }, 300); // 0.3秒后翻开
+
+                // 3. 显示信息面板 (延迟执行，在翻开动画之后)
+                setTimeout(() => {
+                    showBookDetailsPanel(bookItem.dataset);
+                }, 1000); // 1秒后显示面板
             });
         }
 
-        // 搜索按钮点击事件
-        searchButton.addEventListener('click', filterBooks);
+        // 显示书籍详细信息面板
+        function showBookDetailsPanel(bookData) {
+            panelBookCover.style.backgroundImage = `url('${bookData.coverUrl}')`;
+            panelBookTitle.textContent = bookData.title;
+            panelBookAuthor.textContent = `作者: ${bookData.author}`;
+            panelBookSummary.textContent = bookData.summary;
+            
+            // 设置“进入详情页”按钮的链接
+            if (bookData.pageUrl) {
+                panelGoToDetailsBtn.onclick = () => {
+                    window.location.href = bookData.pageUrl;
+                };
+                panelGoToDetailsBtn.style.display = 'inline-flex'; // 显示按钮
+            } else {
+                panelGoToDetailsBtn.style.display = 'none'; // 隐藏按钮
+            }
 
-        // 搜索框输入事件 (实时过滤)
+            bookDetailsPanel.classList.add('show');
+        }
+
+        // 关闭书籍详细信息面板并重置书本状态
+        function closeBookDetailsPanel() {
+            bookDetailsPanel.classList.remove('show');
+            mainContent.classList.remove('main-blurred'); // 移除模糊
+            if (activeBook) {
+                resetBookState(activeBook);
+            }
+            activeBook = null; // 清除激活的书本
+        }
+
+        // 重置单个书本的3D状态
+        function resetBookState(bookItem) {
+            const frontCover = bookItem.querySelector('.front-cover');
+            frontCover.classList.remove('is-open');
+            bookItem.classList.remove('is-pulled-out');
+        }
+
+        // 绑定关闭详情面板按钮事件
+        closeDetailsPanelBtn.addEventListener('click', closeBookDetailsPanel);
+        panelCloseBtn.addEventListener('click', closeBookDetailsPanel);
+
+
+        // 搜索功能
+        searchButton.addEventListener('click', () => filterAndRenderBooks(searchInput.value, currentCategory));
         searchInput.addEventListener('keyup', (event) => {
-            if (event.key === 'Enter') { // 按下回车键时也触发搜索
-                filterBooks();
-            } else if (searchInput.value.trim() === '') { // 如果搜索框清空，则显示所有书籍
-                filterBooks(); // 重新调用过滤，因为query为空时会显示所有
+            if (event.key === 'Enter') {
+                filterAndRenderBooks(searchInput.value, currentCategory);
             }
         });
-
-        // 清除按钮点击事件
         clearSearchButton.addEventListener('click', () => {
-            searchInput.value = ''; // 清空搜索框
-            filterBooks(); // 重新过滤，显示所有书籍
+            searchInput.value = '';
+            filterAndRenderBooks('', currentCategory); // 清空后重新过滤
         });
 
-        /*
-            -------------------------------------------------------------------
-            书本波浪动画逻辑：
-            鼠标在书架区域移动时，书本产生起伏和淡化效果。
-            -------------------------------------------------------------------
-        */
-        const bookshelfDisplays = document.querySelectorAll('.bookshelf-books-display'); // 获取所有书架显示区域
+        // 类别筛选功能
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // 移除所有按钮的 active 类
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                // 为当前点击的按钮添加 active 类
+                button.classList.add('active');
+                currentCategory = button.dataset.category; // 更新当前分类
+                filterAndRenderBooks(searchInput.value, currentCategory); // 重新过滤并渲染
+            });
+        });
 
-        const influenceRadius = 150; // 鼠标影响范围（像素）
-        const maxPopOut = -25; // 最大突出量（向上移动的像素）
-        const minOpacity = 0.4; // 最小透明度（最淡化时的透明度）
+        // 综合过滤和渲染函数
+        function filterAndRenderBooks(searchTerm, category) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            const filteredBooks = booksData.filter(book => {
+                const matchesSearch = book.title.toLowerCase().includes(lowerCaseSearchTerm) ||
+                                      book.author.toLowerCase().includes(lowerCaseSearchTerm) ||
+                                      book.summary.toLowerCase().includes(lowerCaseSearchTerm);
+                
+                const matchesCategory = (category === 'all' || book.category === category);
 
-        function applyWaveEffect(event) {
-            // 如果有书本被点击打开，暂停波浪效果
-            if (currentOpenedBook) {
-                // 确保当前打开的书本不受波浪影响
-                if (currentOpenedBook.style.getPropertyValue('--wave-opacity') !== '1') {
-                     currentOpenedBook.style.setProperty('--wave-opacity', '1');
-                     currentOpenedBook.style.setProperty('--wave-translate-y', '0px');
-                }
-                return;
+                return matchesSearch && matchesCategory;
+            });
+            renderBooks(filteredBooks);
+        }
+
+        // 滚动到顶部按钮功能
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) { // 当页面滚动超过300px时显示按钮
+                scrollToTopBtn.classList.add('show');
+            } else {
+                scrollToTopBtn.classList.remove('show');
             }
+        });
 
-            const mouseX = event.clientX; // 鼠标的X坐标
-
-            allBookShelfItems.forEach(item => {
-                // 隐藏所有 tooltip，避免波浪动画时的闪烁
-                const tooltip = item.querySelector('.book-tooltip');
-                if (tooltip) {
-                    tooltip.classList.remove('show');
-                    clearTimeout(tooltipTimeout); // 清除延迟
-                }
-
-                const itemRect = item.getBoundingClientRect();
-                const itemCenterX = itemRect.left + itemRect.width / 2; // 书本中心的X坐标
-                const distance = Math.abs(mouseX - itemCenterX); // 鼠标与书本中心的距离
-
-                if (distance < influenceRadius) {
-                    // 计算效果强度 (0到1之间)
-                    // 使用 Math.pow(..., 2) 创建一个二次方缓出效果，使效果更集中在鼠标附近，更丝滑
-                    const effectStrength = Math.pow(1 - (distance / influenceRadius), 2);
-
-                    // 计算突出量：距离鼠标越近，突出越多（向上移动）
-                    const popOutAmount = maxPopOut * effectStrength;
-
-                    // 计算透明度：距离鼠标越近，越不透明（越亮）
-                    // 从 minOpacity (0.4) 到 1 变化
-                    const currentOpacity = minOpacity + (1 - minOpacity) * effectStrength;
-
-                    item.style.setProperty('--wave-translate-y', `${popOutAmount}px`);
-                    item.style.setProperty('--wave-opacity', `${currentOpacity}`);
-                } else {
-                    // 鼠标超出影响范围的书本，恢复到初始状态
-                    item.style.setProperty('--wave-translate-y', '0px');
-                    item.style.setProperty('--wave-opacity', '1');
-                }
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
             });
-        }
-
-        // 鼠标离开书架区域时，恢复所有书本状态
-        function resetWaveEffect() {
-            allBookShelfItems.forEach(item => {
-                item.style.setProperty('--wave-translate-y', '0px');
-                item.style.setProperty('--wave-opacity', '1');
-            });
-        }
-
-        // 为每个书架容器添加鼠标移动和离开事件监听
-        bookshelfDisplays.forEach(shelf => {
-            shelf.addEventListener('mousemove', applyWaveEffect);
-            shelf.addEventListener('mouseleave', resetWaveEffect);
         });
 
 
-        // 页面加载完成后执行：初始化 Three.js
+        // 页面加载完成后初始化 Three.js 和书籍效果
         window.onload = function () {
-            initThreeJS(); // 初始化Three.js
-            animate(); // 启动动画循环
+            initThreeJS();
+            animateThreeJS();
+            filterAndRenderBooks('', 'all'); // 初始加载所有书籍
         };
     </script>
 </body>
