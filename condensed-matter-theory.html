@@ -29,6 +29,7 @@
             background-color: #161b22;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             z-index: 10;
+            position: relative; /* For positioning nav buttons */
         }
         header h1 {
             font-size: 3rem;
@@ -42,6 +43,31 @@
             color: #9ca3af;
         }
 
+        /* Navigation buttons in header */
+        .header-nav {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-button {
+            background-color: #30363d;
+            color: #c9d1d9;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .nav-button:hover {
+            background-color: #444c56;
+            transform: translateY(-2px);
+        }
+
         /* Card Stack Container */
         #cardStackContainer {
             flex-grow: 1; /* Allow container to take available space */
@@ -51,8 +77,9 @@
             width: 100%;
             padding: 2rem 1rem; /* Add padding to ensure cards don't touch edges */
             position: relative; /* For absolute positioning of cards */
-            min-height: 60vh; /* Ensure enough space for fanned cards, especially vertically */
+            min-height: 60vh; /* Default min-height, will be adjusted by JS for multi-row */
             max-width: 1200px; /* Limit max width on very large screens */
+            transition: min-height 0.5s ease; /* Smooth transition for height change */
         }
 
         /* Individual Card Styling */
@@ -98,6 +125,7 @@
         }
 
         /* Fanned out state when container is hovered (Desktop default) */
+        /* These will be set by JS using CSS variables for multi-row fanning */
         #cardStackContainer:hover .card {
             transform: translateX(var(--fan-x, 0px)) translateY(var(--fan-y, 0px)) rotateZ(var(--fan-rot, 0deg));
             transition-delay: var(--delay, 0s); /* Staggered delay for fanning out */
@@ -116,6 +144,22 @@
 
         /* --- Responsive adjustments for smaller screens (e.g., mobile) --- */
         @media (max-width: 768px) {
+            header {
+                padding-top: 4rem; /* Make space for nav buttons */
+            }
+            .header-nav {
+                top: 1rem;
+                right: 50%;
+                transform: translateX(50%);
+                width: calc(100% - 2rem); /* Full width minus padding */
+                justify-content: center;
+                gap: 0.75rem;
+            }
+            .nav-button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
             header h1 {
                 font-size: 2.2rem; /* Smaller title */
             }
@@ -153,7 +197,7 @@
         }
 
 
-        /* Modal overlay styles */
+        /* Modal overlay styles (reused for info, index, search) */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -253,6 +297,67 @@
             box-shadow: 0 6px 20px rgba(96, 165, 250, 0.6);
         }
 
+        /* Specific styles for Index and Search modals */
+        .index-list, .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Responsive grid */
+            gap: 1rem;
+            padding: 1rem 0;
+        }
+        .index-item, .search-item {
+            background-color: #1e2329;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .index-item:hover, .search-item:hover {
+            background-color: #2a3038;
+            transform: translateY(-2px);
+        }
+        .index-item span, .search-item span {
+            color: #60a5fa; /* Highlight keyword */
+        }
+        .index-item small, .search-item small {
+            display: block;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.25rem;
+        }
+
+        .search-input-container {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .search-input {
+            width: 80%;
+            max-width: 400px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid #30363d;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .search-input:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+        }
+        .no-results {
+            text-align: center;
+            color: #9ca3af;
+            padding: 2rem;
+            font-size: 1.1rem;
+        }
+
         footer {
             width: 100%;
             text-align: center;
@@ -285,11 +390,26 @@
                 padding: 0.75rem 1.5rem;
                 font-size: 1rem;
             }
+            .index-list, .search-results {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Smaller grid items on mobile */
+                gap: 0.75rem;
+            }
+            .index-item, .search-item {
+                font-size: 0.9rem;
+                padding: 0.6rem 0.8rem;
+            }
+            .search-input {
+                width: 95%;
+            }
         }
     </style>
 </head>
 <body class="antialiased leading-relaxed">
     <header>
+        <div class="header-nav">
+            <button id="indexButton" class="nav-button">索引</button>
+            <button id="searchButton" class="nav-button">搜索</button>
+        </div>
         <h1 class="text-blue-400">凝聚态理论扑克牌</h1>
         <p class="text-gray-400">将鼠标悬停在卡片区域，探索物质的奥秘</p>
     </header>
@@ -307,7 +427,32 @@
             <div id="modalBody" class="modal-body"></div>
             <div class="modal-buttons">
                 <button id="learnMoreButton" class="modal-button modal-learn-more-button">了解更多</button>
-                <button id="closeModalButton" class="modal-button">关闭</button>
+                <button id="closeInfoModalButton" class="modal-button">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="indexModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">所有卡牌索引</h3>
+            <div id="indexList" class="index-list">
+                </div>
+            <div class="modal-buttons">
+                <button id="closeIndexModalButton" class="modal-button">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="searchModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">搜索卡牌</h3>
+            <div class="search-input-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="输入关键词搜索...">
+            </div>
+            <div id="searchResults" class="search-results">
+                </div>
+            <div class="modal-buttons">
+                <button id="closeSearchModalButton" class="modal-button">关闭</button>
             </div>
         </div>
     </div>
@@ -318,8 +463,20 @@
         const infoModal = document.getElementById('infoModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
-        const closeModalButton = document.getElementById('closeModalButton');
+        const closeInfoModalButton = document.getElementById('closeInfoModalButton');
         const learnMoreButton = document.getElementById('learnMoreButton');
+
+        const indexButton = document.getElementById('indexButton');
+        const searchButton = document.getElementById('searchButton');
+        const indexModal = document.getElementById('indexModal');
+        const indexList = document.getElementById('indexList');
+        const closeIndexModalButton = document.getElementById('closeIndexModalButton');
+
+        const searchModal = document.getElementById('searchModal');
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const closeSearchModalButton = document.getElementById('closeSearchModalButton');
+
 
         // --- Room Data (Condensed Matter Theory Keywords) ---
         const roomKeywords = [
@@ -351,24 +508,36 @@
             { id: 'graphene', keyword: '石墨烯', description: '石墨烯是单层碳原子以六边形蜂窝状结构排列的二维材料。它具有极高的导电性、导热性和机械强度，被誉为“神奇材料”。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E7%9F%B3%E5%A2%A8%E7%83%AF' },
             { id: 'topological_superconductor', keyword: '拓扑超导', description: '拓扑超导体是一种特殊的超导态，其表面或边缘可能存在马约拉纳费米子，这些准粒子有望用于构建容错量子计算机。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E6%8B%93%E6%89%91%E8%B6%85%E5%AF%BC%E4%BD%93' },
             { id: 'spintronics', keyword: '自旋电子学', description: '自旋电子学是利用电子的自旋（除了电荷之外的另一个基本属性）来存储、传输和处理信息的新兴技术。它有望带来更低功耗、更快速度的电子器件。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E8%87%AA%E6%97%8B%E7%94%B5%E5%AD%90%E5%AD%A6' },
+            { id: 'quantum_computing', keyword: '量子计算', description: '量子计算是一种利用量子力学原理（如叠加和纠缠）进行计算的新型计算范式，有望解决传统计算机无法处理的复杂问题。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E9%87%8F%E5%AD%90%E8%AE%A1%E7%AE%97' },
+            { id: 'metamaterials', keyword: '超材料', description: '超材料是具有自然界中不存在的特殊电磁性质的人工复合材料，其性质由其结构而非组成材料决定，可用于隐身衣、完美透镜等。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E8%B6%85%E6%9D%90%E6%96%99' },
+            { id: 'perovskites', keyword: '钙钛矿', description: '钙钛矿是一类具有特定晶体结构的材料，因其优异的光电性能，在太阳能电池、LED和催化剂等领域受到广泛关注。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E9%92%99%E9%92%9B%E7%9F%BF' },
+            { id: 'moir%C3%A9_superlattices', keyword: '莫尔超晶格', description: '当两层或多层二维材料以小角度堆叠时，会形成莫尔超晶格，产生新的周期性势场，从而诱导出许多新奇的量子现象。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E8%8E%AB%E5%B0%94%E6%9D%A1%E7%BA%B9%E8%B6%85%E6%99%B6%E6%A0%BC' },
+            { id: 'excitons', keyword: '激子', description: '激子是半导体或绝缘体中由一个电子和一个空穴束缚在一起形成的准粒子，它们在材料的光学性质中扮演重要角色。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E6%BF%80%E5%AD%90' },
+            { id: 'polarons', keyword: '极化子', description: '极化子是电子在离子晶体中运动时，由于与周围晶格振动（声子）相互作用而形成的准粒子，其有效质量会增大。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E6%9E%81%E5%8C%96%E5%AD%90' },
+            { id: 'magnons', keyword: '磁振子', description: '磁振子是磁性材料中自旋波的量子化形式，是磁性相互作用的集体激发，在自旋电子学中具有潜在应用。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E7%A3%81%E6%8C%AF%E5%AD%90' },
+            { id: 'plasmonics', keyword: '等离激元', description: '等离激元是金属中自由电子集体振动的量子化形式，它们可以与光相互作用，在纳米光学、生物传感和太阳能等领域有应用。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E7%AD%89%E7%A6%BB%E6%BF%80%E5%85%83%E5%AD%A6' },
+            { id: 'skyrmions', keyword: '斯格明子', description: '斯格明子是磁性材料中一种拓扑保护的自旋结构，具有纳米尺寸和高稳定性，有望用于下一代磁存储技术。', category: '前沿研究', externalLink: 'https://zh.wikipedia.org/wiki/%E6%96%AF%E6%A0%BC%E6%98%8E%E5%AD%90' },
+            { id: 'valleytronics', keyword: '谷电子学', description: '谷电子学是利用材料中电子的“谷”自由度（即导带或价带中能量极小值的不同简并态）来存储和处理信息的新兴领域。', category: '前沿研究', externalLink: 'https://en.wikipedia.org/wiki/Valleytronics' }, // English Wikipedia link as Chinese is not available
         ];
 
         // --- Card Generation ---
         function createCards() {
             const totalCards = roomKeywords.length;
-            const cardWidth = 200; // px (Desktop)
-            const cardHeight = 300; // px (Desktop)
+            const cardWidth = 200; // px (Desktop base)
+            const cardHeight = 300; // px (Desktop base)
             const initialOverlapY = 0.8; // Vertical overlap in stacked state
             const initialRotationZ = 0.5; // Degree rotation for initial fanned stack
 
-            // Desktop Fanning Parameters
-            const fanSpreadFactorDesktop = 0.8; // Horizontal spread per card (e.g., 0.8 means 80% of card width separation)
-            const maxFanRotationDesktop = 30; // Max rotation for the outermost card in fanned state (degrees)
-            const fanArcHeightDesktop = 50; // Max vertical displacement for arc effect in fanned state (px)
+            // Desktop Fanning Parameters (Multi-row grid fan)
+            const cardsPerRowDesktop = 6; // Max cards per row on desktop
+            const horizontalOverlapFactorDesktop = 0.6; // How much of card width to spread horizontally (e.g., 0.6 means 60% of card width separation)
+            const verticalOverlapFactorDesktop = 0.3; // How much of card height to overlap vertically for new rows
+            const rowRotationDesktop = 5; // Slight rotation for each card in a row
+            const rowOffsetDesktop = 20; // Slight vertical offset for each row
 
             // Mobile Fanning Parameters (Vertical Cascade)
             const fanSpreadXMobile = 30; // Small horizontal offset per card for mobile
-            const fanSpreadYMobile = 45; // Significant vertical offset per card for mobile
+            const fanSpreadYMobile = 65; // Significant vertical offset per card for mobile (increased for more space)
             const maxFanRotationMobile = 5; // Very slight rotation for mobile
 
             const fanDelayPerCard = 0.03; // Staggered delay for animation (seconds)
@@ -389,23 +558,36 @@
                 cardElement.style.setProperty('--initial-rot', `${initialRot}deg`);
                 cardElement.style.setProperty('--initial-z', `${initialZ}`);
 
-                // --- Desktop Fanning Calculations ---
-                const normalizedIndex = index - centerIndex; // -N/2 to +N/2
+                // --- Desktop Fanning Calculations (Multi-row grid fan) ---
+                const row = Math.floor(index / cardsPerRowDesktop);
+                const col = index % cardsPerRowDesktop;
 
-                const fanXDesktop = normalizedIndex * cardWidth * fanSpreadFactorDesktop;
-                const fanRotDesktop = normalizedIndex * (maxFanRotationDesktop / centerIndex);
-                const fanYDesktop = -Math.abs(normalizedIndex) * fanArcHeightDesktop / centerIndex;
-                const fanZDesktop = 100 + Math.abs(Math.round(normalizedIndex)); // Ensure distinct z-index for fanned state
+                // Calculate horizontal position for the current column, centered
+                const colCenterOffset = (cardsPerRowDesktop - 1) / 2;
+                const fanXDesktop = (col - colCenterOffset) * cardWidth * horizontalOverlapFactorDesktop;
+
+                // Calculate vertical position for the current row
+                const fanYDesktop = row * (cardHeight * verticalOverlapFactorDesktop + rowOffsetDesktop);
+
+                // Slight rotation for each card in the row
+                const fanRotDesktop = (col - colCenterOffset) * rowRotationDesktop;
+
+                // Z-index: Higher rows are "behind" lower rows (lower z-index), and within a row,
+                // cards are ordered to look fanned (center cards might be slightly "forward").
+                // A simple approach: higher index cards are on top within their row, and later rows are "below"
+                const fanZDesktop = 100 - (row * cardsPerRowDesktop) + col;
 
                 cardElement.style.setProperty('--fan-x', `${fanXDesktop}px`);
                 cardElement.style.setProperty('--fan-y', `${fanYDesktop}px`);
                 cardElement.style.setProperty('--fan-rot', `${fanRotDesktop}deg`);
-                cardElement.style.setProperty('--fan-z', `${fanZDesktop}`); // Z-index for desktop fanning
+                cardElement.style.setProperty('--fan-z', `${fanZDesktop}`);
+                cardElement.style.setProperty('--delay', `${index * fanDelayPerCard}s`);
 
                 // --- Mobile Fanning Calculations (Vertical Cascade) ---
-                const fanXMobileCalc = normalizedIndex * fanSpreadXMobile;
+                const normalizedIndexMobile = index - centerIndex; // Use for slight horizontal spread
+                const fanXMobileCalc = normalizedIndexMobile * fanSpreadXMobile;
                 const fanYMobileCalc = index * fanSpreadYMobile; // Stack downwards
-                const fanRotMobileCalc = normalizedIndex * (maxFanRotationMobile / centerIndex);
+                const fanRotMobileCalc = normalizedIndexMobile * (maxFanRotationMobile / centerIndex);
                 const fanZMobileCalc = index + 100; // Ensure distinct z-index for mobile fanning, maintaining order
 
                 cardElement.style.setProperty('--fan-x-mobile', `${fanXMobileCalc}px`);
@@ -425,7 +607,7 @@
 
                 cardElement.addEventListener('click', () => {
                     const data = JSON.parse(cardElement.dataset.cardData);
-                    showModal(data);
+                    showModal(infoModal, data); // Pass infoModal and data
                 });
 
                 cardStackContainer.appendChild(cardElement);
@@ -433,45 +615,171 @@
         }
 
         /**
-         * Shows the modal with content from the clicked card.
-         * @param {object} card - The card object containing keyword, description, and externalLink.
+         * Dynamically adjusts the min-height of the cardStackContainer
+         * based on the number of cards and the current screen size.
          */
-        function showModal(card) {
-            modalTitle.innerHTML = card.keyword;
-            modalBody.innerHTML = `<p>${card.description}</p>`;
-            infoModal.classList.add('show');
+        function updateContainerHeight() {
+            const totalCards = roomKeywords.length;
+            const desktopBreakpoint = 768; // Matches CSS media query
+            const currentWidth = window.innerWidth;
 
-            // Set the "Learn More" button's action
-            learnMoreButton.onclick = () => {
-                if (card.externalLink) {
-                    window.open(card.externalLink, '_blank'); // Open in new tab
-                } else {
-                    console.warn("此关键词未定义外部链接。");
-                }
-                // Do not hide modal immediately, allow user to see the new tab opening
-            };
+            let calculatedHeight;
+
+            if (currentWidth > desktopBreakpoint) {
+                // Desktop multi-row fanning
+                const cardHeight = 300;
+                const verticalOverlapFactorDesktop = 0.3;
+                const rowOffsetDesktop = 20;
+                const cardsPerRowDesktop = 6;
+
+                const numRows = Math.ceil(totalCards / cardsPerRowDesktop);
+                // Calculate height based on rows, overlap, and card height, plus some padding
+                calculatedHeight = (numRows - 1) * (cardHeight * verticalOverlapFactorDesktop + rowOffsetDesktop) + cardHeight + 100;
+            } else {
+                // Mobile vertical cascade
+                const cardHeightMobile = 195; // Matches CSS .card height for mobile
+                const fanSpreadYMobile = 65; // Matches JS variable
+
+                // Calculate height based on total cards and vertical spread, plus some padding
+                calculatedHeight = (totalCards - 1) * fanSpreadYMobile + cardHeightMobile + 150; // Add generous padding
+            }
+            cardStackContainer.style.minHeight = `${calculatedHeight}px`;
+        }
+
+
+        /**
+         * Generic function to show a modal.
+         * @param {HTMLElement} modalElement - The modal DOM element to show.
+         * @param {object} [cardData] - Optional card data to populate the info modal.
+         */
+        function showModal(modalElement, cardData = null) {
+            // Hide any other open modals first
+            hideAllModals();
+
+            if (modalElement === infoModal && cardData) {
+                modalTitle.innerHTML = cardData.keyword;
+                modalBody.innerHTML = `<p>${cardData.description}</p>`;
+                learnMoreButton.onclick = () => {
+                    if (cardData.externalLink) {
+                        window.open(cardData.externalLink, '_blank');
+                    } else {
+                        console.warn("此关键词未定义外部链接。");
+                    }
+                };
+            }
+            modalElement.classList.add('show');
         }
 
         /**
-         * Hides the modal.
+         * Generic function to hide a modal.
+         * @param {HTMLElement} modalElement - The modal DOM element to hide.
          */
-        function hideModal() {
-            infoModal.classList.remove('show');
+        function hideModal(modalElement) {
+            modalElement.classList.remove('show');
         }
+
+        /**
+         * Hides all currently visible modals.
+         */
+        function hideAllModals() {
+            const modals = document.querySelectorAll('.modal-overlay.show');
+            modals.forEach(modal => modal.classList.remove('show'));
+        }
+
+        /**
+         * Populates and shows the index modal.
+         */
+        function showIndexModal() {
+            indexList.innerHTML = ''; // Clear previous list
+            roomKeywords.forEach(card => {
+                const indexItem = document.createElement('div');
+                indexItem.classList.add('index-item');
+                indexItem.innerHTML = `<span>${card.keyword}</span><small>${card.category}</small>`;
+                indexItem.addEventListener('click', () => {
+                    showModal(infoModal, card); // Show info modal for the clicked card
+                });
+                indexList.appendChild(indexItem);
+            });
+            showModal(indexModal);
+        }
+
+        /**
+         * Populates and shows the search modal.
+         */
+        function showSearchModal() {
+            searchInput.value = ''; // Clear previous search input
+            displaySearchResults([]); // Clear previous results
+            showModal(searchModal);
+            searchInput.focus(); // Focus on the input field
+        }
+
+        /**
+         * Displays search results in the search modal.
+         * @param {Array<object>} results - Array of card objects to display.
+         */
+        function displaySearchResults(results) {
+            searchResults.innerHTML = ''; // Clear previous results
+            if (results.length === 0 && searchInput.value.trim() !== '') {
+                searchResults.innerHTML = '<p class="no-results">未找到匹配的卡牌。</p>';
+            } else if (searchInput.value.trim() === '') {
+                searchResults.innerHTML = '<p class="no-results">请输入关键词进行搜索。</p>';
+            } else {
+                results.forEach(card => {
+                    const searchItem = document.createElement('div');
+                    searchItem.classList.add('search-item');
+                    searchItem.innerHTML = `<span>${card.keyword}</span><small>${card.category}</small>`;
+                    searchItem.addEventListener('click', () => {
+                        showModal(infoModal, card); // Show info modal for the clicked card
+                    });
+                    searchResults.appendChild(searchItem);
+                });
+            }
+        }
+
+        /**
+         * Filters room keywords based on search input.
+         */
+        function filterCards() {
+            const query = searchInput.value.trim().toLowerCase();
+            if (query === '') {
+                displaySearchResults([]);
+                return;
+            }
+            const filtered = roomKeywords.filter(card =>
+                card.keyword.toLowerCase().includes(query) ||
+                card.category.toLowerCase().includes(query) ||
+                card.description.toLowerCase().includes(query)
+            );
+            displaySearchResults(filtered);
+        }
+
 
         // --- Initial Setup on Window Load ---
         window.onload = function() {
             createCards(); // Generate and display the cards
+            updateContainerHeight(); // Update height after cards are created and on initial load
         };
 
-        // --- Modal Event Listeners ---
-        closeModalButton.addEventListener('click', hideModal);
-        infoModal.addEventListener('click', (event) => {
-            // Close modal if clicked outside the content area
-            if (event.target === infoModal) {
-                hideModal();
-            }
-        });
+        // --- Event Listeners ---
+        // Close buttons for modals
+        closeInfoModalButton.addEventListener('click', () => hideModal(infoModal));
+        closeIndexModalButton.addEventListener('click', () => hideModal(indexModal));
+        closeSearchModalButton.addEventListener('click', () => hideModal(searchModal));
+
+        // Click outside modal to close
+        infoModal.addEventListener('click', (event) => { if (event.target === infoModal) hideModal(infoModal); });
+        indexModal.addEventListener('click', (event) => { if (event.target === indexModal) hideModal(indexModal); });
+        searchModal.addEventListener('click', (event) => { if (event.target === searchModal) hideModal(searchModal); });
+
+        // Navigation button clicks
+        indexButton.addEventListener('click', showIndexModal);
+        searchButton.addEventListener('click', showSearchModal);
+
+        // Search input event
+        searchInput.addEventListener('input', filterCards);
+
+        // Update container height on window resize to react to layout changes
+        window.addEventListener('resize', updateContainerHeight);
     </script>
 </body>
 </html>
