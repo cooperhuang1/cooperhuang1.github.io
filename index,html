@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳转中...</title>
+    <!--
+        Meta Refresh 标签：
+        这个标签告诉浏览器在 0 秒后（即立即）跳转到 intro.html 页面。
+        这是一种在 GitHub Pages 上实现自动重定向的常用方法。
+    -->
+    <meta http-equiv="refresh" content="0; url=intro.html">
+    <style>
+        /*
+            简单的样式，确保在跳转发生前页面不会完全空白。
+            用户可能只会看到一瞬间的这个页面。
+        */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.2rem;
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <p>正在进入网站...</p>
+</body>
+</html>
