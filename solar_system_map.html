@@ -216,8 +216,7 @@
         <h3 class="panel-title">星球信息与操作</h3>
         <p id="panel-planet-name" class="text-xl font-bold mb-2 text-green-400"></p>
         <p class="text-gray-300 text-sm mb-6">点击登录以查看更多详细信息或执行相关操作。</p>
-        <button class="login-btn" id="login-button">
-            <i class="fas fa-sign-in-alt"></i> 登录
+        <button class="login-btn" id="login-button" disabled> <i class="fas fa-sign-in-alt"></i> 登录
         </button>
     </div>
 
@@ -370,19 +369,23 @@
 
             // 为登录按钮添加事件监听器
             loginButton.addEventListener('click', () => {
+                console.log('登录按钮被点击！');
+                console.log('当前面板行星数据:', currentPlanetDataForPanel);
+
                 if (currentPlanetDataForPanel && currentPlanetDataForPanel.pageUrl) {
-                    // 动态构建完整的URL，以确保在GitHub Pages上正确解析
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
                     
-                    // *** 修改这里：跳转到过渡页，并带上实际目标页面的参数 ***
-                    const transitionUrl = window.location.origin + currentDir + "transition_to_planet.html?target=" + currentPlanetDataForPanel.pageUrl;
+                    // 确保 pageUrl 被正确编码
+                    const encodedTargetPage = encodeURIComponent(currentPlanetDataForPanel.pageUrl);
+                    const transitionUrl = window.location.origin + currentDir + "transition_to_planet.html?target=" + encodedTargetPage;
                     
+                    console.log('即将跳转到过渡页:', transitionUrl);
                     window.location.href = transitionUrl; // 跳转到过渡页
                 } else {
-                    console.warn('没有为当前行星定义跳转页面或行星数据缺失。');
+                    console.warn('没有为当前行星定义跳转页面或行星数据缺失。请先选择一个星球。');
                     // 可以添加一个简单的提示，例如：
-                    // alert('此星球暂无专属页面，请尝试其他星球。'); // 避免使用 alert()，可以替换为自定义模态框
+                    // alert('此星球暂无专属页面，可以替换为自定义模态框'); // 避免使用 alert()，可以替换为自定义模态框
                 }
             });
         }
@@ -454,6 +457,7 @@
         function showPlanetInfoPanel(planetData) {
             currentPlanetDataForPanel = planetData; // 存储当前行星数据
             panelPlanetName.textContent = `当前星球: ${planetData.label}`;
+            loginButton.disabled = false; // 启用登录按钮
             // 使用 GSAP 动画面板滑入
             gsap.to(planetInfoPanel, {
                 duration: 0.5,
@@ -476,6 +480,7 @@
                 onComplete: () => {
                     planetInfoPanel.style.pointerEvents = 'none'; // 动画结束时禁用鼠标事件
                     currentPlanetDataForPanel = null; // 清除存储的行星数据
+                    loginButton.disabled = true; // 禁用登录按钮
                 }
             });
         }
