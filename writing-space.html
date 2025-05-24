@@ -13,14 +13,14 @@
 
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
-        // MathJax 配置
+        // MathJax 配置：定义行内和块级公式的分隔符
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']], // 行内公式使用 $...$ 或 \(...\)
                 displayMath: [['$$', '$$'], ['\\[', '\\]']] // 块级公式使用 $$...$$ 或 \[...\]
             },
             svg: {
-                fontCache: 'global' // 优化字体加载
+                fontCache: 'global' // 优化字体加载，提高渲染速度
             }
         };
     </script>
@@ -359,7 +359,7 @@
             <div id="editor-pane" class="editor-pane content-area glass-morphism">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-100">编辑你的内容</h2>
                 <textarea id="editor-textarea" placeholder="开始写作... 支持 Markdown 语法和 LaTeX 公式 (行内: $...$, 块级: $$...$$)。
-你也可以直接复制粘贴图片，或将图片拖拽到这里。"></textarea>
+拖拽或粘贴本地图片将弹出提示。请将图片上传到图床（如 Imgur, SM.MS），然后使用工具栏中的 '图片' 按钮粘贴 URL。"></textarea>
 
                 <div class="flex flex-wrap gap-4 mt-4">
                     <button id="save-html-btn" class="flex-1 py-3 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition duration-300 btn-primary">
@@ -419,10 +419,10 @@
                 // 确保 MathJax 已经加载并且 typesetPromise 方法存在
                 if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     MathJax.typesetPromise([element]).catch(function (err) {
-                        console.error('MathJax rendering failed:', err);
+                        console.error('MathJax 渲染失败:', err);
                     });
                 } else {
-                    console.warn('MathJax not available for typesetting.');
+                    console.warn('MathJax 未加载，无法渲染公式。');
                 }
             }
 
@@ -438,7 +438,8 @@
                 // 为预览区的所有图片添加错误处理
                 previewArea.querySelectorAll('img').forEach(img => {
                     img.onerror = () => {
-                        img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=Image+Load+Error';
+                        // 图片加载失败时显示占位图
+                        img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=图片加载失败';
                         img.alt = '图片加载失败';
                     };
                 });
@@ -451,12 +452,35 @@
                 forceSync: true, // 确保 textarea 的值与编辑器同步
                 // 自定义工具栏
                 toolbar: [
-                    "bold", "italic", "heading", "|",
-                    "unordered-list", "ordered-list", "|",
-                    "link", "image", "table", "code", "|",
-                    "preview", "side-by-side", "fullscreen", "|",
+                    "bold", // 粗体
+                    "italic", // 斜体
+                    "heading", // 标题
+                    "|", // 分隔符
+                    "unordered-list", // 无序列表
+                    "ordered-list", // 有序列表
+                    "|", // 分隔符
+                    "link", // 插入链接
+                    "image", // 插入图片 (通过 URL) - EasyMDE 自带的图片按钮
                     {
-                        name: "math",
+                        name: "upload-to-image-host", // 自定义上传图片到图床按钮
+                        action: function uploadToImageHost(editor) {
+                            // 打开一个新标签页到 Imgur 上传页面
+                            window.open('https://imgur.com/upload', '_blank');
+                            // 弹出提示，引导用户操作
+                            alert('请将您的图片上传到新打开的图床网站，然后复制生成的图片链接（URL），再回到本页面使用工具栏中的 “图片” 按钮粘贴链接。');
+                        },
+                        className: "fas fa-cloud-upload-alt", // 云上传图标
+                        title: "上传图片到图床", // 按钮提示文本
+                    },
+                    "table", // 插入表格
+                    "code", // 插入代码块
+                    "|", // 分隔符
+                    "preview", // 切换预览模式 (EasyMDE 自带的实时预览)
+                    "side-by-side", // 切换侧边预览模式 (EasyMDE 自带)
+                    "fullscreen", // 切换全屏模式
+                    "|", // 分隔符
+                    {
+                        name: "math", // 插入块级 LaTeX 公式按钮
                         action: function addMath(editor) {
                             // 插入 LaTeX 块级公式模板
                             const cm = editor.codemirror;
@@ -465,10 +489,10 @@
                             cm.focus();
                         },
                         className: "fa fa-superscript", // 适合数学公式的图标
-                        title: "插入 LaTeX 公式",
+                        title: "插入 LaTeX 公式 (块级)", // 按钮提示文本
                     },
                     {
-                        name: "inline-math",
+                        name: "inline-math", // 插入行内 LaTeX 公式按钮
                         action: function addInlineMath(editor) {
                             // 插入 LaTeX 行内公式模板
                             const cm = editor.codemirror;
@@ -477,7 +501,7 @@
                             cm.focus();
                         },
                         className: "fa fa-calculator", // 适合行内公式的图标
-                        title: "插入行内 LaTeX 公式",
+                        title: "插入行内 LaTeX 公式", // 按钮提示文本
                     }
                 ],
                 // 自定义预览渲染器，将内容渲染到 EasyMDE 自身的预览区域并处理 MathJax
@@ -489,7 +513,7 @@
                     // 为预览区的所有图片添加错误处理
                     preview.querySelectorAll('img').forEach(img => {
                         img.onerror = () => {
-                            img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=Image+Load+Error';
+                            img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=图片加载失败';
                             img.alt = '图片加载失败';
                         };
                     });
@@ -502,35 +526,24 @@
             if (savedContent) {
                 easyMDE.value(savedContent);
             }
+            // 监听 EasyMDE 编辑器内容变化事件，实时保存并更新外部预览区
             easyMDE.codemirror.on("change", () => {
                 localStorage.setItem('writingDraft', easyMDE.value());
-                // EasyMDE 的 change 事件会触发其内部的 previewRender，
-                // 而 previewRender 又会调用 updatePreview，所以这里不需要额外调用 updatePreview()
+                updatePreview(); // 确保每次内容变化都更新外部预览区域
             });
 
-            // --- 图片复制粘贴 (Paste) 功能 for EasyMDE ---
+            // --- 阻止本地图片复制粘贴和拖拽，引导用户使用 URL ---
             easyMDE.codemirror.on('paste', (cm, e) => {
                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
                 for (const item of items) {
                     if (item.type.startsWith('image/')) {
                         e.preventDefault(); // 阻止默认粘贴行为
-                        const file = item.getAsFile();
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                                const base64Image = event.target.result;
-                                const imageMarkdown = `![粘贴的图片](${base64Image})`; // Markdown 格式
-                                insertTextAtCursor(cm, imageMarkdown); // 插入到 CodeMirror
-                            };
-                            reader.readAsDataURL(file); // 读取文件为 Base64 Data URL
-                            alert('图片已粘贴并转换为Base64。注意：大图片会使文件变大。'); // 提示用户
-                            return; // 只处理第一个图片
-                        }
+                        alert('由于浏览器安全限制，无法直接粘贴本地图片。请将图片上传到第三方图床（如 Imgur, SM.MS），然后使用工具栏中的 “图片” 按钮粘贴图片 URL。');
+                        return;
                     }
                 }
             });
 
-            // --- 图片拖拽上传 (Drag & Drop) 功能 for EasyMDE ---
             easyMDE.codemirror.on('dragover', (cm, e) => {
                 e.preventDefault(); // 阻止默认行为，允许放置
                 cm.getWrapperElement().classList.add('drag-over'); // 添加拖拽时的样式
@@ -547,15 +560,8 @@
                 const files = e.dataTransfer.files;
                 for (const file of files) {
                     if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const base64Image = event.target.result;
-                            const imageMarkdown = `![拖拽的图片](${base64Image})`; // Markdown 格式
-                            insertTextAtCursor(cm, imageMarkdown); // 插入到 CodeMirror
-                        };
-                        reader.readAsDataURL(file); // 读取文件为 Base64 Data URL
-                        alert('图片已拖拽并转换为Base64。注意：大图片会使文件变大。'); // 提示用户
-                        return; // 只处理第一个图片
+                        alert('由于浏览器安全限制，无法直接拖拽本地图片。请将图片上传到第三方图床（如 Imgur, SM.MS），然后使用工具栏中的 “图片” 按钮粘贴图片 URL。');
+                        return;
                     }
                 }
             });
@@ -570,12 +576,12 @@
                     MathJax.startup.promise.then(() => {
                         updatePreview(); // 首次渲染外部预览区域
                     }).catch(err => {
-                        console.error("MathJax startup promise failed:", err);
+                        console.error("MathJax 启动 promise 失败:", err);
                         updatePreview(); // 即使 MathJax 启动失败，也尝试更新预览（不含公式渲染）
                     });
                 } else if (Date.now() - startTime > 5000) { // 5秒超时
                     clearInterval(checkMathJaxReady);
-                    console.warn('MathJax did not load within 5 seconds. Proceeding without MathJax rendering.');
+                    console.warn('MathJax 在 5 秒内未加载。将不进行公式渲染。');
                     updatePreview(); // 超时后也尝试更新预览
                 }
             }, 100); // 每100毫秒检查一次
@@ -612,11 +618,11 @@
                         }).then(() => {
                             alert('内容已生成为 PDF 文件！');
                         }).catch(err => {
-                            console.error('PDF generation failed:', err);
+                            console.error('PDF 生成失败:', err);
                             alert('PDF 生成失败，请检查控制台。');
                         });
                     }).catch(err => {
-                        console.error('MathJax rendering for PDF failed:', err);
+                        console.error('PDF 渲染公式失败:', err);
                         alert('公式渲染失败，无法生成PDF。');
                     });
                 } else {
@@ -630,7 +636,7 @@
                     }).then(() => {
                         alert('内容已生成为 PDF 文件！');
                     }).catch(err => {
-                        console.error('PDF generation failed:', err);
+                        console.error('PDF 生成失败:', err);
                         alert('PDF 生成失败，请检查控制台。');
                     });
                 }
