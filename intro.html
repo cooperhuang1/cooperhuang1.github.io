@@ -308,7 +308,8 @@
                     // 动态构建完整的URL，以确保在GitHub Pages上正确解析
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    const fullUrl = window.location.origin + currentDir + "personal-homepage.html";
+                    // *** 修改这里：跳转到 earth_page.html ***
+                    const fullUrl = window.location.origin + currentDir + "earth_page.html"; 
 
                     // 重定向到主页面
                     window.location.href = fullUrl;
