@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>黄俊鑫的个人主页 </title>
+    <title>黄俊鑫的个人主页</title>
     <!--
         引入 Tailwind CSS CDN：
         这是一个CSS框架，可以帮助你快速构建响应式和美观的界面，
@@ -21,7 +21,7 @@
     <!--
         引入 Three.js 库：
         这是一个用于在浏览器中创建和显示3D图形的JavaScript库。
-        我们用它来创建背景中的动态粒子效果。
+        我们用它来创建背景中的动态粒子效果和星空背景。
     -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -36,152 +36,259 @@
         /* 全局字体设置 */
         body {
             font-family: 'Inter', sans-serif; /* 设置页面默认字体为 Inter 或其备用字体 */
-            background-color: #f0f2f5; /* 设置页面默认背景色为浅灰色 */
+            background-color: #1a202c; /* 设置页面默认背景色为深色，与太阳系平面图一致 */
             scroll-behavior: smooth; /* 启用平滑滚动效果，当点击锚点链接时页面会平滑滚动 */
-            overflow-x: hidden; /* 防止页面出现水平滚动条，确保布局不会溢出 */
+            color: #e2e8f0; /* 默认文本颜色改为浅色，适应深色背景 */
+        }
+
+        /* Three.js Canvas 样式 - 现已全屏背景 */
+        #threejs-background {
+            position: fixed; /* 固定定位，使其覆盖整个视口 */
+            top: 0;
+            left: 0;
+            width: 100vw; /* 宽度占满整个视口宽度 */
+            height: 100vh; /* 高度占满整个视口高度 */
+            z-index: -1; /* 设置层级为-1，确保它在所有内容的最下方 */
         }
 
         /* 英雄背景区域 (主视觉区域) */
-        .hero-background {
-            height: 600px; /* 设置此区域的固定高度 */
+        .hero-section { /* 重命名为 hero-section，避免与 Three.js 背景容器混淆 */
+            min-height: 100vh; /* 确保英雄区域至少占满一个视口高度 */
             display: flex; /* 启用弹性布局 */
             align-items: center; /* 垂直居中子元素 */
             justify-content: center; /* 水平居中子元素 */
             position: relative; /* 允许内部元素使用绝对定位 */
-            overflow: hidden; /* 隐藏超出此区域的内容，特别是Three.js背景 */
-        }
-
-        /* Three.js Canvas 样式 */
-        #threejs-background {
-            position: absolute; /* 绝对定位，使其覆盖整个父容器 */
-            top: 0;
-            left: 0;
-            width: 100%; /* 宽度占满父容器 */
-            height: 100%; /* 高度占满父容器 */
-            z-index: 0; /* 设置层级，确保它在内容下方 */
+            padding: 2rem; /* 增加内边距以防内容贴边 */
         }
 
         /* 毛玻璃效果样式 (用于卡片和主视觉区域的文本框) */
         .glass-morphism {
             backdrop-filter: blur(10px) saturate(180%); /* 模糊背景并增加饱和度，创建毛玻璃效果 */
             -webkit-backdrop-filter: blur(10px) saturate(180%); /* 兼容WebKit浏览器 */
-            background-color: rgba(255, 255, 255, 0.75); /* 白色背景，75%不透明度 */
+            background-color: rgba(255, 255, 255, 0.15); /* 更透明的白色背景，适应深色背景 */
             border-radius: 12px; /* 圆角边框 */
-            border: 1px solid rgba(209, 213, 219, 0.3); /* 细边框，半透明 */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 轻微的阴影效果 */
-        }
-
-        /* 文章卡片的基础样式和悬停动画 */
-        .article-card {
-            /* 定义过渡效果：transform 和 box-shadow 在0.3秒内平滑变化 */
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        }
-        .article-card:hover {
-            /* 鼠标悬停时，卡片向上移动8px，并进行2度的X轴和Y轴倾斜，创建3D效果 */
-            transform: translateY(-8px) perspective(1000px) rotateX(2deg) rotateY(2deg);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15); /* 悬停时阴影更明显 */
+            border: 1px solid rgba(209, 213, 219, 0.1); /* 细边框，更透明 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* 更明显的阴影效果 */
         }
 
         /* 导航栏滚动时的样式变化 */
         .navbar-scrolled {
-            background-color: rgba(255, 255, 255, 0.95); /* 滚动后背景更实心 */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 滚动后阴影更明显 */
+            background-color: rgba(26, 32, 44, 0.95); /* 滚动后背景更实心，深色 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* 滚动后阴影更明显 */
         }
 
         /* 英雄区域内容动画 (淡入上滑效果) */
         @keyframes fadeInSlideUp {
             from {
-                opacity: 0; /* 初始状态：完全透明 */
-                transform: translateY(20px); /* 初始状态：向下移动20px */
+                opacity: 0;
+                transform: translateY(20px);
             }
             to {
-                opacity: 1; /* 结束状态：完全不透明 */
-                transform: translateY(0); /* 结束状态：回到原始位置 */
+                opacity: 1;
+                transform: translateY(0);
             }
         }
         .animate-hero-content {
-            animation: fadeInSlideUp 1s ease-out forwards; /* 应用动画，持续1秒，缓出效果，动画结束后保持最后状态 */
-            animation-delay: 0.5s; /* 动画延迟0.5秒开始 */
-            opacity: 0; /* 初始隐藏，防止动画前内容闪现 */
+            animation: fadeInSlideUp 1s ease-out forwards;
+            animation-delay: 0.5s;
+            opacity: 0;
         }
         .animate-hero-avatar {
-            animation: fadeInSlideUp 1s ease-out forwards; /* 应用动画 */
-            animation-delay: 0.3s; /* 头像动画延迟0.3秒开始，比内容早一点 */
-            opacity: 0; /* 初始隐藏 */
-        }
-
-        /* 文章卡片进入视口时的动画 */
-        .article-card.hidden-on-load {
-            opacity: 0; /* 初始隐藏 */
-            transform: translateY(30px); /* 初始位置在下方 */
-        }
-        .article-card.animate-in {
-            animation: fadeInSlideUp 0.6s ease-out forwards; /* 当进入视口时应用淡入上滑动画 */
+            animation: fadeInSlideUp 1s ease-out forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
         }
 
         /* 社交图标悬停效果 */
         .social-icon {
-            transition: transform 0.2s ease-in-out; /* 鼠标悬停时，transform属性在0.2秒内平滑变化 */
+            transition: transform 0.2s ease-in-out;
         }
         .social-icon:hover {
-            transform: scale(1.2); /* 鼠标悬停时放大1.2倍 */
+            transform: scale(1.2);
         }
 
         /* 按钮悬停效果 */
         .btn-primary {
-            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* 鼠标悬停时，transform和box-shadow平滑变化 */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
         }
         .btn-primary:hover {
-            transform: translateY(-2px) scale(1.02); /* 按钮轻微上移2px并放大1.02倍 */
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); /* 悬停时阴影更明显 */
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
         }
 
         /* 下拉菜单基础样式 */
         .dropdown-menu {
-            display: none; /* 默认隐藏 */
-            position: absolute; /* 绝对定位，相对于父级`.dropdown` */
-            background-color: white; /* 白色背景 */
-            min-width: 160px; /* 最小宽度 */
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* 阴影 */
-            z-index: 1; /* 确保在其他内容之上 */
-            border-radius: 0.5rem; /* 圆角 */
-            overflow: hidden; /* 隐藏超出菜单的内容，确保圆角效果 */
-            top: 100%; /* 位于父元素正下方 */
-            left: 50%; /* 水平居中对齐父元素 */
-            transform: translateX(-50%); /* 微调以实现精确的水平居中 */
-            padding-top: 0.5rem; /* 上内边距 */
-            padding-bottom: 0.5rem; /* 下内边距 */
+            display: none;
+            position: absolute;
+            background-color: rgba(26, 32, 44, 0.9); /* 暗色半透明 */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3);
+            z-index: 1;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
         }
 
-        /* 鼠标悬停在`.dropdown`父元素时显示下拉菜单 */
         .dropdown:hover .dropdown-menu {
-            display: block; /* 显示下拉菜单 */
+            display: block;
         }
 
         /* 下拉菜单项样式 */
         .dropdown-item {
-            color: black; /* 文本颜色 */
-            padding: 0.75rem 1rem; /* 内边距 */
-            text-decoration: none; /* 去除下划线 */
-            display: block; /* 块级显示，占据整行 */
-            text-align: left; /* 文本左对齐 */
-            transition: background-color 0.2s ease-in-out; /* 背景色变化平滑过渡 */
+            color: #e2e8f0; /* 浅色文本 */
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            transition: background-color 0.2s ease-in-out;
         }
 
         /* 下拉菜单项悬停效果 */
         .dropdown-item:hover {
-            background-color: #f3f4f6; /* 悬停时背景色变为浅灰色 */
+            background-color: rgba(255, 255, 255, 0.1); /* 悬停时背景色更透明 */
         }
 
-        /* 暗黑模式下的下拉菜单样式 */
+        /* 暗黑模式下的下拉菜单样式 (保持一致性，尽管现在默认就是暗色) */
         .dark .dropdown-menu {
-            background-color: #1f2937; /* 暗黑模式下背景色 */
+            background-color: rgba(26, 32, 44, 0.9);
         }
         .dark .dropdown-item {
-            color: #d1d5db; /* 暗黑模式下文本颜色 */
+            color: #e2e8f0;
         }
         .dark .dropdown-item:hover {
-            background-color: #374151; /* 暗黑模式下悬停背景色 */
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 手机端导航菜单 */
+        .mobile-menu {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(26, 32, 44, 0.95); /* 深色半透明背景 */
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: translateX(100%); /* 初始隐藏在右侧 */
+            transition: transform 0.3s ease-in-out;
+        }
+        .mobile-menu.open {
+            transform: translateX(0); /* 展开时滑入 */
+        }
+        .mobile-menu a, .mobile-menu button {
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            padding: 1rem 0;
+            width: 80%;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .mobile-menu a:last-child, .mobile-menu button:last-child {
+            border-bottom: none;
+        }
+        .mobile-menu .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 2rem;
+            color: #e2e8f0;
+        }
+
+        /* 悬浮导航按钮 (FAB) 样式 */
+        .fab-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 40; /* 确保在内容之上，但在顶部导航之下 */
+            display: flex;
+            flex-direction: column-reverse; /* 链接从下往上堆叠 */
+            align-items: center;
+            gap: 0.75rem; /* 链接之间的间距 */
+        }
+
+        .fab-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #3b82f6; /* 蓝色 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+        .fab-button:hover {
+            background-color: #2563eb;
+            transform: scale(1.05);
+        }
+        .fab-button.open {
+            transform: rotate(45deg); /* 打开时旋转45度 */
+        }
+
+        .fab-menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateY(20px); /* 初始状态：向下偏移 */
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            pointer-events: none; /* 初始状态不响应鼠标事件 */
+        }
+        .fab-menu.open {
+            opacity: 1;
+            transform: translateY(0); /* 打开时回到原位 */
+            pointer-events: auto; /* 打开时响应鼠标事件 */
+        }
+
+        .fab-menu a {
+            padding: 0.5rem 1rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 0.5rem;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            white-space: nowrap; /* 防止文本换行 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .fab-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateX(5px); /* 悬停时轻微右移 */
+        }
+
+        /* 响应式调整 FAB 位置 */
+        @media (max-width: 768px) { /* 手机端 */
+            .fab-container {
+                bottom: 1rem;
+                left: 1rem;
+                gap: 0.5rem;
+            }
+            .fab-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            .fab-menu a {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
         }
     </style>
 </head>
@@ -190,160 +297,216 @@
     <!--
         -------------------------------------------------------------------
         顶部导航栏 (Navbar) 部分：
-        包含网站Logo、主要导航链接（标签、分类、页面）以及功能图标（搜索、用户、暗黑模式切换）。
+        包含网站Logo、主要导航链接（二级页面）以及功能图标（搜索、用户、暗黑模式切换）。
         使用 `fixed` 定位使其始终在页面顶部。
         -------------------------------------------------------------------
     -->
-    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-70 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-blue-600 dark:text-blue-400">我的主页</a>
+            <a href="#" class="text-2xl font-bold text-blue-400">黄俊鑫</a>
             
             <div class="hidden md:flex space-x-6">
-                <div class="relative dropdown">
-                    <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400 cursor-pointer">
-                        标签 <i class="fas fa-chevron-down text-xs ml-1"></i> </a>
-                    <div class="dropdown-menu">
-                        <!--
-                            二级标签链接：
-                            请将这里的 `href` 属性替换为你的实际HTML文件名，
-                            例如：如果你有一个关于前端开发的页面，名为 `frontend-development.html`，
-                            则将 `href` 改为 `frontend-development.html`。
-                            如果文件在子文件夹中，例如 `tags/frontend.html`，则 `href` 为 `tags/frontend.html`。
-                        -->
-                        <a href="frontend-development.html" class="dropdown-item">前端开发</a>
-                        <a href="backend-technology.html" class="dropdown-item">后端技术</a>
-                        <a href="personal-essays.html" class="dropdown-item">个人随笔</a>
-                        <a href="study-notes.html" class="dropdown-item">学习笔记</a>
-                        <a href="my-bookshelf.html" class="dropdown-item">我的书架</a>
-                    </div>
-                </div>
-                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">分类</a>
-                <a href="#" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">页面</a>
+                <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
+                <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center">
+                    <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
+                </a>
             </div>
 
             <div class="flex items-center space-x-4">
-                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
                     <i class="fas fa-search"></i> </button>
-                <button class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
                     <i class="fas fa-user"></i> </button>
-                <button id="theme-toggle" class="text-gray-700 hover:text-blue-600 transition duration-300 dark:text-gray-300 dark:hover:text-blue-400">
+                <button id="theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
                     <i class="fas fa-moon"></i> </button>
+                <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-blue-400 transition duration-300">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </div>
     </nav>
 
+    <div id="mobile-menu" class="mobile-menu">
+        <button id="close-mobile-menu" class="close-btn"><i class="fas fa-times"></i></button>
+        <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
+        <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center justify-center">
+            <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
+        </a>
+        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-search"></i> 搜索
+        </button>
+        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-user"></i> 登录
+        </button>
+        <button id="mobile-theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
+            <i class="fas fa-moon"></i> 主题
+        </button>
+    </div>
+
+    <!--
+        -------------------------------------------------------------------
+        Three.js Canvas (全屏背景) - 放置在body的第一个子元素，z-index为-1
+        -------------------------------------------------------------------
+    -->
+    <canvas id="threejs-background"></canvas>
+
     <!--
         -------------------------------------------------------------------
         主视觉区域 (Hero Section)：
-        页面的主要展示区域，包含3D背景、你的头像和个人简介。
+        页面的主要展示区域，包含头像和个人简介。
         -------------------------------------------------------------------
     -->
-    <header class="hero-background relative">
-        <canvas id="threejs-background"></canvas>
+    <header class="hero-section relative">
         <div class="absolute inset-0 bg-black opacity-30 z-10"></div>
-        <div class="relative z-20 text-center text-white p-6 rounded-lg glass-morphism animate-hero-content">
-            <img src="https://th.bing.com/th/id/OIP.HrvrrxzWSfk2Dtixk2GTCQHaGz?rs=1&pid=ImgDetMain" alt="你的头像" class="w-36 h-36 rounded-full mx-auto mb-4 border-4 border-white shadow-lg animate-hero-avatar">
-            <h1 class="text-5xl font-extrabold mb-2">黄俊鑫</h1>
-            <p class="text-xl mb-4">行星科学</p>
-            <p class="text-lg max-w-2xl mx-auto">做一些自己感兴趣的事情</p>
+        <div class="relative z-20 text-center text-white p-6 rounded-lg glass-morphism animate-hero-content max-w-3xl mx-auto">
+            <img src="https://placehold.co/150x150/667eea/ffffff?text=Your+Avatar" alt="你的头像" class="w-36 h-36 rounded-full mx-auto mb-4 border-4 border-white shadow-lg animate-hero-avatar">
+            <h1 class="text-5xl font-extrabold mb-2">Hey there, I’m Junxin Huang! 👋✨</h1>
+            <p class="text-xl mb-2">🏫 Based at Chengdu University of Technology, Research center of planetary science</p>
+            <p class="text-xl mb-2">🔬 Worked on <span class="font-bold text-blue-300">Ab initio Calculation</span> and some cool simulations</p>
+            <p class="text-xl mb-2">🤖 Currently diving into <span class="font-bold text-green-300">AI Agents meets Ab initio Calculation</span></p>
+            <p class="text-xl mb-4">🌌 Mission: Pushing the boundaries of AI-driven automated research!</p>
+            <p class="text-lg mb-2">📧 Email: <a href="mailto:huangjunxin167@gmail.com" class="text-blue-300 hover:underline">huangjunxin167@gmail.com</a></p>
+            <p class="text-lg">💬 WeChat: <span class="font-bold">h2005827723</span> (Feel free to add me to chat about science or code!)</p>
         </div>
     </header>
 
     <!--
         -------------------------------------------------------------------
         主内容区域 (Main Content Section)：
-        包含个人信息卡片和文章列表。
+        包含个人信息卡片、技能和关于我。
         `-mt-24` 使此区域向上移动，覆盖部分英雄区域，形成视觉上的连接。
         -------------------------------------------------------------------
     -->
-    <main class="container mx-auto px-4 py-12 -mt-24 relative z-30">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 glass-morphism">
-                <div class="flex items-center space-x-4 mb-6">
-                    <img src="https://th.bing.com/th/id/OIP.HrvrrxzWSfk2Dtixk2GTCQHaGz?rs=1&pid=ImgDetMain" alt="头像" class="w-20 h-20 rounded-full border-2 border-blue-400">
-                    <div>
-                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">黄俊鑫</h2>
-                        <p class="text-blue-600 dark:text-blue-400">Just for fun</p>
-                    </div>
-                </div>
-                <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 mb-4 shadow-md btn-primary">
-                    About
-                </button>
-                <div class="flex justify-around text-gray-600 text-2xl mb-6">
-                    <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fas fa-envelope"></i></a> <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fab fa-github"></i></a> <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fab fa-twitter"></i></a> <a href="#" class="hover:text-blue-600 social-icon dark:text-gray-300 dark:hover:text-blue-400"><i class="fas fa-rss"></i></a> </div>
-                <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">欢迎光临</h3>
-                <p class="text-gray-700 dark:text-gray-300 mb-6">青山不改，绿水长流。</p>
-
-                <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">成立</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">142 天</p>
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">文章</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">22 篇</p>
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">评论</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">450 条</p>
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">标签</p>
-                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">25 个</p>
-                    </div>
+    <main class="container mx-auto px-4 py-12 -mt-24 relative z-30 flex flex-col items-center space-y-8">
+        
+        <div class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <div class="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-4 mb-6">
+                <img src="https://placehold.co/80x80/667eea/ffffff?text=Avatar" alt="头像" class="w-20 h-20 rounded-full border-2 border-blue-400 mb-4 sm:mb-0">
+                <div class="text-center sm:text-left">
+                    <h2 class="text-3xl font-bold text-gray-100">黄俊鑫</h2>
+                    <p class="text-blue-400">行星科学研究者</p>
                 </div>
             </div>
+            <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 mb-4 shadow-md btn-primary">
+                查看简历
+            </button>
+            <div class="flex justify-around text-gray-300 text-2xl mb-6">
+                <a href="mailto:huangjunxin167@gmail.com" class="hover:text-blue-400 social-icon"><i class="fas fa-envelope"></i></a>
+                <a href="https://github.com/your-github-username" target="_blank" class="hover:text-blue-400 social-icon"><i class="fab fa-github"></i></a>
+                <a href="#" class="hover:text-blue-400 social-icon"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="hover:text-blue-400 social-icon"><i class="fas fa-rss"></i></a>
+            </div>
+            <h3 class="text-2xl font-semibold text-gray-100 mb-4 text-center">欢迎光临</h3>
+            <p class="text-gray-300 mb-6 text-center">青山不改，绿水长流。</p>
 
-            <div class="lg:col-span-2 space-y-8">
-                <!--
-                    文章卡片示例：
-                    复制此`div`块以添加更多文章。
-                    请替换 `img` 的 `src`、`alt`，以及 `h3`、`p` 中的文本。
-                -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
-                    <img src="https://placehold.co/200x120/c0c0c0/ffffff?text=Article+Image+1" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">临近期末的近况</h3>
-                        <p class="text-gray-600 dark:text-gray-300 mb-3">从今天开始励志当一个高级前端工程师！</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-12-16</p>
-                    </div>
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="bg-gray-700 bg-opacity-50 p-4 rounded-lg shadow-sm glass-morphism">
+                    <p class="text-sm text-gray-400">研究项目</p>
+                    <p class="text-xl font-bold text-blue-400">5 项</p>
                 </div>
-
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
-                    <img src="https://placehold.co/200x120/b0b0b0/ffffff?text=Article+Image+2" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">新跑表 - 华为 GT Runner</h3>
-                        <p class="text-gray-600 dark:text-gray-300 mb-3">SUGUBO OSAKO</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-12-04</p>
-                    </div>
+                <div class="bg-gray-700 bg-opacity-50 p-4 rounded-lg shadow-sm glass-morphism">
+                    <p class="text-sm text-gray-400">发表论文</p>
+                    <p class="text-xl font-bold text-blue-400">12 篇</p>
                 </div>
-
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
-                    <img src="https://placehold.co/200x120/a0a0a0/ffffff?text=Article+Image+3" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">ZYYO 一款个人类型 typecho 主题</h3>
-                        <p class="text-gray-600 dark:text-gray-300 mb-3"># 实践</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-11-06</p>
-                    </div>
+                <div class="bg-gray-700 bg-opacity-50 p-4 rounded-lg shadow-sm glass-morphism">
+                    <p class="text-sm text-gray-400">参与会议</p>
+                    <p class="text-xl font-bold text-blue-400">8 次</p>
                 </div>
-
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center article-card transform transition duration-300 glass-morphism hidden-on-load">
-                    <img src="https://placehold.co/200x120/909090/ffffff?text=Article+Image+4" alt="文章图片" class="w-full md:w-1/3 h-auto rounded-lg mb-4 md:mb-0 md:mr-6 object-cover">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">进大学第一天小记</h3>
-                        <p class="text-gray-600 dark:text-gray-300 mb-3"># 记录点滴</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">2023-09-03</p>
-                    </div>
-                </div>
-
-                <div class="flex justify-center items-center space-x-2 mt-8">
-                    <button class="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold shadow-md hover:bg-blue-700 transition duration-300 btn-primary">1</button>
-                    <button class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 btn-primary">2</button>
-                    <button class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 btn-primary">
-                        <i class="fas fa-chevron-right"></i> </button>
+                <div class="bg-gray-700 bg-opacity-50 p-4 rounded-lg shadow-sm glass-morphism">
+                    <p class="text-sm text-gray-400">荣誉奖项</p>
+                    <p class="text-xl font-bold text-blue-400">3 个</p>
                 </div>
             </div>
         </div>
+
+        <section id="skills-section" class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <h3 class="text-3xl font-bold text-gray-100 mb-6 text-center">🛠 我的技能</h3>
+            <div class="text-lg text-gray-300 leading-relaxed text-center">
+                <p>Python’s my go-to, and I’m loving the adventure with <span class="font-bold text-blue-300">AI</span> and <span class="font-bold text-green-300">Ab initio Calculation</span>!</p>
+                <div class="flex flex-wrap justify-center gap-4 mt-6">
+                    <span class="px-4 py-2 bg-blue-600 rounded-full text-white text-sm font-semibold">Python</span>
+                    <span class="px-4 py-2 bg-green-600 rounded-full text-white text-sm font-semibold">AI Agents</span>
+                    <span class="px-4 py-2 bg-purple-600 rounded-full text-white text-sm font-semibold">Ab initio Calculation</span>
+                    <span class="px-4 py-2 bg-yellow-600 rounded-full text-white text-sm font-semibold">Three.js</span>
+                    <span class="px-4 py-2 bg-red-600 rounded-full text-white text-sm font-semibold">Tailwind CSS</span>
+                    <span class="px-4 py-2 bg-indigo-600 rounded-full text-white text-sm font-semibold">Data Analysis</span>
+                    <span class="px-4 py-2 bg-pink-600 rounded-full text-white text-sm font-semibold">Simulation</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="about-me-section" class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <h3 class="text-3xl font-bold text-gray-100 mb-6 text-center">🌟 关于我</h3>
+            <p class="text-lg text-gray-300 leading-relaxed text-center">
+                I’m passionate about unraveling the universe’s secrets through code—from quantum mechanics to planetary science, every line feels like a little magic spell 🪄. Right now, I’m building smart tools to assist research, dreaming of a future where AI becomes a scientist’s best buddy!
+            </p>
+        </section>
+
+        <section id="research-section" class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <h3 class="text-3xl font-bold text-gray-100 mb-6 text-center">🔬 我的研究</h3>
+            <div class="text-lg text-gray-300 leading-relaxed text-center">
+                <p class="mb-4">这里将展示我的研究兴趣、正在进行的项目以及未来研究方向的概述。</p>
+                <p>例如：</p>
+                <ul class="list-disc list-inside mx-auto max-w-md text-left mt-4 space-y-2">
+                    <li><span class="font-bold text-blue-300">行星内部结构模拟:</span> 使用第一性原理计算研究行星深部物质行为。</li>
+                    <li><span class="font-bold text-green-300">AI在科学发现中的应用:</span> 开发智能代理辅助材料科学和行星科学研究。</li>
+                    <li><span class="font-bold text-purple-300">高压物理:</span> 探索极端条件下的物质相变。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="publications-section" class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <h3 class="text-3xl font-bold text-gray-100 mb-6 text-center">📚 出版物</h3>
+            <div class="text-lg text-gray-300 leading-relaxed">
+                <p class="text-center mb-4">以下是我近期发表的论文和会议报告。点击标题查看详情。</p>
+                <ul class="list-none p-0 m-0 space-y-4">
+                    <li class="border-b border-gray-700 pb-4 last:border-b-0">
+                        <a href="#" class="text-blue-300 hover:underline font-semibold text-xl">
+                            Title of Paper 1: AI-Driven Discovery in Planetary Science
+                        </a>
+                        <p class="text-sm text-gray-400 mt-1">
+                            Junxin Huang, Jane Doe, John Smith. Journal of Planetary Research, 2024.
+                        </p>
+                    </li>
+                    <li class="border-b border-gray-700 pb-4 last:border-b-0">
+                        <a href="#" class="text-blue-300 hover:underline font-semibold text-xl">
+                            Title of Paper 2: Ab initio Simulations of Icy Giant Interiors
+                        </a>
+                        <p class="text-sm text-gray-400 mt-1">
+                            Junxin Huang, Alice Wonderland. Physical Review B, 2023.
+                        </p>
+                    </li>
+                    <li class="border-b border-gray-700 pb-4 last:border-b-0">
+                        <a href="#" class="text-blue-300 hover:underline font-semibold text-xl">
+                            Title of Conference Proceeding: New Insights on Exoplanet Atmospheres
+                        </a>
+                        <p class="text-sm text-gray-400 mt-1">
+                            Junxin Huang. Proceedings of the International Conference on Exoplanets, 2023.
+                        </p>
+                    </li>
+                </ul>
+                <p class="text-center mt-6">
+                    <a href="#" class="text-blue-400 hover:underline">查看所有出版物 <i class="fas fa-arrow-right ml-1"></i></a>
+                </p>
+            </div>
+        </section>
+
+        <section id="contact-section" class="w-full lg:w-2/3 rounded-xl shadow-lg p-6 glass-morphism">
+            <h3 class="text-3xl font-bold text-gray-100 mb-6 text-center">✉️ 联系我</h3>
+            <div class="text-lg text-gray-300 leading-relaxed text-center space-y-4">
+                <p>如果您对我的研究或合作机会感兴趣，请随时通过以下方式联系我：</p>
+                <p>
+                    📧 Email: <a href="mailto:huangjunxin167@gmail.com" class="text-blue-300 hover:underline font-bold">huangjunxin167@gmail.com</a>
+                </p>
+                <p>
+                    💬 WeChat: <span class="font-bold text-green-300">h2005827723</span> (请注明您的姓名和来意)
+                </p>
+                <p>
+                    📍 地址: 成都理工大学，行星科学研究中心
+                </p>
+            </div>
+        </section>
+
     </main>
 
     <!--
@@ -352,10 +515,27 @@
         包含版权信息、备案号（可选）和设计者信息。
         -------------------------------------------------------------------
     -->
-    <footer class="bg-gray-800 text-white py-8 mt-12 dark:bg-gray-900">
+    <footer class="bg-gray-900 text-white py-8 mt-12">
         <div class="container mx-auto px-4 text-center">
-            <p class="mb-2">我的主页 © 2024</p> <p class="mb-2">你的备案号 (如果需要)</p> <p class="text-sm">Designed by <a href="#" class="text-blue-400 hover:underline">你的名字</a></p> <p class="text-sm">Powered by HTML/CSS/Three.js</p> </div>
+            <p class="mb-2">黄俊鑫的个人主页 © 2024</p>
+            <p class="mb-2">你的备案号 (如果需要)</p>
+            <p class="text-sm">Designed by <a href="#" class="text-blue-400 hover:underline">黄俊鑫</a></p>
+            <p class="text-sm">Powered by HTML/CSS/Three.js</p>
+        </div>
     </footer>
+
+    <div class="fab-container">
+        <div id="fab-button" class="fab-button">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div id="fab-menu" class="fab-menu">
+            <a href="#contact-section">联系</a>
+            <a href="#skills-section">技能</a>
+            <a href="#publications-section">出版物</a>
+            <a href="#research-section">研究</a>
+            <a href="#about-me-section">关于我</a>
+        </div>
+    </div>
 
     <!--
         -------------------------------------------------------------------
@@ -368,35 +548,40 @@
             暗黑模式切换功能：
             当用户点击月亮/太阳图标时，切换页面的暗黑/亮色主题。
             使用 `localStorage` 存储用户选择的主题，以便下次访问时保持。
+            注意：由于现在默认就是深色背景，暗黑模式切换会调整文本颜色等。
         */
-        const themeToggle = document.getElementById('theme-toggle'); // 获取主题切换按钮
-        const htmlElement = document.documentElement; // 获取HTML根元素，用于添加/移除 'dark' 类
+        const themeToggle = document.getElementById('theme-toggle');
+        const mobileThemeToggle = document.getElementById('mobile-theme-toggle'); // 移动端主题切换按钮
+        const htmlElement = document.documentElement;
+
+        function applyTheme(isDark) {
+            if (isDark) {
+                htmlElement.classList.add('dark');
+                themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+                mobileThemeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+            } else {
+                htmlElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+                mobileThemeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+            }
+        }
 
         themeToggle.addEventListener('click', () => {
-            // 检查当前是否为暗黑模式
-            if (htmlElement.classList.contains('dark')) {
-                htmlElement.classList.remove('dark'); // 移除 'dark' 类，切换到亮色模式
-                localStorage.setItem('theme', 'light'); // 在本地存储中记录为亮色模式
-                themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon'); // 切换图标为月亮
-            } else {
-                htmlElement.classList.add('dark'); // 添加 'dark' 类，切换到暗黑模式
-                localStorage.setItem('theme', 'dark'); // 在本地存储中记录为暗黑模式
-                themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun'); // 切换图标为太阳
-            }
+            applyTheme(!htmlElement.classList.contains('dark'));
+            localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
         });
 
-        /*
-            根据本地存储设置初始主题：
-            在页面加载时，检查用户之前选择的主题，如果没有选择，则根据系统偏好设置。
-        */
+        mobileThemeToggle.addEventListener('click', () => {
+            applyTheme(!htmlElement.classList.contains('dark'));
+            localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // 初始化主题
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            // 如果本地存储为暗黑模式，或者没有存储且系统偏好为暗黑模式
-            htmlElement.classList.add('dark'); // 应用暗黑模式
-            themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun'); // 显示太阳图标
+            applyTheme(true);
         } else {
-            // 否则，应用亮色模式
-            htmlElement.classList.remove('dark'); // 移除暗黑模式
-            themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon'); // 显示月亮图标
+            applyTheme(false);
         }
 
         /*
@@ -404,158 +589,162 @@
             当页面向下滚动超过一定距离时，导航栏会添加一个 `navbar-scrolled` 类，
             从而改变其背景和阴影，使其更突出。
         */
-        const navbar = document.getElementById('navbar'); // 获取导航栏元素
+        const navbar = document.getElementById('navbar');
         window.addEventListener('scroll', () => {
-            // 检查页面垂直滚动距离是否超过50px
             if (window.scrollY > 50) {
-                navbar.classList.add('navbar-scrolled'); // 添加滚动样式类
+                navbar.classList.add('navbar-scrolled');
             } else {
-                navbar.classList.remove('navbar-scrolled'); // 移除滚动样式类
+                navbar.classList.remove('navbar-scrolled');
             }
         });
 
         /*
-            文章卡片进入视口时的淡入动画：
-            使用 Intersection Observer API 监听文章卡片是否进入用户的视口，
-            当它们进入时，逐个播放淡入上滑动画。
+            移动端菜单切换功能
         */
-        const articleCards = document.querySelectorAll('.article-card'); // 获取所有文章卡片元素
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeMobileMenuButton = document.getElementById('close-mobile-menu');
 
-        // Intersection Observer 的配置选项
-        const observerOptions = {
-            root: null, // 根元素为浏览器视口
-            rootMargin: '0px', // 根元素的边距，这里为0
-            threshold: 0.1 // 当目标元素10%可见时触发回调
-        };
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+        });
 
-        // 创建 Intersection Observer 实例
-        const articleObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) { // 如果元素进入视口
-                    entry.target.classList.remove('hidden-on-load'); // 移除初始隐藏类
-                    entry.target.classList.add('animate-in'); // 添加动画类
-                    observer.unobserve(entry.target); // 一旦动画播放，停止观察该元素，避免重复触发
-                }
-            });
-        }, observerOptions);
-
-        // 遍历每个文章卡片，初始隐藏并开始观察
-        articleCards.forEach((card, index) => {
-            card.classList.add('hidden-on-load'); // 初始隐藏卡片
-            card.style.animationDelay = `${index * 0.1}s`; // 设置动画延迟，实现逐个动画效果
-            articleObserver.observe(card); // 开始观察该卡片
+        closeMobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
         });
 
         /*
             平滑滚动到锚点链接：
             当点击带有 `#` 的链接时，页面会平滑滚动到对应ID的元素。
-            例如，如果导航栏有 `href="#about-section"`，页面会平滑滚动到 `<div id="about-section">`。
         */
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
-                e.preventDefault(); // 阻止默认的跳转行为
-                const targetId = this.getAttribute('href').substring(1); // 获取锚点ID (去除 #)
-                const targetElement = document.getElementById(targetId); // 获取目标元素
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
                 if (targetElement) {
                     targetElement.scrollIntoView({
-                        behavior: 'smooth' // 启用平滑滚动
+                        behavior: 'smooth'
                     });
+                }
+                // 如果是移动端菜单中的链接，点击后关闭菜单
+                if (mobileMenu.classList.contains('open')) {
+                    mobileMenu.classList.remove('open');
+                }
+                // 如果是悬浮菜单中的链接，点击后关闭悬浮菜单
+                if (fabMenu.classList.contains('open')) {
+                    toggleFabMenu();
                 }
             });
         });
 
         /*
+            悬浮导航按钮 (FAB) 逻辑
+        */
+        const fabButton = document.getElementById('fab-button');
+        const fabMenu = document.getElementById('fab-menu');
+
+        function toggleFabMenu() {
+            fabButton.classList.toggle('open');
+            fabMenu.classList.toggle('open');
+        }
+
+        fabButton.addEventListener('click', toggleFabMenu);
+
+
+        /*
             -------------------------------------------------------------------
             Three.js 3D 场景设置和动画：
-            创建并管理背景中的动态粒子效果。
+            创建并管理背景中的动态粒子效果和星空背景。
             -------------------------------------------------------------------
         */
-        let scene, camera, renderer, particles, mouseX = 0, mouseY = 0; // 声明Three.js所需的核心变量
-        const canvas = document.getElementById('threejs-background'); // 获取用于渲染的canvas元素
+        let scene, camera, renderer, particles, backgroundSphere, mouseX = 0, mouseY = 0;
+        const canvas = document.getElementById('threejs-background');
+        const textureLoader = new THREE.TextureLoader(); // 声明纹理加载器
 
         // 初始化 Three.js 场景
         function initThreeJS() {
-            // 场景：所有物体、摄像机和光源的容器
             scene = new THREE.Scene();
 
-            // 摄像机：定义视锥体，决定哪些内容可见
-            // PerspectiveCamera(fov, aspect, near, far)
-            // fov: 视野角度，aspect: 宽高比，near: 近裁剪面，far: 远裁剪面
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / canvas.clientHeight, 0.1, 1000);
-            camera.position.z = 5; // 设置摄像机Z轴位置，使其能看到粒子
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // 摄像机宽高比基于整个窗口
+            camera.position.z = 5;
 
-            // 渲染器：将场景渲染到canvas上
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true }); // alpha: true 允许背景透明
-            renderer.setSize(window.innerWidth, canvas.clientHeight); // 设置渲染器尺寸与窗口一致
-            renderer.setPixelRatio(window.devicePixelRatio); // 设置像素比，以适应高DPI屏幕
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight); // 渲染器尺寸与整个窗口一致
+            renderer.setPixelRatio(window.devicePixelRatio);
 
-            // 粒子几何体：定义粒子的形状和位置
+            // 粒子几何体
             const geometry = new THREE.BufferGeometry();
-            const vertices = []; // 存储所有粒子的顶点坐标
-            const particleCount = 1000; // 粒子数量
+            const vertices = [];
+            const particleCount = 1500; // 增加粒子数量
 
             // 随机生成粒子的位置
             for (let i = 0; i < particleCount; i++) {
-                const x = (Math.random() - 0.5) * 20; // x坐标在-10到10之间
-                const y = (Math.random() - 0.5) * 20; // y坐标在-10到10之间
-                const z = (Math.random() - 0.5) * 20; // z坐标在-10到10之间
+                const x = (Math.random() - 0.5) * 40; // 扩大粒子分布范围
+                const y = (Math.random() - 0.5) * 40;
+                const z = (Math.random() - 0.5) * 40;
                 vertices.push(x, y, z);
             }
-            // 将顶点数据设置给几何体
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-            // 粒子材质：定义粒子的外观
+            // 粒子材质：使用更亮的颜色，模拟星光或能量流
             const material = new THREE.PointsMaterial({
-                color: 0x888888, // 粒子颜色为灰色
-                size: 0.05, // 粒子大小
-                transparent: true, // 启用透明度
-                opacity: 0.7 // 粒子不透明度为70%
+                color: 0x00FFFF, // 青色，更具科技感和活力
+                size: 0.08, // 粒子大小
+                transparent: true,
+                opacity: 0.8 // 粒子不透明度
             });
 
-            // 粒子系统：将几何体和材质组合成可渲染的粒子对象
             particles = new THREE.Points(geometry, material);
-            scene.add(particles); // 将粒子系统添加到场景中
+            scene.add(particles);
 
-            // 添加事件监听器，用于鼠标移动和窗口大小调整
+            // 创建动态星空背景球体 (与 solar_system_map.html 类似)
+            const backgroundSphereGeometry = new THREE.SphereGeometry(500, 32, 32); // 巨大的球体
+            // 星系/星云纹理占位符，请替换为高质量图片
+            const backgroundTexture = textureLoader.load('https://placehold.co/1024x1024/000000/FFFFFF?text=GALAXY+BACKGROUND');
+            const backgroundMaterial = new THREE.MeshBasicMaterial({
+                map: backgroundTexture,
+                side: THREE.BackSide // 从内部看球体
+            });
+            backgroundSphere = new THREE.Mesh(backgroundSphereGeometry, backgroundMaterial);
+            scene.add(backgroundSphere);
+
             document.addEventListener('mousemove', onDocumentMouseMove);
             window.addEventListener('resize', onWindowResize);
         }
 
-        // 鼠标移动事件处理函数：更新鼠标位置，用于控制摄像机
         function onDocumentMouseMove(event) {
-            // 将鼠标坐标转换为-1到1的范围，并进行缩放，用于摄像机移动的强度
             mouseX = (event.clientX - window.innerWidth / 2) / 200;
-            mouseY = (event.clientY - canvas.clientHeight / 2) / 200;
+            mouseY = (event.clientY - window.innerHeight / 2) / 200; // 基于整个窗口高度
         }
 
-        // 窗口大小调整事件处理函数：更新摄像机和渲染器以适应新尺寸
         function onWindowResize() {
-            camera.aspect = window.innerWidth / canvas.clientHeight; // 更新摄像机宽高比
-            camera.updateProjectionMatrix(); // 更新摄像机投影矩阵
-            renderer.setSize(window.innerWidth, canvas.clientHeight); // 更新渲染器尺寸
+            camera.aspect = window.innerWidth / window.innerHeight; // 更新摄像机宽高比
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight); // 更新渲染器尺寸
         }
 
-        // 动画循环：每帧调用，更新场景并重新渲染
         function animate() {
-            requestAnimationFrame(animate); // 请求浏览器在下一帧重绘时调用 animate 函数
+            requestAnimationFrame(animate);
 
-            // 粒子旋转动画
             particles.rotation.x += 0.0005;
             particles.rotation.y += 0.001;
 
-            // 摄像机根据鼠标位置缓慢移动，创建视差效果
-            // 摄像机当前位置逐渐趋近于鼠标控制的目标位置，实现平滑移动
+            // 旋转背景星空球体，增加动态感
+            if (backgroundSphere) {
+                backgroundSphere.rotation.y += 0.0001; // 缓慢旋转
+            }
+
             camera.position.x += (mouseX - camera.position.x) * 0.05;
             camera.position.y += (-mouseY - camera.position.y) * 0.05;
-            camera.lookAt(scene.position); // 摄像机始终看向场景中心
+            camera.lookAt(scene.position);
 
-            renderer.render(scene, camera); // 渲染场景
+            renderer.render(scene, camera);
         }
 
-        // 页面加载完成后执行：初始化 Three.js 并启动动画
         window.onload = function () {
-            initThreeJS(); // 初始化Three.js
-            animate(); // 启动动画循环
+            initThreeJS();
+            animate();
         };
     </script>
 </body>
