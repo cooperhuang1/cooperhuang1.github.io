@@ -374,8 +374,11 @@
                     // 动态构建完整的URL，以确保在GitHub Pages上正确解析
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    const fullUrl = window.location.origin + currentDir + currentPlanetDataForPanel.pageUrl;
-                    window.location.href = fullUrl;
+                    
+                    // *** 修改这里：跳转到过渡页，并带上实际目标页面的参数 ***
+                    const transitionUrl = window.location.origin + currentDir + "transition_to_planet.html?target=" + currentPlanetDataForPanel.pageUrl;
+                    
+                    window.location.href = transitionUrl; // 跳转到过渡页
                 } else {
                     console.warn('没有为当前行星定义跳转页面或行星数据缺失。');
                     // 可以添加一个简单的提示，例如：
