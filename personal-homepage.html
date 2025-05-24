@@ -701,7 +701,7 @@
             // 创建动态星空背景球体 (与 solar_system_map.html 类似)
             const backgroundSphereGeometry = new THREE.SphereGeometry(500, 32, 32); // 巨大的球体
             // 星系/星云纹理占位符，请替换为高质量图片
-            const backgroundTexture = textureLoader.load('https://placehold.co/1024x1024/000000/FFFFFF?text=GALAXY+BACKGROUND');
+            const backgroundTexture = textureLoader.load('https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_stars_milky_way.jpg');
             const backgroundMaterial = new THREE.MeshBasicMaterial({
                 map: backgroundTexture,
                 side: THREE.BackSide // 从内部看球体
