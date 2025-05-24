@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地球岩浆洋演化模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            overflow: hidden; /* 防止滚动条 */
+            font-family: 'Inter', sans-serif; /* 设置页面默认字体 */
+            background-color: #000; /* 黑色背景，模拟太空 */
+            color: #fff; /* 默认文本颜色 */
+        }
+        /* Three.js 渲染容器样式 */
+        #threejs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* 确保在最底层 */
+        }
+        /* UI 控制面板样式 */
+        .ui-controls {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* 按钮之间的间距 */
+        }
+        /* 按钮通用样式 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.2rem;
+            background-color: #4a5568; /* 灰色按钮 */
+            color: white;
+            border-radius: 0.5rem; /* 圆角 */
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+        }
+        .btn:hover {
+            background-color: #2d3748; /* 悬停时颜色变深 */
+            transform: translateY(-2px); /* 悬停时上浮 */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* 悬停时阴影变大 */
+        }
+        .btn i {
+            margin-right: 0.5rem; /* 图标与文本间距 */
+        }
+        /* 信息显示面板样式 */
+        .info-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background-color: rgba(31, 41, 55, 0.7); /* 深色半透明背景 */
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        .info-panel p {
+            margin-bottom: 0.4rem;
+        }
+        .info-panel p:last-child {
+            margin-bottom: 0;
+        }
+        /* 速度滑块容器样式 */
+        .slider-container {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column; /* 垂直排列标签和滑块 */
+            gap: 0.5rem;
+            background-color: rgba(31, 41, 55, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .slider-container label {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            white-space: nowrap; /* 防止文本换行 */
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none; /* 移除默认样式 */
+            width: 100%; /* 宽度占满容器 */
+            height: 8px;
+            background: #d3d3d3; /* 滑轨背景 */
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .slider-container input[type="range"]:hover {
+            opacity: 1; /* 悬停时透明度增加 */
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%; /* 圆形滑块 */
+            background: #3b82f6; /* 蓝色滑块 */
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* 顶部标题和描述 */
+        .page-header {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            text-align: right;
+            max-width: 400px;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="threejs-container"></div>
+
+    <div class="ui-controls">
+        <a href="solar_system_map.html" class="btn">
+            <i class="fas fa-arrow-left"></i> 返回太阳系地图
+        </a>
+        <button id="playPauseBtn" class="btn bg-blue-600 hover:bg-blue-700">
+            <i class="fas fa-play"></i> 播放
+        </button>
+        <button id="resetBtn" class="btn bg-red-600 hover:bg-red-700">
+            <i class="fas fa-sync-alt"></i> 重置
+        </button>
+        <div class="slider-container">
+            <label for="simSpeedSlider">模拟速度: <span id="simSpeedValue">1.0</span>x</label>
+            <input type="range" id="simSpeedSlider" min="0.1" max="10.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="coolingRateSlider">冷却速率: <span id="coolingRateValue">0.001</span></label>
+            <input type="range" id="coolingRateSlider" min="0.0001" max="0.01" step="0.0001" value="0.001">
+        </div>
+        <div class="slider-container">
+            <label for="convectionStrengthSlider">对流强度: <span id="convectionStrengthValue">0.05</span></label>
+            <input type="range" id="convectionStrengthSlider" min="0.01" max="0.2" step="0.01" value="0.05">
+        </div>
+        <div class="slider-container">
+            <label for="randomMotionStrengthSlider">随机运动强度: <span id="randomMotionStrengthValue">0.005</span></label>
+            <input type="range" id="randomMotionStrengthSlider" min="0.001" max="0.02" step="0.001" value="0.005">
+        </div>
+        <div class="slider-container">
+            <label for="dragCoefficientSlider">岩浆粘度: <span id="dragCoefficientValue">0.95</span></label>
+            <input type="range" id="dragCoefficientSlider" min="0.9" max="0.99" step="0.01" value="0.95">
+        </div>
+        <div class="slider-container">
+            <label for="finalCrustThicknessSlider">地壳最终厚度: <span id="finalCrustThicknessValue">10</span></label>
+            <input type="range" id="finalCrustThicknessSlider" min="5" max="20" step="1" value="10">
+        </div>
+        <div class="slider-container">
+            <label for="finalCoreRadiusSlider">地核最终半径: <span id="finalCoreRadiusValue">20</span></label>
+            <input type="range" id="finalCoreRadiusSlider" min="15" max="30" step="1" value="20">
+        </div>
+        <div class="slider-container">
+            <label for="earthRotationSpeedSlider">地球自转速度: <span id="earthRotationSpeedValue">0.001</span></label>
+            <input type="range" id="earthRotationSpeedSlider" min="0" max="0.01" step="0.0005" value="0.001">
+        </div>
+    </div>
+
+    <div class="page-header">
+        <h1>地球岩浆洋演化模拟器</h1>
+        <p>探索早期地球从熔融到分层的壮丽过程。</p>
+    </div>
+
+    <div class="info-panel">
+        <p>模拟状态: <span id="simStatus">暂停</span></p>
+        <p>当前阶段: <span id="currentStage">初始岩浆洋</span></p>
+        <p>模拟时间: <span id="simTime">0</span> 万年</p>
+        <p>地壳厚度: <span id="crustThickness">0.00</span> km</p>
+        <p>地核半径: <span id="coreRadius">0.00</span> km</p>
+    </div>
+
+    <script>
+        // --- Three.js 场景、摄像机、渲染器全局变量 ---
+        let scene, camera, renderer, controls;
+        let earthGroup; // 地球总群组，用于整体自转
+        let coreMesh, magmaParticlesMesh, crustMesh; // 地核、岩浆粒子、地壳的 Three.js Mesh
+        let crustMaterial; // 地壳材质，声明为全局变量以便在不同函数中访问
+
+        let particles = []; // 存储岩浆粒子对象 { position: Vector3, velocity: Vector3, force: Vector3, type: 'light'/'heavy' }
+
+        let simulationRunning = false; // 模拟运行状态
+        let animationFrameId; // requestAnimationFrame ID
+        let lastFrameTime = performance.now(); // 记录上一帧的时间
+
+        // --- 模拟参数 ---
+        const SIM_PARAMS = {
+            EARTH_RADIUS_VISUAL: 50, // 视觉上地球的总半径
+            CORE_RADIUS_INITIAL: 10, // 初始地核半径
+            CORE_RADIUS_FINAL: 20, // 最终地核半径 (可调)
+            CRUST_THICKNESS_INITIAL: 0.1, // 初始地壳厚度 (非常薄)
+            CRUST_THICKNESS_FINAL: 10, // 最终地壳厚度 (可调)
+            CRUST_OPACITY_INITIAL: 0.1, // 地壳初始透明度
+            CRUST_ROUGHNESS_INITIAL: 0.8, // 地壳初始粗糙度
+            MAGMA_PARTICLE_COUNT: 10000, // 岩浆粒子数量
+            PARTICLE_SIZE: 0.1, // 粒子视觉大小
+            SIM_SPEED: 1.0, // 模拟时间流逝速度（倍数，可调）
+            COOLING_RATE: 0.001, // 冷却速率，影响地壳和地核增长速度（可调）
+            CONVECTION_STRENGTH: 0.05, // 对流强度（可调）
+            RANDOM_MOTION_STRENGTH: 0.005, // 粒子随机运动强度（可调）
+            DRAG_COEFFICIENT: 0.95, // 阻力系数 (模拟摩擦/粘度，可调)
+            MAX_PARTICLE_VELOCITY: 0.5, // 粒子最大速度限制
+            EARTH_ROTATION_SPEED: 0.001, // 地球整体自转速度（可调）
+            SIM_DURATION_YEARS_INITIAL_MAGMA: 100, // 初始岩浆洋阶段持续时间（万年）
+            SIM_DURATION_YEARS_CRUST_FORMATION: 500, // 地壳形成阶段持续时间（万年）
+            SIM_DURATION_YEARS_FINAL_COOLING: 200 // 最终冷却阶段持续时间（万年）
+        };
+
+        let currentSimTimeYears = 0; // 当前模拟时间（万年）
+        let coolingProgress = 0; // 冷却进度 (0到1)
+
+        // --- DOM 元素引用 ---
+        let playPauseBtn, resetBtn;
+        let simSpeedSlider, simSpeedValueDisplay;
+        let coolingRateSlider, coolingRateValueDisplay;
+        let convectionStrengthSlider, convectionStrengthValueDisplay;
+        let randomMotionStrengthSlider, randomMotionStrengthValueDisplay; // 新增
+        let dragCoefficientSlider, dragCoefficientValueDisplay; // 新增
+        let finalCrustThicknessSlider, finalCrustThicknessValueDisplay; // 新增
+        let finalCoreRadiusSlider, finalCoreRadiusValueDisplay; // 新增
+        let earthRotationSpeedSlider, earthRotationSpeedValueDisplay; // 新增
+        let simStatusDisplay, currentStageDisplay, simTimeDisplay, crustThicknessDisplay, coreRadiusDisplay;
+
+        // --- 初始化 Three.js 场景 ---
+        const initThreeJS = () => {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // 黑色背景
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // 摄像机远裁剪面
+            camera.position.set(0, 0, SIM_PARAMS.EARTH_RADIUS_VISUAL * 2.5); // 摄像机初始位置
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // 启用阻尼
+            controls.dampingFactor = 0.05;
+            controls.minDistance = SIM_PARAMS.EARTH_RADIUS_VISUAL * 1.2; // 最小缩放距离
+            controls.maxDistance = SIM_PARAMS.EARTH_RADIUS_VISUAL * 5; // 最大缩放距离
+
+            // --- 光照 ---
+            // 半球光：模拟来自天空和地面的光，提供更自然的全局照明
+            const hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x444444, 0.5); // 天空颜色，地面颜色，强度
+            scene.add(hemisphereLight);
+            
+            // 核心点光源，模拟内部热量发光
+            const pointLight = new THREE.PointLight(0xFFD700, 1.5, 0); 
+            pointLight.position.set(0, 0, 0); 
+            scene.add(pointLight);
+            
+            // 外部环境光，模拟来自太空的光
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(50, 50, 50).normalize();
+            scene.add(directionalLight);
+
+            // --- 创建地球总群组 ---
+            earthGroup = new THREE.Group();
+            scene.add(earthGroup);
+
+            // --- 创建地核 (初始状态) ---
+            const coreGeometry = new THREE.SphereGeometry(SIM_PARAMS.CORE_RADIUS_INITIAL, 32, 32);
+            // 使用 MeshStandardMaterial 实现更真实的质感和发光效果
+            const coreMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xFF4500, // 主体颜色：红橙色
+                emissive: 0xFF8C00, // 发光颜色：橙色
+                emissiveIntensity: 0.8, // 发光强度
+                roughness: 0.2, // 较低的粗糙度，使其看起来更光滑
+                metalness: 0.5 // 增加金属感
+            }); 
+            coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+            earthGroup.add(coreMesh); // 添加到地球群组
+
+            // --- 创建岩浆粒子系统 (使用 InstancedMesh) ---
+            const particleGeometry = new THREE.SphereGeometry(SIM_PARAMS.PARTICLE_SIZE, 8, 8); // 小球体
+            const particleMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFF8C00, // 橙色
+                transparent: true, 
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending, // 叠加混合模式，使粒子重叠时更亮
+                depthWrite: false // 禁用深度写入，避免透明度排序问题
+            }); 
+            magmaParticlesMesh = new THREE.InstancedMesh(particleGeometry, particleMaterial, SIM_PARAMS.MAGMA_PARTICLE_COUNT);
+            earthGroup.add(magmaParticlesMesh); // 添加到地球群组
+
+            // --- 创建地壳 (初始状态非常薄，几乎不可见) ---
+            const crustGeometry = new THREE.SphereGeometry(SIM_PARAMS.EARTH_RADIUS_VISUAL, 64, 64);
+            // 使用 MeshStandardMaterial 实现更真实的固化效果
+            crustMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513, // 棕色
+                transparent: true, 
+                opacity: SIM_PARAMS.CRUST_OPACITY_INITIAL, // 初始透明度
+                roughness: SIM_PARAMS.CRUST_ROUGHNESS_INITIAL, // 初始较粗糙，模拟早期不规则地壳
+                metalness: 0.1 // 较低的金属感
+            }); 
+            crustMesh = new THREE.Mesh(crustGeometry, crustMaterial);
+            earthGroup.add(crustMesh); // 添加到地球群组
+
+            // 窗口大小调整事件监听
+            window.addEventListener('resize', onWindowResize, false);
+        };
+
+        // --- 窗口大小调整函数 ---
+        const onWindowResize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+
+        // --- 初始化粒子状态 ---
+        const initParticles = () => {
+            particles = [];
+            const dummy = new THREE.Object3D(); // 辅助对象用于 InstancedMesh 更新位置
+
+            // 计算岩浆洋的初始内外半径
+            const magmaInnerRadius = SIM_PARAMS.CORE_RADIUS_INITIAL;
+            const magmaOuterRadius = SIM_PARAMS.EARTH_RADIUS_VISUAL - SIM_PARAMS.CRUST_THICKNESS_INITIAL;
+
+            for (let i = 0; i < SIM_PARAMS.MAGMA_PARTICLE_COUNT; i++) {
+                // 在岩浆洋层内随机生成粒子位置
+                let position = new THREE.Vector3();
+                do {
+                    position.x = (Math.random() - 0.5) * magmaOuterRadius * 2;
+                    position.y = (Math.random() - 0.5) * magmaOuterRadius * 2;
+                    position.z = (Math.random() - 0.5) * magmaOuterRadius * 2;
+                } while (position.length() < magmaInnerRadius || position.length() > magmaOuterRadius);
+
+                particles.push({
+                    position: position,
+                    velocity: new THREE.Vector3(),
+                    force: new THREE.Vector3(),
+                    // 粒子类型：模拟轻重组分，影响对流行为
+                    type: Math.random() > 0.5 ? 'light' : 'heavy', // 50%轻，50%重
+                    originalColor: new THREE.Color().setHSL(0.08, 1, 0.5 + Math.random() * 0.2) // 橙色系，亮度略有随机
+                });
+
+                dummy.position.copy(position);
+                dummy.updateMatrix();
+                magmaParticlesMesh.setMatrixAt(i, dummy.matrix);
+                magmaParticlesMesh.setColorAt(i, particles[i].originalColor);
+            }
+            magmaParticlesMesh.instanceMatrix.needsUpdate = true;
+            magmaParticlesMesh.instanceColor.needsUpdate = true;
+        };
+
+        // --- 模拟物理步进 ---
+        const updateSimulation = (deltaTime) => {
+            const tempForce = new THREE.Vector3();
+            const center = new THREE.Vector3(0, 0, 0);
+
+            // 根据冷却进度更新地壳和地核大小
+            coolingProgress = Math.min(1, currentSimTimeYears / (SIM_PARAMS.SIM_DURATION_YEARS_INITIAL_MAGMA + SIM_PARAMS.SIM_DURATION_YEARS_CRUST_FORMATION + SIM_PARAMS.SIM_DURATION_YEARS_FINAL_COOLING));
+            
+            const currentCrustThickness = SIM_PARAMS.CRUST_THICKNESS_INITIAL + (SIM_PARAMS.CRUST_THICKNESS_FINAL - SIM_PARAMS.CRUST_THICKNESS_INITIAL) * coolingProgress;
+            const currentCoreRadius = SIM_PARAMS.CORE_RADIUS_INITIAL + (SIM_PARAMS.CORE_RADIUS_FINAL - SIM_PARAMS.CORE_RADIUS_INITIAL) * coolingProgress;
+
+            // 更新地核的视觉大小
+            coreMesh.scale.setScalar(currentCoreRadius / SIM_PARAMS.CORE_RADIUS_INITIAL); // 相对于初始大小进行缩放
+
+            // 更新地壳材质属性，模拟固化过程
+            if (crustMaterial) {
+                crustMaterial.opacity = SIM_PARAMS.CRUST_OPACITY_INITIAL + (0.9 - SIM_PARAMS.CRUST_OPACITY_INITIAL) * coolingProgress; // 透明度从初始到0.9
+                crustMaterial.roughness = SIM_PARAMS.CRUST_ROUGHNESS_INITIAL - (SIM_PARAMS.CRUST_ROUGHNESS_INITIAL - 0.2) * coolingProgress; // 粗糙度从初始到0.2，变得更光滑
+                crustMaterial.needsUpdate = true;
+            }
+
+            // 计算岩浆洋的当前内外半径
+            const magmaInnerRadius = currentCoreRadius;
+            const magmaOuterRadius = SIM_PARAMS.EARTH_RADIUS_VISUAL - currentCrustThickness;
+
+            const dummy = new THREE.Object3D();
+
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+
+                // 重置力
+                p.force.set(0, 0, 0);
+
+                // 1. 模拟重力和浮力
+                const distanceToCenter = p.position.length();
+                if (distanceToCenter === 0) continue; // 避免除以零
+
+                tempForce.copy(p.position).normalize(); // 径向方向向量
+
+                // 模拟重力：总是指向中心
+                const gravityMagnitude = 0.001; // 基础重力
+                p.force.sub(tempForce.clone().multiplyScalar(gravityMagnitude));
+
+                // 模拟浮力：取决于粒子类型和在岩浆洋中的位置
+                // 轻粒子倾向于上升，重粒子倾向于下降
+                if (p.type === 'light') {
+                    // 轻粒子在内层（靠近核心）时受向上浮力更强，在外层减弱
+                    const buoyancyMagnitude = SIM_PARAMS.CONVECTION_STRENGTH * (1 - (distanceToCenter - magmaInnerRadius) / (magmaOuterRadius - magmaInnerRadius));
+                    p.force.add(tempForce.clone().multiplyScalar(buoyancyMagnitude));
+                } else { // heavy particle
+                    // 重粒子在外层（靠近地壳）时受向下力更强，在内层减弱
+                    const sinkingMagnitude = SIM_PARAMS.CONVECTION_STRENGTH * ((distanceToCenter - magmaInnerRadius) / (magmaOuterRadius - magmaInnerRadius));
+                    p.force.sub(tempForce.clone().multiplyScalar(sinkingMagnitude));
+                }
+
+                // 2. 模拟对流运动（径向和切向的随机扰动，模拟流体运动）
+                // 径向扰动
+                p.force.add(tempForce.clone().multiplyScalar((Math.random() - 0.5) * SIM_PARAMS.CONVECTION_STRENGTH * 0.1));
+                
+                // 切向（横向）扰动：模拟岩浆的横向流动
+                // 简单的切向向量，使其在球面上旋转
+                const tangentialForce = new THREE.Vector3(-p.position.z, p.position.y, p.position.x).normalize(); 
+                p.force.add(tangentialForce.multiplyScalar((Math.random() - 0.5) * SIM_PARAMS.CONVECTION_STRENGTH * 0.5));
+
+                // 3. 随机运动（模拟热运动）
+                p.force.x += (Math.random() - 0.5) * SIM_PARAMS.RANDOM_MOTION_STRENGTH;
+                p.force.y += (Math.random() - 0.5) * SIM_PARAMS.RANDOM_MOTION_STRENGTH;
+                p.force.z += (Math.random() - 0.5) * SIM_PARAMS.RANDOM_MOTION_STRENGTH;
+
+                // 更新速度 (力 / 质量，这里质量假设为1)
+                p.velocity.add(p.force);
+
+                // 施加阻力 (模拟摩擦)
+                p.velocity.multiplyScalar(SIM_PARAMS.DRAG_COEFFICIENT);
+
+                // 限制最大速度
+                if (p.velocity.length() > SIM_PARAMS.MAX_PARTICLE_VELOCITY) {
+                    p.velocity.setLength(SIM_PARAMS.MAX_PARTICLE_VELOCITY);
+                }
+
+                // 更新位置
+                p.position.add(p.velocity);
+
+                // 边界条件：粒子必须保持在岩浆洋层内
+                let newDistanceToCenter = p.position.length();
+                if (newDistanceToCenter < magmaInnerRadius) {
+                    // 如果粒子进入地核，将其推回岩浆洋边界
+                    p.position.normalize().multiplyScalar(magmaInnerRadius + 0.1);
+                    p.velocity.multiplyScalar(-0.5); // 反弹
+                } else if (newDistanceToCenter > magmaOuterRadius) {
+                    // 如果粒子穿透地壳，将其推回岩浆洋边界
+                    p.position.normalize().multiplyScalar(magmaOuterRadius - 0.1);
+                    p.velocity.multiplyScalar(-0.5); // 反弹
+                }
+
+                // 更新 InstancedMesh 的矩阵
+                dummy.position.copy(p.position);
+                dummy.updateMatrix();
+                magmaParticlesMesh.setMatrixAt(i, dummy.matrix);
+                
+                // 粒子颜色随深度变化，模拟温度梯度
+                // 核心附近更红（0.05），地壳附近更黄（0.15），亮度从0.3到0.8
+                const colorLerpFactor = (distanceToCenter - magmaInnerRadius) / (magmaOuterRadius - magmaInnerRadius);
+                const particleColor = new THREE.Color().setHSL(0.05 + colorLerpFactor * 0.1, 1, 0.3 + colorLerpFactor * 0.5); 
+                magmaParticlesMesh.setColorAt(i, particleColor);
+            }
+            magmaParticlesMesh.instanceMatrix.needsUpdate = true;
+            magmaParticlesMesh.instanceColor.needsUpdate = true;
+        };
+
+        // --- 动画循环 ---
+        const animateSimulation = (currentTime) => {
+            animationFrameId = requestAnimationFrame(animateSimulation);
+
+            const deltaTime = (currentTime - lastFrameTime) / 1000; // 计算真实时间间隔（秒）
+            lastFrameTime = currentTime;
+
+            if (simulationRunning) {
+                currentSimTimeYears += deltaTime * SIM_PARAMS.SIM_SPEED; // 更新模拟时间
+                updateSimulation(deltaTime); // 更新模拟状态
+                
+                // 整体地球自转
+                earthGroup.rotation.y += SIM_PARAMS.EARTH_ROTATION_SPEED * deltaTime;
+
+                simStatusDisplay.textContent = '运行中';
+                updateInfoPanel(); // 更新信息面板
+            } else {
+                simStatusDisplay.textContent = '暂停';
+            }
+
+            controls.update(); // 更新 OrbitControls
+            renderer.render(scene, camera); // 渲染场景
+        };
+
+        // --- 更新信息面板显示 ---
+        const updateInfoPanel = () => {
+            simTimeDisplay.textContent = currentSimTimeYears.toFixed(2);
+            
+            const currentCrustThickness = SIM_PARAMS.CRUST_THICKNESS_INITIAL + (SIM_PARAMS.CRUST_THICKNESS_FINAL - SIM_PARAMS.CRUST_THICKNESS_INITIAL) * coolingProgress;
+            const currentCoreRadius = SIM_PARAMS.CORE_RADIUS_INITIAL + (SIM_PARAMS.CORE_RADIUS_FINAL - SIM_PARAMS.CORE_RADIUS_INITIAL) * coolingProgress;
+
+            crustThicknessDisplay.textContent = (currentCrustThickness * 100).toFixed(2); // 转换为 km (假设1单位=100km)
+            coreRadiusDisplay.textContent = (currentCoreRadius * 100).toFixed(2); // 转换为 km
+
+            // 更新当前阶段
+            if (currentSimTimeYears < SIM_PARAMS.SIM_DURATION_YEARS_INITIAL_MAGMA) {
+                currentStageDisplay.textContent = '初始岩浆洋';
+            } else if (currentSimTimeYears < SIM_PARAMS.SIM_DURATION_YEARS_INITIAL_MAGMA + SIM_PARAMS.SIM_DURATION_YEARS_CRUST_FORMATION) {
+                currentStageDisplay.textContent = '地壳形成中';
+            } else if (currentSimTimeYears < SIM_PARAMS.SIM_DURATION_YEARS_INITIAL_MAGMA + SIM_PARAMS.SIM_DURATION_YEARS_CRUST_FORMATION + SIM_PARAMS.SIM_DURATION_YEARS_FINAL_COOLING) {
+                currentStageDisplay.textContent = '缓慢冷却与分层';
+            } else {
+                currentStageDisplay.textContent = '稳定地质时期';
+                pauseSimulation(); // 模拟结束时暂停
+            }
+        };
+
+        // --- 播放/暂停模拟 ---
+        const playSimulation = () => {
+            if (!simulationRunning) {
+                simulationRunning = true;
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                playPauseBtn.classList.replace('bg-blue-600', 'bg-yellow-600');
+                playPauseBtn.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+                lastFrameTime = performance.now(); // 重新开始计时
+            }
+        };
+
+        const pauseSimulation = () => {
+            if (simulationRunning) {
+                simulationRunning = false;
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> 播放';
+                playPauseBtn.classList.replace('bg-yellow-600', 'bg-blue-600');
+                playPauseBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
+            }
+        };
+
+        // --- 重置模拟 ---
+        const resetSimulation = () => {
+            pauseSimulation(); // 先暂停
+
+            currentSimTimeYears = 0; // 重置模拟时间
+            coolingProgress = 0; // 重置冷却进度
+
+            // 重置地核和地壳的视觉大小和透明度
+            coreMesh.scale.setScalar(SIM_PARAMS.CORE_RADIUS_INITIAL / coreMesh.geometry.parameters.radius); // 重置为初始比例
+            if (crustMaterial) { // 确保 crustMaterial 已定义
+                crustMaterial.opacity = SIM_PARAMS.CRUST_OPACITY_INITIAL; // 重置透明度
+                crustMaterial.roughness = SIM_PARAMS.CRUST_ROUGHNESS_INITIAL; // 重置粗糙度
+                crustMaterial.needsUpdate = true;
+            }
+            earthGroup.rotation.y = 0; // 重置地球总群组的自转
+
+            initParticles(); // 重新初始化粒子
+
+            updateInfoPanel(); // 更新UI显示
+        };
+
+        // --- 绑定UI事件 ---
+        const setupUIEvents = () => {
+            playPauseBtn.addEventListener('click', () => {
+                if (simulationRunning) {
+                    pauseSimulation();
+                } else {
+                    playSimulation();
+                }
+            });
+
+            resetBtn.addEventListener('click', resetSimulation);
+
+            // 模拟速度滑块事件
+            simSpeedSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.SIM_SPEED = parseFloat(event.target.value);
+                simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+            });
+
+            // 冷却速率滑块事件
+            coolingRateSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.COOLING_RATE = parseFloat(event.target.value);
+                coolingRateValueDisplay.textContent = SIM_PARAMS.COOLING_RATE.toFixed(4);
+            });
+
+            // 对流强度滑块事件
+            convectionStrengthSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.CONVECTION_STRENGTH = parseFloat(event.target.value);
+                convectionStrengthValueDisplay.textContent = SIM_PARAMS.CONVECTION_STRENGTH.toFixed(2);
+            });
+
+            // 随机运动强度滑块事件
+            randomMotionStrengthSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.RANDOM_MOTION_STRENGTH = parseFloat(event.target.value);
+                randomMotionStrengthValueDisplay.textContent = SIM_PARAMS.RANDOM_MOTION_STRENGTH.toFixed(3);
+            });
+
+            // 阻力系数（粘度）滑块事件
+            dragCoefficientSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.DRAG_COEFFICIENT = parseFloat(event.target.value);
+                dragCoefficientValueDisplay.textContent = SIM_PARAMS.DRAG_COEFFICIENT.toFixed(2);
+            });
+
+            // 地壳最终厚度滑块事件
+            finalCrustThicknessSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.CRUST_THICKNESS_FINAL = parseFloat(event.target.value);
+                finalCrustThicknessValueDisplay.textContent = SIM_PARAMS.CRUST_THICKNESS_FINAL;
+            });
+
+            // 地核最终半径滑块事件
+            finalCoreRadiusSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.CORE_RADIUS_FINAL = parseFloat(event.target.value);
+                finalCoreRadiusValueDisplay.textContent = SIM_PARAMS.CORE_RADIUS_FINAL;
+            });
+
+            // 地球自转速度滑块事件
+            earthRotationSpeedSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.EARTH_ROTATION_SPEED = parseFloat(event.target.value);
+                earthRotationSpeedValueDisplay.textContent = SIM_PARAMS.EARTH_ROTATION_SPEED.toFixed(4);
+            });
+        };
+
+        // --- 页面加载完成后执行 ---
+        window.onload = () => {
+            // 1. 获取 DOM 元素引用
+            playPauseBtn = document.getElementById('playPauseBtn');
+            resetBtn = document.getElementById('resetBtn');
+            simSpeedSlider = document.getElementById('simSpeedSlider');
+            simSpeedValueDisplay = document.getElementById('simSpeedValue');
+            coolingRateSlider = document.getElementById('coolingRateSlider');
+            coolingRateValueDisplay = document.getElementById('coolingRateValue');
+            convectionStrengthSlider = document.getElementById('convectionStrengthSlider');
+            convectionStrengthValueDisplay = document.getElementById('convectionStrengthValue');
+            randomMotionStrengthSlider = document.getElementById('randomMotionStrengthSlider'); // 新增
+            randomMotionStrengthValueDisplay = document.getElementById('randomMotionStrengthValue'); // 新增
+            dragCoefficientSlider = document.getElementById('dragCoefficientSlider'); // 新增
+            dragCoefficientValueDisplay = document.getElementById('dragCoefficientValue'); // 新增
+            finalCrustThicknessSlider = document.getElementById('finalCrustThicknessSlider'); // 新增
+            finalCrustThicknessValueDisplay = document.getElementById('finalCrustThicknessValue'); // 新增
+            finalCoreRadiusSlider = document.getElementById('finalCoreRadiusSlider'); // 新增
+            finalCoreRadiusValueDisplay = document.getElementById('finalCoreRadiusValue'); // 新增
+            earthRotationSpeedSlider = document.getElementById('earthRotationSpeedSlider'); // 新增
+            earthRotationSpeedValueDisplay = document.getElementById('earthRotationSpeedValue'); // 新增
+            simStatusDisplay = document.getElementById('simStatus');
+            currentStageDisplay = document.getElementById('currentStage');
+            simTimeDisplay = document.getElementById('simTime');
+            crustThicknessDisplay = document.getElementById('crustThickness');
+            coreRadiusDisplay = document.getElementById('coreRadius');
+
+            // 初始化滑块的显示值
+            simSpeedSlider.value = SIM_PARAMS.SIM_SPEED;
+            simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+            coolingRateSlider.value = SIM_PARAMS.COOLING_RATE;
+            coolingRateValueDisplay.textContent = SIM_PARAMS.COOLING_RATE.toFixed(4);
+            convectionStrengthSlider.value = SIM_PARAMS.CONVECTION_STRENGTH;
+            convectionStrengthValueDisplay.textContent = SIM_PARAMS.CONVECTION_STRENGTH.toFixed(2);
+            randomMotionStrengthSlider.value = SIM_PARAMS.RANDOM_MOTION_STRENGTH; // 新增
+            randomMotionStrengthValueDisplay.textContent = SIM_PARAMS.RANDOM_MOTION_STRENGTH.toFixed(3); // 新增
+            dragCoefficientSlider.value = SIM_PARAMS.DRAG_COEFFICIENT; // 新增
+            dragCoefficientValueDisplay.textContent = SIM_PARAMS.DRAG_COEFFICIENT.toFixed(2); // 新增
+            finalCrustThicknessSlider.value = SIM_PARAMS.CRUST_THICKNESS_FINAL; // 新增
+            finalCrustThicknessValueDisplay.textContent = SIM_PARAMS.CRUST_THICKNESS_FINAL; // 新增
+            finalCoreRadiusSlider.value = SIM_PARAMS.CORE_RADIUS_FINAL; // 新增
+            finalCoreRadiusValueDisplay.textContent = SIM_PARAMS.CORE_RADIUS_FINAL; // 新增
+            earthRotationSpeedSlider.value = SIM_PARAMS.EARTH_ROTATION_SPEED; // 新增
+            earthRotationSpeedValueDisplay.textContent = SIM_PARAMS.EARTH_ROTATION_SPEED.toFixed(4); // 新增
+
+            initThreeJS(); // 初始化 Three.js 场景
+            initParticles(); // 初始化粒子
+
+            setupUIEvents(); // 设置UI事件监听器
+            resetSimulation(); // 初始重置，确保所有状态正确并设置初始UI
+            animateSimulation(performance.now()); // 启动动画循环，但模拟默认暂停
+        };
+    </script>
+</body>
+</html>
