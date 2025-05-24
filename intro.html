@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎来到我的网站 - 太阳系之旅</title>
+    <!--
+        引入 Tailwind CSS CDN：
+        这是一个CSS框架，帮助你快速构建响应式和美观的界面。
+        这里主要用于加载屏幕和确保基本布局。
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+        引入 Three.js 库：
+        用于创建和渲染3D太阳系场景。
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!--
+        引入 GSAP 库：
+        用于创建平滑的动画时间线和补间动画，特别是摄像机动画。
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <style>
+        /*
+            -------------------------------------------------------------------
+            全局样式和加载屏幕：
+            确保页面全屏显示，并提供一个初始的加载提示。
+            -------------------------------------------------------------------
+        */
+        body {
+            margin: 0;
+            overflow: hidden; /* 防止滚动条出现 */
+            font-family: 'Inter', sans-serif;
+            background-color: #000; /* 黑色背景，模拟太空 */
+        }
+
+        /* 加载屏幕样式 */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* 黑色背景 */
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            z-index: 2000; /* 确保在最上层 */
+            transition: opacity 1s ease-out;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none; /* 隐藏后不再响应鼠标事件 */
+        }
+
+        /* 加载指示器 */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-top: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Three.js 动画容器样式 */
+        #threejs-solar-system-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000; /* 在加载屏幕之下，主内容之上 */
+            opacity: 1;
+            transition: opacity 1s ease-out; /* 淡出效果 */
+        }
+
+        #threejs-solar-system-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <p>加载中...</p>
+        <div class="spinner"></div>
+    </div>
+
+    <div id="threejs-solar-system-container"></div>
+
+    <script>
+        // 获取 DOM 元素
+        const loadingScreen = document.getElementById('loading-screen');
+        const solarSystemContainer = document.getElementById('threejs-solar-system-container');
+
+        // Three.js 场景设置
+        let scene, camera, renderer;
+        let sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune;
+        // 用于公转的组，每个行星都有自己的轨道组
+        let mercuryOrbit, venusOrbit, earthOrbit, moonOrbit, marsOrbit, jupiterOrbit, saturnOrbit, uranusOrbit, neptuneOrbit;
+
+        // 纹理加载器
+        const textureLoader = new THREE.TextureLoader();
+
+        // 行星数据（半径、距离太阳、公转速度、自转速度、纹理）
+        // 这里的数值是简化和调整过的，以便在动画中看起来效果良好，并非真实比例
+        // IMPORTANT: 这些是临时的占位符图片链接。如果遇到 CORS 错误，
+        // 请将 solarsystemscope.com 的高质量纹理图片下载到你的 GitHub 仓库中，
+        // 然后将这里的链接替换为你的本地路径（例如：'./textures/8k_sun.jpg'）。
+        const PLANETS_DATA = [
+            { name: 'sun', radius: 10, distance: 0, orbitSpeed: 0, rotationSpeed: 0.002, texture: 'https://placehold.co/100x100/FFA500/ffffff?text=Sun' },
+            { name: 'mercury', radius: 0.8, distance: 20, orbitSpeed: 0.04, rotationSpeed: 0.01, texture: 'https://placehold.co/100x100/A0A0A0/ffffff?text=Mercury' },
+            { name: 'venus', radius: 2.0, distance: 35, orbitSpeed: 0.025, rotationSpeed: 0.005, texture: 'https://placehold.co/100x100/FFD700/000000?text=Venus' },
+            { name: 'earth', radius: 2.2, distance: 50, orbitSpeed: 0.015, rotationSpeed: 0.02, texture: 'https://placehold.co/100x100/0000FF/ffffff?text=Earth', cloudsTexture: 'https://placehold.co/100x100/FFFFFF/000000?text=Clouds' },
+            { name: 'moon', radius: 0.6, distance: 5, orbitSpeed: 0.05, rotationSpeed: 0.03, texture: 'https://placehold.co/100x100/C0C0C0/000000?text=Moon', parent: 'earth' }, // 月球绕地球转
+            { name: 'mars', radius: 1.5, distance: 70, orbitSpeed: 0.012, rotationSpeed: 0.018, texture: 'https://placehold.co/100x100/FF4500/ffffff?text=Mars' },
+            { name: 'jupiter', radius: 7.0, distance: 120, orbitSpeed: 0.005, rotationSpeed: 0.03, texture: 'https://placehold.co/100x100/D2B48C/000000?text=Jupiter' },
+            { name: 'saturn', radius: 6.0, distance: 170, orbitSpeed: 0.003, rotationSpeed: 0.028, texture: 'https://placehold.co/100x100/F4A460/000000?text=Saturn' },
+            { name: 'uranus', radius: 4.0, distance: 210, orbitSpeed: 0.002, rotationSpeed: 0.01, texture: 'https://placehold.co/100x100/AFEEEE/000000?text=Uranus' },
+            { name: 'neptune', radius: 3.8, distance: 250, orbitSpeed: 0.0015, rotationSpeed: 0.008, texture: 'https://placehold.co/100x100/4169E1/ffffff?text=Neptune' },
+        ];
+
+        // 存储行星对象，方便动画中引用
+        const celestialBodies = {};
+
+        // 初始化 Three.js 场景
+        function initThreeJS() {
+            // 场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // 黑色背景
+
+            // 摄像机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000); // 调整 far 值以容纳整个太阳系
+            camera.position.set(0, 500, 800); // 初始摄像机位置，从远处俯瞰太阳系
+
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            solarSystemContainer.appendChild(renderer.domElement);
+
+            // 环境光 (AmbientLight)
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+
+            // 太阳作为点光源
+            const pointLight = new THREE.PointLight(0xFFFFFF, 1.5, 0); // 强度增加
+            scene.add(pointLight);
+
+            // 创建所有天体
+            PLANETS_DATA.forEach(data => {
+                const geometry = new THREE.SphereGeometry(data.radius, 64, 64); // 增加分段数使球体更平滑
+
+                let material;
+                if (data.name === 'sun') {
+                    // 太阳自发光
+                    material = new THREE.MeshBasicMaterial({ map: textureLoader.load(data.texture) }); // 太阳现在也加载纹理
+                } else {
+                    // 其他行星加载纹理
+                    material = new THREE.MeshLambertMaterial({ map: textureLoader.load(data.texture) });
+                }
+
+                const mesh = new THREE.Mesh(geometry, material);
+                celestialBodies[data.name] = mesh; // 存储行星对象
+
+                if (data.name === 'sun') {
+                    sun = mesh;
+                    scene.add(sun);
+                    // 将光源添加到太阳上，使其随太阳移动（如果太阳有移动的话）
+                    sun.add(pointLight);
+                } else {
+                    let orbitGroup = new THREE.Group();
+                    orbitGroup.add(mesh); // 将行星添加到其轨道组
+                    mesh.position.x = data.distance; // 设置行星与太阳的初始距离
+
+                    if (data.parent === 'earth') { // 如果是月球，则绕地球转
+                        earth.add(orbitGroup); // 将月球轨道组添加到地球上
+                        moonOrbit = orbitGroup;
+                        moon = mesh;
+                    } else {
+                        scene.add(orbitGroup); // 其他行星绕太阳转
+                        // 动态设置轨道组变量
+                        switch(data.name) {
+                            case 'mercury': mercuryOrbit = orbitGroup; mercury = mesh; break;
+                            case 'venus': venusOrbit = orbitGroup; venus = mesh; break;
+                            case 'earth': earthOrbit = orbitGroup; earth = mesh; break;
+                            case 'mars': marsOrbit = orbitGroup; mars = mesh; break;
+                            case 'jupiter': jupiterOrbit = orbitGroup; jupiter = mesh; break;
+                            case 'saturn': saturnOrbit = orbitGroup; saturn = mesh; break;
+                            case 'uranus': uranusOrbit = orbitGroup; uranus = mesh; break;
+                            case 'neptune': neptuneOrbit = orbitGroup; neptune = mesh; break;
+                        }
+                    }
+                }
+
+                // 添加地球云层
+                if (data.name === 'earth' && data.cloudsTexture) {
+                    const cloudsGeometry = new THREE.SphereGeometry(data.radius * 1.02, 64, 64); // 略大于地球
+                    const cloudsMaterial = new THREE.MeshLambertMaterial({
+                        map: textureLoader.load(data.cloudsTexture),
+                        transparent: true,
+                        opacity: 0.6, // 半透明
+                        blending: THREE.AdditiveBlending // 叠加混合模式
+                    });
+                    const clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
+                    celestialBodies['earthClouds'] = clouds; // 存储云层对象
+                    earth.add(clouds); // 将云层添加到地球上，使其随地球移动和自转
+                }
+            });
+
+            // 创建星空背景
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            for (let i = 0; i < 20000; i++) { // 增加星星数量
+                const x = (Math.random() - 0.5) * 4000; // 扩大星空范围
+                const y = (Math.random() - 0.5) * 4000;
+                const z = (Math.random() - 0.5) * 4000;
+                starVertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 1 }); // 调整星星大小
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+
+            // 窗口大小调整处理
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // 窗口大小调整函数
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 动画循环
+        function animateSolarSystem() {
+            requestAnimationFrame(animateSolarSystem);
+
+            // 自转
+            sun.rotation.y += PLANETS_DATA[0].rotationSpeed;
+            mercury.rotation.y += PLANETS_DATA[1].rotationSpeed;
+            venus.rotation.y += PLANETS_DATA[2].rotationSpeed;
+            earth.rotation.y += PLANETS_DATA[3].rotationSpeed;
+            if (celestialBodies['earthClouds']) {
+                celestialBodies['earthClouds'].rotation.y += PLANETS_DATA[3].rotationSpeed * 1.2; // 云层自转略快
+            }
+            moon.rotation.y += PLANETS_DATA[4].rotationSpeed;
+            mars.rotation.y += PLANETS_DATA[5].rotationSpeed;
+            jupiter.rotation.y += PLANETS_DATA[6].rotationSpeed;
+            saturn.rotation.y += PLANETS_DATA[7].rotationSpeed;
+            uranus.rotation.y += PLANETS_DATA[8].rotationSpeed;
+            neptune.rotation.y += PLANETS_DATA[9].rotationSpeed;
+
+            // 公转
+            mercuryOrbit.rotation.y += PLANETS_DATA[1].orbitSpeed;
+            venusOrbit.rotation.y += PLANETS_DATA[2].orbitSpeed;
+            earthOrbit.rotation.y += PLANETS_DATA[3].orbitSpeed;
+            moonOrbit.rotation.y += PLANETS_DATA[4].orbitSpeed;
+            marsOrbit.rotation.y += PLANETS_DATA[5].orbitSpeed;
+            jupiterOrbit.rotation.y += PLANETS_DATA[6].orbitSpeed;
+            saturnOrbit.rotation.y += PLANETS_DATA[7].orbitSpeed;
+            uranusOrbit.rotation.y += PLANETS_DATA[8].orbitSpeed;
+            neptuneOrbit.rotation.y += PLANETS_DATA[9].orbitSpeed;
+
+            renderer.render(scene, camera);
+        }
+
+        // GSAP 摄像机动画时间线
+        function startCameraAnimation() {
+            const totalDuration = 18; // 整个动画的总时长
+
+            // 摄像机初始世界坐标 (在 Three.js 初始化时设置)
+            const initialCameraWorldPos = camera.position.clone();
+
+            // 最终摄像机相对于地球中心的局部偏移量 (在地球局部坐标系中)
+            // 调整这些值以确保摄像机落在地表上方，并能看到地表，避免穿透
+            const finalCameraLocalOffset = new THREE.Vector3(
+                0,
+                earth.geometry.parameters.radius * 0.5, // 略高于地表，提供俯视感
+                earth.geometry.parameters.radius * 2.0 // 稍微靠后，以便看到更多地表
+            );
+
+            // 最终看向目标相对于地球中心的局部偏移量 (在地球局部坐标系中)
+            const finalLookAtLocalOffset = new THREE.Vector3(
+                0,
+                -earth.geometry.parameters.radius * 0.1, // 看向地表下方一点
+                0
+            );
+
+            // 创建 GSAP 时间线
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    // 动画完成后，隐藏3D容器并重定向到主网站内容
+                    solarSystemContainer.classList.add('hidden');
+                    loadingScreen.classList.add('hidden'); // 确保加载屏幕也隐藏
+
+                    // 动态构建完整的URL，以确保在GitHub Pages上正确解析
+                    const currentPath = window.location.pathname;
+                    const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                    const fullUrl = window.location.origin + currentDir + "index.html";
+
+                    // 重定向到主页面
+                    window.location.href = fullUrl;
+                }
+            });
+
+            // 摄像机位置和看向目标的动画
+            tl.to({}, { // 使用一个空对象作为目标，因为我们将在 onUpdate 中手动控制 camera.position 和 camera.lookAt
+                duration: totalDuration,
+                ease: "power3.inOut", // 平滑的缓动函数
+                onUpdate: function() {
+                    const progress = this.progress(); // 动画的当前进度 (0 到 1)
+
+                    // 获取地球的当前世界坐标
+                    const currentEarthWorldPosition = new THREE.Vector3();
+                    earth.getWorldPosition(currentEarthWorldPosition);
+
+                    // 计算摄像机在当前进度下，应该到达的“目标世界位置”
+                    // 这是一个从初始摄像机位置到最终目标位置的插值
+                    // 最终目标位置 = 地球当前世界位置 + finalCameraLocalOffset (但需要先将局部偏移量转换为世界坐标)
+                    const tempCameraTargetWorldPos = currentEarthWorldPosition.clone().add(finalCameraLocalOffset.clone().applyQuaternion(earth.quaternion));
+                    camera.position.lerpVectors(initialCameraWorldPos, tempCameraTargetWorldPos, progress);
+
+                    // 计算摄像机在当前进度下，应该看向的“目标世界位置”
+                    // 最终看向目标位置 = 地球当前世界位置 + finalLookAtLocalOffset (但需要先将局部偏移量转换为世界坐标)
+                    const tempLookAtTargetWorldPos = currentEarthWorldPosition.clone().add(finalLookAtLocalOffset.clone().applyQuaternion(earth.quaternion));
+                    camera.lookAt(tempLookAtTargetWorldPos);
+
+                    // 云层透明度过渡：基于摄像机到地球当前世界坐标的距离
+                    if (celestialBodies['earthClouds']) {
+                        const distanceToEarthCenter = camera.position.distanceTo(currentEarthWorldPosition);
+                        const earthRadius = earth.geometry.parameters.radius;
+
+                        const cloudDisappearStart = earthRadius * 5.0; // 摄像机开始穿云的距离
+                        const cloudDisappearEnd = earthRadius * 1.05; // 摄像机完全穿透云层的距离
+
+                        if (distanceToEarthCenter < cloudDisappearStart) {
+                            const cloudOpacity = Math.max(0, Math.min(0.6, (distanceToEarthCenter - cloudDisappearEnd) / (cloudDisappearStart - cloudDisappearEnd) * 0.6));
+                            celestialBodies['earthClouds'].material.opacity = cloudOpacity;
+                        } else {
+                            celestialBodies['earthClouds'].material.opacity = 0.6; // 在穿云范围外，云层保持初始透明度
+                        }
+                    }
+                }
+            });
+        }
+
+        // 页面加载完成后执行
+        window.onload = function() {
+            initThreeJS(); // 初始化 Three.js 场景
+            animateSolarSystem(); // 启动太阳系动画循环
+
+            // 隐藏加载屏幕，并开始摄像机动画
+            loadingScreen.classList.add('hidden');
+            
+            // 增加一个短暂的延迟，确保 Three.js 场景在动画开始前完全稳定渲染
+            setTimeout(() => {
+                startCameraAnimation();
+            }, 100); // 延迟100毫秒
+        };
+    </script>
+</body>
+</html>
