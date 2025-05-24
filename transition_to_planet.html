@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳转中...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            opacity: 0; /* 初始透明度为0 */
+            transition: opacity 0.5s ease-in-out; /* 淡入淡出动画 */
+
+            /* 新增：背景渐变动画 */
+            background: linear-gradient(135deg, #1a202c, #2d3748, #4a5568, #2d3748, #1a202c);
+            background-size: 400% 400%; /* 扩大背景尺寸以允许动画 */
+            animation: gradientAnimation 15s ease infinite; /* 渐变动画 */
+        }
+        body.loaded {
+            opacity: 1; /* 加载完成后淡入 */
+        }
+
+        /* 渐变背景动画关键帧 */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .loading-text {
+            font-size: 2.5rem; /* 字体更大 */
+            font-weight: bold;
+            letter-spacing: 0.1em; /* 增加字间距 */
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.7), 0 0 25px rgba(0, 255, 255, 0.5); /* 霓虹光晕效果 */
+            animation: textFadeInScale 2s ease-out forwards; /* 新的文本动画 */
+        }
+
+        /* 文本淡入缩放动画关键帧 */
+        @keyframes textFadeInScale {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-top: 1.5rem; /* 增加间距 */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <p class="loading-text">正在进入星球...</p>
+    <div class="spinner"></div>
+
+    <script>
+        document.body.classList.add('loaded'); // 页面加载后淡入
+
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetPage = decodeURIComponent(urlParams.get('target') || '');
+
+            if (targetPage) {
+                setTimeout(() => {
+                    const currentPath = window.location.pathname;
+                    const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                    const fullUrl = window.location.origin + currentDir + targetPage;
+                    console.log('即将跳转到目标页面:', fullUrl);
+                    window.location.href = fullUrl;
+                }, 2000); // 增加跳转延迟到 2 秒，让动画有更多时间播放
+            } else {
+                console.error("未指定目标页面，无法跳转。将重定向回地球页面。");
+                setTimeout(() => {
+                    const currentPath = window.location.pathname;
+                    const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                    window.location.href = window.location.origin + currentDir + "earth_page.html";
+                }, 2500); // 错误跳转延迟也相应增加
+            }
+        };
+    </script>
+</body>
+</html>
