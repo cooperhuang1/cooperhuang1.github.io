@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线性尺度：太阳 → 奥尔特云</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        /* Three.js 渲染容器 */
+        #threejs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        /* 信息面板样式 */
+        .info-panel {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        .info-panel h1 {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .info-panel p {
+            margin-bottom: 0.4rem;
+        }
+        .info-panel p:last-child {
+            margin-bottom: 0;
+        }
+        /* 天体标签样式 */
+        .label {
+            position: absolute;
+            color: white;
+            font-size: 10px;
+            pointer-events: none; /* 允许点击穿透到画布 */
+            white-space: nowrap;
+            transform: translate(-50%, -50%); /* 居中标签 */
+        }
+        /* 控制面板样式 */
+        .controls-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            align-items: center;
+            gap: 0.75rem; /* 增加间距 */
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .controls-panel button {
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .controls-panel button:active {
+            transform: translateY(1px);
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .speed-control input[type="range"] {
+            width: 150px;
+            -webkit-appearance: none; /* 移除默认样式 */
+            appearance: none;
+            height: 8px;
+            background: #4a5568;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        .speed-control input[type="range"]:hover {
+            opacity: 1;
+        }
+        .speed-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #63b3ed;
+            cursor: pointer;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+        .speed-control input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #63b3ed;
+            cursor: pointer;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="threejs-container"></div>
+
+    <div class="info-panel">
+        <h1>线性尺度：太阳 → 奥尔特云</h1>
+        <p>坐标系：AU</p>
+        <p>太阳半径 = 真实 AU 半径 × 20</p>
+        <p>其他天体半径 = 真实 AU 半径 × 200</p>
+        <p class="text-xs text-gray-400 mt-2">使用鼠标拖动旋转，滚轮缩放。</p>
+    </div>
+
+    <div class="controls-panel">
+        <div class="flex gap-2">
+            <button id="toggleAnimationBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg">开始动画</button>
+            <button id="reverseAnimationBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg">反向动画</button>
+        </div>
+        <div class="speed-control">
+            <label for="animationSpeedSlider">动画速度:</label>
+            <input type="range" id="animationSpeedSlider" min="0.1" max="5" step="0.1" value="1">
+            <span id="currentSpeedValue">1.0x</span>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        const labels = {}; // 存储 HTML 标签，用于动态定位
+
+        // MATLAB 脚本中的参数定义
+        const bodies = [
+            { name: 'Mercury', a_au: 0.387, R_km: 2439.7, inc_deg: 7.0, color: 0xAAAAAA }, // 灰色
+            { name: 'Venus', a_au: 0.723, R_km: 6051.8, inc_deg: 3.4, color: 0xFFA500 }, // 橙色
+            { name: 'Earth', a_au: 1.000, R_km: 6371.0, inc_deg: 0.0, color: 0x0000FF }, // 蓝色
+            { name: 'Mars', a_au: 1.524, R_km: 3389.5, inc_deg: 1.85, color: 0xFF0000 }, // 红色
+            { name: 'Jupiter', a_au: 5.203, R_km: 69911.0, inc_deg: 1.31, color: 0xF4A460 }, // 沙棕色
+            { name: 'Saturn', a_au: 9.537, R_km: 58232.0, inc_deg: 2.49, color: 0xD2B48C }, // 茶色
+            { name: 'Uranus', a_au: 19.18, R_km: 25362.0, inc_deg: 0.77, color: 0xADD8E6 }, // 浅蓝色
+            { name: 'Neptune', a_au: 30.07, R_km: 24622.0, inc_deg: 1.77, color: 0x4682B4 }, // 钢蓝色
+            { name: 'Pluto', a_au: 39.48, R_km: 1188.3, inc_deg: 17.1, color: 0x808080 }, // 灰色
+        ];
+
+        const R_sun_km = 695700; // 太阳半径 (km)
+        const km_per_AU = 1.496e8; // 1 AU = 1.496×10^8 km
+        const R_sun_au = R_sun_km / km_per_AU; // 太阳半径 (AU)
+        const planet_size_factor = 200; // 天体半径放大因子
+        const sun_size_factor = 20; // 太阳半径放大因子 (减小以使其更小)
+
+        // 奥尔特云参数
+        const N_ort = 10000; // 粒子数量 (增加以提高密度)
+        const r_min_oort = 2000; // 奥尔特云内缘 (AU)
+        const r_max_oort = 50000; // 奥尔特云外缘 (AU)
+
+        // 柯伊伯带参数
+        const N_kuiper = 1000; // 粒子数量
+        const r_min_kuiper = 30; // 柯伊伯带内缘 (AU)
+        const r_max_kuiper = 50; // 柯伊伯带外缘 (AU)
+        const kuiper_thickness = 5; // 柯伊伯带厚度 (AU)
+
+        // 将 km 半径转换为放大的 AU 半径
+        const getScaledRadius = (radius_km, factor) => (radius_km / km_per_AU) * factor;
+
+        // 全局动画变量
+        let isAnimating = false;
+        let animationDirection = 1; // 1 for far to near, -1 for near to far
+        const baseAnimationDuration = 30000; // 30 秒 (毫秒) - 基础持续时间
+        let animationSpeed = 1.0; // 动画速度乘数 (1.0 = 正常速度)
+        let animationStartTime = 0;
+        let currentAnimationProgress = 0; // 存储当前的动画进度
+
+        // 相机动画位置
+        const farCameraPosition = new THREE.Vector3(0, 0, r_max_oort * 1.2); // 远景位置
+        const nearCameraPosition = new THREE.Vector3(0, 0, 10); // 近景位置 (靠近内太阳系)
+        const lookAtTarget = new THREE.Vector3(0, 0, 0); // 始终看向原点
+
+        // 初始化 Three.js 场景、相机、渲染器
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // 黑色背景
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, r_max_oort * 2); // 远裁剪面设置在奥尔特云之外
+            camera.position.copy(farCameraPosition); // 相机初始位置设置为远景位置
+            camera.lookAt(lookAtTarget); // 相机看向原点
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // 启用阻尼
+            controls.dampingFactor = 0.05;
+            controls.minDistance = getScaledRadius(R_sun_km, sun_size_factor) * 5; // 最小缩放距离，允许非常近的观察太阳
+            controls.maxDistance = r_max_oort * 1.5; // 最大缩放距离，以便看到奥尔特云之外
+
+            // 灯光
+            const ambientLight = new THREE.AmbientLight(0x404040); // 柔和的环境光
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // 主光源
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            drawSun();
+            drawPlanets();
+            drawKuiperBelt(); // 添加柯伊伯带
+            drawOortCloud();
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            // 添加按钮事件监听器
+            document.getElementById('toggleAnimationBtn').addEventListener('click', toggleCameraAnimation);
+            document.getElementById('reverseAnimationBtn').addEventListener('click', reverseCameraAnimation);
+
+            // 添加速度滑块事件监听器
+            const speedSlider = document.getElementById('animationSpeedSlider');
+            const currentSpeedValue = document.getElementById('currentSpeedValue');
+
+            speedSlider.addEventListener('input', (event) => {
+                const oldSpeed = animationSpeed;
+                animationSpeed = parseFloat(event.target.value);
+                currentSpeedValue.textContent = `${animationSpeed.toFixed(1)}x`;
+
+                // 如果正在动画，调整 animationStartTime 以保持平滑过渡
+                if (isAnimating) {
+                    // currentAnimationProgress 是 0 到 1 的值，表示动画的完成度
+                    // oldAnimationDuration = baseAnimationDuration / oldSpeed
+                    // newAnimationDuration = baseAnimationDuration / newSpeed
+                    // elapsed = oldAnimationDuration * currentAnimationProgress
+                    // newStartTime = performance.now() - (newAnimationDuration * currentAnimationProgress)
+                    const oldAnimationDuration = baseAnimationDuration / oldSpeed;
+                    const elapsed = oldAnimationDuration * currentAnimationProgress; // 动画开始以来经过的“逻辑”时间
+                    animationStartTime = performance.now() - (elapsed / (animationSpeed / oldSpeed)); // 根据新速度调整实际开始时间
+                }
+            });
+        }
+
+        // 绘制太阳
+        function drawSun() {
+            const r_sun_plot = getScaledRadius(R_sun_km, sun_size_factor); // 使用新的太阳尺寸因子
+            const sunGeometry = new THREE.SphereGeometry(r_sun_plot, 50, 50);
+            const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF00 }); // 黄色
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            sun.position.set(0, 0, 0);
+            scene.add(sun);
+
+            // 为太阳添加 HTML 标签
+            const sunLabelDiv = document.createElement('div');
+            sunLabelDiv.className = 'label';
+            sunLabelDiv.textContent = 'Sun';
+            document.body.appendChild(sunLabelDiv);
+            labels['Sun'] = { mesh: sun, element: sunLabelDiv };
+        }
+
+        // 绘制行星及其轨道
+        function drawPlanets() {
+            const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x0080FF, linewidth: 0.7 }); // 蓝色轨道线
+            
+            bodies.forEach(body => {
+                const a_lin = body.a_au; // 轨道半长轴 (AU)
+                const R_body_scaled = getScaledRadius(body.R_km, planet_size_factor); // 缩放后的行星半径，使用 planet_size_factor
+
+                // 绘制轨道
+                const points = [];
+                const numSegments = 500;
+                for (let i = 0; i <= numSegments; i++) {
+                    const theta = (i / numSegments) * Math.PI * 2;
+                    const x0 = a_lin * Math.cos(theta);
+                    const y0 = a_lin * Math.sin(theta);
+                    points.push(new THREE.Vector3(x0, y0, 0));
+                }
+                const orbitGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+
+                // 应用轨道倾角（为简化起见，绕 X 轴旋转，与 MATLAB 匹配）
+                orbit.rotation.x = THREE.MathUtils.degToRad(body.inc_deg);
+                scene.add(orbit);
+
+                // 绘制行星
+                const planetGeometry = new THREE.SphereGeometry(R_body_scaled, 20, 20);
+                const planetMat = new THREE.MeshLambertMaterial({ color: body.color }); // 使用行星的指定颜色
+                const planet = new THREE.Mesh(planetGeometry, planetMat);
+                // 将行星放置在 (a_lin, 0, 0) 处，然后随其轨道旋转
+                // 为简化起见，我们将其放置在 X 轴上
+                planet.position.set(a_lin, 0, 0);
+                scene.add(planet);
+
+                // 为行星添加 HTML 标签
+                const planetLabelDiv = document.createElement('div');
+                planetLabelDiv.className = 'label';
+                planetLabelDiv.textContent = body.name;
+                document.body.appendChild(planetLabelDiv);
+                labels[body.name] = { mesh: planet, element: planetLabelDiv };
+            });
+        }
+
+        // 绘制柯伊伯带
+        function drawKuiperBelt() {
+            const positions = new Float32Array(N_kuiper * 3);
+            const colors = new Float32Array(N_kuiper * 3);
+            const kuiperBeltColor = new THREE.Color(0xADD8E6); // 浅蓝色，与天王星颜色相似
+
+            for (let i = 0; i < N_kuiper; i++) {
+                const r = r_min_kuiper + Math.random() * (r_max_kuiper - r_min_kuiper); // 随机半径
+                const angle = Math.random() * Math.PI * 2; // 随机角度
+                const z = (Math.random() * 2 - 1) * kuiper_thickness * 0.5; // 随机 Z 坐标，模拟厚度
+
+                const x = r * Math.cos(angle);
+                const y = r * Math.sin(angle);
+                
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                colors[i * 3] = kuiperBeltColor.r;
+                colors[i * 3 + 1] = kuiperBeltColor.g;
+                colors[i * 3 + 2] = kuiperBeltColor.b;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 10, // 柯伊伯带粒子视觉大小
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6,
+                sizeAttenuation: true
+            });
+
+            const kuiperBelt = new THREE.Points(geometry, material);
+            scene.add(kuiperBelt);
+
+            // 为柯伊伯带添加 HTML 标签
+            const kuiperLabelDiv = document.createElement('div');
+            kuiperLabelDiv.className = 'label';
+            kuiperLabelDiv.textContent = 'Kuiper Belt';
+            document.body.appendChild(kuiperLabelDiv);
+            const kuiperAnchor = new THREE.Object3D();
+            kuiperAnchor.position.set((r_min_kuiper + r_max_kuiper) / 2, 0, 0);
+            scene.add(kuiperAnchor);
+            labels['Kuiper Belt'] = { mesh: kuiperAnchor, element: kuiperLabelDiv };
+        }
+
+        // 绘制奥尔特云
+        function drawOortCloud() {
+            const positions = new Float32Array(N_ort * 3);
+            const colors = new Float32Array(N_ort * 3);
+            const oortCloudColor = new THREE.Color(0x808080); // 灰色
+
+            for (let i = 0; i < N_ort; i++) {
+                const phi = Math.random() * Math.PI * 2;
+                const costh = (Math.random() * 2) - 1;
+                const u = Math.random();
+                const theta = Math.acos(costh);
+                // 均匀球壳分布的半径计算
+                const r_lin = Math.pow(((Math.pow(r_max_oort, 3) - Math.pow(r_min_oort, 3)) * u + Math.pow(r_min_oort, 3)), 1/3);
+
+                const x = r_lin * Math.sin(theta) * Math.cos(phi);
+                const y = r_lin * Math.sin(theta) * Math.sin(phi);
+                const z = r_lin * Math.cos(theta);
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                colors[i * 3] = oortCloudColor.r;
+                colors[i * 3 + 1] = oortCloudColor.g;
+                colors[i * 3 + 2] = oortCloudColor.b;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 100, // 奥尔特云粒子视觉大小（增加以提高可见性）
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.7,
+                sizeAttenuation: true // 粒子越近显得越大
+            });
+
+            const oortCloud = new THREE.Points(geometry, material);
+            scene.add(oortCloud);
+
+            // 为奥尔特云添加 HTML 标签
+            const oortLabelDiv = document.createElement('div');
+            oortLabelDiv.className = 'label';
+            oortLabelDiv.textContent = 'Oort Cloud';
+            document.body.appendChild(oortLabelDiv);
+            const oortAnchor = new THREE.Object3D();
+            oortAnchor.position.set(r_max_oort * 0.7, 0, 0); // 将标签放置在奥尔特云的某个位置
+            scene.add(oortAnchor);
+            labels['Oort Cloud'] = { mesh: oortAnchor, element: oortLabelDiv };
+        }
+
+        // 处理窗口大小调整
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 切换相机动画
+        function toggleCameraAnimation() {
+            if (isAnimating) {
+                isAnimating = false;
+                controls.enabled = true;
+                document.getElementById('toggleAnimationBtn').textContent = '开始动画';
+            } else {
+                isAnimating = true;
+                animationDirection = 1; // 始终从远到近开始
+                animationStartTime = performance.now();
+                currentAnimationProgress = 0; // 重置进度
+                controls.enabled = false;
+                document.getElementById('toggleAnimationBtn').textContent = '停止动画';
+                camera.position.copy(farCameraPosition); // 确保相机从远景位置开始
+                camera.lookAt(lookAtTarget);
+            }
+        }
+
+        // 反转相机动画方向
+        function reverseCameraAnimation() {
+            if (!isAnimating) { // 如果当前没有动画，则开始反向动画
+                isAnimating = true;
+                animationDirection = -1; // 从近到远开始
+                animationStartTime = performance.now();
+                currentAnimationProgress = 0; // 重置进度
+                controls.enabled = false;
+                document.getElementById('toggleAnimationBtn').textContent = '停止动画';
+                camera.position.copy(nearCameraPosition); // 确保相机从近景位置开始
+                camera.lookAt(lookAtTarget);
+            } else { // 如果正在动画，则反转方向
+                animationDirection *= -1;
+                // 调整 animationStartTime 以保持动画连续性
+                // currentAnimationProgress 已经是 0 到 1 的值
+                const currentDuration = baseAnimationDuration / animationSpeed;
+                animationStartTime = performance.now() - (currentDuration * (1 - currentAnimationProgress));
+            }
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isAnimating) {
+                const currentAnimationDuration = baseAnimationDuration / animationSpeed;
+                const elapsed = performance.now() - animationStartTime;
+                currentAnimationProgress = Math.min(elapsed / currentAnimationDuration, 1); // 0 到 1
+
+                let interpolatedProgress;
+                if (animationDirection === 1) { // 从远到近
+                    interpolatedProgress = currentAnimationProgress;
+                } else { // 从近到远
+                    interpolatedProgress = 1 - currentAnimationProgress;
+                }
+
+                const currentPosition = new THREE.Vector3();
+                currentPosition.lerpVectors(farCameraPosition, nearCameraPosition, interpolatedProgress);
+                camera.position.copy(currentPosition);
+                camera.lookAt(lookAtTarget);
+
+                if (currentAnimationProgress >= 1) { // 动画片段完成
+                    isAnimating = false;
+                    controls.enabled = true;
+                    document.getElementById('toggleAnimationBtn').textContent = '开始动画';
+                    // 确保相机停留在正确的终点位置
+                    if (animationDirection === 1) {
+                        camera.position.copy(nearCameraPosition);
+                    } else {
+                        camera.position.copy(farCameraPosition);
+                    }
+                    camera.lookAt(lookAtTarget);
+                }
+            } else {
+                controls.update(); // 只有在不动画时才更新控制器
+            }
+
+            // 更新 HTML 标签位置 (始终更新)
+            for (const key in labels) {
+                const { mesh, element } = labels[key];
+                const vector = new THREE.Vector3();
+                mesh.updateWorldMatrix(true, false); // 确保世界矩阵是最新的
+                mesh.getWorldPosition(vector); // 获取网格的世界坐标
+                vector.project(camera); // 将 3D 位置投影到 2D 屏幕坐标
+
+                const x = (vector.x * .5 + .5) * window.innerWidth;
+                const y = (-vector.y * .5 + .5) * window.innerHeight;
+
+                element.style.left = `${x}px`;
+                element.style.top = `${y}px`;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 页面加载完成后执行
+        window.onload = () => {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>
