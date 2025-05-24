@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凝聚态理论：物质的奥秘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+
+    <style>
+        /* Custom styles for the Inter font and background */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Very dark, almost black background for a premium feel */
+            color: #c9d1d9; /* Soft light gray text for contrast */
+            overflow: hidden; /* Prevent scrollbars due to full-screen 3D scene */
+            margin: 0;
+            padding: 0;
+        }
+        /* Custom scrollbar for a sleek look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22; /* Darker track */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d; /* Subtle gray thumb */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58; /* Slightly lighter gray on hover */
+        }
+
+        /* Full screen canvas for Three.js */
+        #gameBoardCanvas {
+            display: block;
+            position: fixed; /* Fixed to cover the entire viewport */
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0; /* Behind other content */
+            cursor: pointer; /* Indicate it's clickable for initial transition */
+        }
+        #gameBoardCanvas.top-down-mode {
+            cursor: default; /* Change cursor back in top-down mode */
+        }
+
+
+        /* Overlay container for header, central content, footer */
+        .overlay-container {
+            position: relative;
+            z-index: 1; /* Above the canvas */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh; /* Ensure it covers full height for layout */
+            padding: 4rem 1rem; /* Adjust padding for overall layout */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+
+        header {
+            width: 100%;
+            max-width: 1000px; /* Match board container max-width */
+            margin-bottom: 4rem;
+        }
+
+        /* Central content area styling (initial welcome message) */
+        .central-content {
+            background-color: rgba(33, 38, 45, 0.9); /* Slightly transparent dark background */
+            border-radius: 1rem;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5); /* Inner shadow for depth */
+            transition: background-color 0.3s ease;
+            width: 80%; /* Adjust width as needed */
+            max-width: 600px; /* Max width for central content */
+            margin: auto; /* Center it within the overlay-container */
+            opacity: 0; /* Start hidden */
+            pointer-events: none; /* Disable interaction when hidden */
+            transition: opacity 0.5s ease-in-out;
+        }
+        .central-content.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .central-content h3 {
+            font-size: 2.5rem; /* Larger title */
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #818CF8; /* Accent color for title */
+        }
+        .central-content p {
+            font-size: 1.125rem; /* Slightly larger text */
+            line-height: 1.75;
+            color: #c9d1d9;
+        }
+        .central-content ul {
+            text-align: left; /* Align list items to the left */
+        }
+
+        /* Modal overlay styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent dark backdrop */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+            opacity: 0; /* Start hidden for transition */
+            pointer-events: none; /* Disable interaction when hidden */
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: #161b22; /* Darker background for modal */
+            border-radius: 1rem;
+            padding: 2.5rem;
+            max-width: 800px; /* Max width for modal content */
+            width: 90%;
+            max-height: 90%;
+            overflow-y: auto; /* Enable scrolling for long content */
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7); /* Deeper shadow for modal */
+            position: relative;
+            transform: translateY(20px); /* Start slightly below for animation */
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0); /* Slide up on show */
+        }
+
+        .modal-title {
+            font-size: 2.8rem; /* Large title for modal */
+            font-weight: 700;
+            color: #60a5fa; /* Blue accent for modal title */
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .modal-body {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #c9d1d9;
+            text-align: justify; /* Justify text for better readability */
+        }
+        .modal-body p {
+            margin-bottom: 1em;
+        }
+        .modal-body ul {
+            list-style: disc;
+            padding-left: 1.5em;
+            margin-bottom: 1em;
+        }
+
+        .modal-button {
+            background-color: #818CF8; /* Accent color for button */
+            color: #0d1117; /* Dark text for contrast */
+            padding: 0.8rem 2rem;
+            border-radius: 0.75rem;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0.5rem; /* Add horizontal margin between buttons */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 15px rgba(129, 140, 248, 0.4);
+        }
+
+        .modal-button:hover {
+            background-color: #6366f1; /* Darker accent on hover */
+            transform: translateY(-2px);
+        }
+
+        /* Specific style for the "Learn More" button if needed */
+        .modal-learn-more-button {
+            background-color: #60a5fa; /* Different accent color for learn more */
+            box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+        }
+
+        .modal-learn-more-button:hover {
+            background-color: #3b82f6;
+        }
+
+        footer {
+            margin-top: auto; /* Push footer to the bottom */
+            padding-top: 2rem;
+        }
+    </style>
+</head>
+<body class="antialiased leading-relaxed">
+    <canvas id="gameBoardCanvas"></canvas>
+
+    <div class="overlay-container">
+        <header class="text-center mb-16 w-full">
+            <h1 class="text-6xl sm:text-7xl font-bold text-blue-400 mb-6 tracking-tight">
+                凝聚态理论
+            </h1>
+            <p class="text-xl sm:text-2xl text-gray-400 font-light">
+                以棋盘形式探索物质的奥秘之旅
+            </p>
+        </header>
+
+        <section id="centralContent" class="central-content">
+            <h3 id="centralTitle">欢迎来到凝聚态理论之旅</h3>
+            <div id="centralText">
+                <p>点击棋盘上的任意方块，探索物质的深层结构与集体涌现现象。</p>
+                <p>这将是一场充满发现的旅程！</p>
+            </div>
+        </section>
+
+        <footer class="text-center text-gray-600 text-sm">
+            <p>&copy; 2025 凝聚态理论探索. 版权所有.</p>
+        </footer>
+    </div>
+
+    <div id="infoModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle" class="modal-title"></h3>
+            <div id="modalBody" class="modal-body"></div>
+            <div class="flex justify-center mt-6">
+                <button id="learnMoreButton" class="modal-button modal-learn-more-button">了解更多</button>
+                <button id="closeModalButton" class="modal-button">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('gameBoardCanvas');
+        const centralContentDiv = document.getElementById('centralContent');
+        const centralTitle = document.getElementById('centralTitle');
+        const centralText = document.getElementById('centralText');
+        const infoModal = document.getElementById('infoModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const learnMoreButton = document.getElementById('learnMoreButton');
+
+        // --- Three.js Variables ---
+        let scene, camera, renderer, controls;
+        let boardGroup; // Group to hold all 3D board elements for rotation
+        let interactiveMeshes = []; // Array to store only the clickable space meshes
+        let raycaster;
+        let mouse;
+        let is3DView = true; // Flag to track current view mode (true for initial rotating view)
+        let currentHoveredMesh = null; // Stores the currently hovered 3D mesh
+
+        // --- Board Dimensions and Constants (in Three.js units) ---
+        const BOARD_SIZE = 100; // Overall size of the board in Three.js units
+        const NUM_SPACES_SIDE = 5; // Number of regular spaces on each side (excluding corners)
+        const CORNER_RATIO = 0.15; // Corner size relative to board size (e.g., 0.15 * 100 = 15 units)
+        const SPACE_THICKNESS = 2; // Base thickness of each space box
+        const BOARD_THICKNESS = 1; // Thickness of the main board plane
+        const MAX_SPACE_HEIGHT = 10; // Max additional height for a staggered space
+
+        // --- Board Spaces Data ---
+        // Added githubUrl for each space - IMPORTANT: Replace these with your actual GitHub page URLs!
+        const boardSpaces = [
+            // Bottom row (from right to left) - 6 elements (1 corner + 5 regular)
+            { id: 'start', type: 'corner', label: '游戏起点', contentTitle: '欢迎来到凝聚态理论之旅', content: '<p>点击地图上的方块，探索物质的奥秘！</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/start.html' },
+            { id: 'fermi_surface', type: 'regular', label: '费米面', contentTitle: '费米面', content: '<p>费米面是金属中电子在动量空间中的边界，它定义了电子在绝对零度下的占据状态，对理解金属的导电性、磁性等性质至关重要。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/fermi_surface.html' },
+            { id: 'bloch_theorem', type: 'regular', label: '布洛赫定理', contentTitle: '布洛赫定理', content: '<p>布洛赫定理描述了晶体中电子的波函数形式，指出电子在周期性势场中运动时，其波函数可以表示为一个平面波乘以一个与晶格周期性相同的函数。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/bloch_theorem.html' },
+            { id: 'band_structure', type: 'regular', label: '能带结构', contentTitle: '能带结构', content: '<p>能带结构描述了电子在固体中允许的能量范围，由一系列连续的能带组成，能带之间的禁带决定了材料是导体、半导体还是绝缘体。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/band_structure.html' },
+            { id: 'superconductivity', type: 'regular', label: '超导', contentTitle: '超导现象', content: '<p>超导是指某些材料在低于某一临界温度时，电阻完全消失且能完全排出磁场的现象。它在能源传输、磁悬浮和医疗成像等领域有巨大潜力。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/superconductivity.html' },
+            { id: 'semiconductor', type: 'regular', label: '半导体', contentTitle: '半导体', content: '<p>半导体是导电性介于导体和绝缘体之间材料，其导电性可以通过掺杂或温度变化来控制。它是现代电子器件（如晶体管、二极管）的基础。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/semiconductor.html' },
+
+            // Left column (from bottom to top) - 6 elements (1 corner + 5 regular)
+            { id: 'topological_insulator', type: 'corner', label: '拓扑绝缘体', contentTitle: '拓扑绝缘体', content: '<p>拓扑绝缘体是一种特殊的量子材料，其内部是绝缘体，但表面或边缘却能导电，且这些导电态受到拓扑保护，对杂质和缺陷不敏感。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/topological_insulator.html' },
+            { id: 'lattice_vibration', type: 'regular', label: '格点振动', contentTitle: '格点振动 (声子)', content: '<p>格点振动是指晶体中原子围绕其平衡位置的集体振动。这些振动的量子化形式被称为声子，在材料的热学、电学和光学性质中扮演重要角色。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/lattice_vibration.html' },
+            { id: 'magnetism', type: 'regular', label: '磁性', contentTitle: '磁性', content: '<p>磁性是材料对磁场响应的性质，源于电子的轨道运动和自旋。常见的磁性类型包括顺磁性、抗磁性、铁磁性、反铁磁性等。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/magnetism.html' },
+            { id: 'quantum_hall_effect', type: 'regular', label: '量子霍尔效应', contentTitle: '量子霍尔效应', content: '<p>量子霍尔效应是指在强磁场和极低温下，二维电子系统中的霍尔电导被精确量子化的现象。它在精密测量和拓扑物理研究中具有重要意义。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/quantum_hall_effect.html' },
+            { id: 'spintronics', type: 'regular', label: '自旋电子学', contentTitle: '自旋电子学', content: '<p>自旋电子学是利用电子的自旋（除了电荷之外的另一个基本属性）来存储、传输和处理信息的新兴技术。它有望带来更低功耗、更快速度的电子器件。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/spintronics.html' },
+            { id: 'dft', type: 'regular', label: '密度泛函理论', contentTitle: '密度泛函理论 (DFT)', content: '<p>密度泛函理论是一种计算多电子体系基态性质的量子力学方法。它将复杂的多体薛定谔方程转化为基于电子密度的单粒子方程，广泛应用于材料科学和化学。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/dft.html' },
+
+            // Top row (from left to right) - 6 elements (1 corner + 5 regular)
+            { id: 'mean_field_theory', type: 'corner', label: '平均场理论', contentTitle: '平均场理论', content: '<p>平均场理论是一种近似处理多体相互作用的方法，它将单个粒子与其他所有粒子的相互作用近似为该粒子在一个平均场中的运动，简化了复杂系统的分析。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/mean_field_theory.html' },
+            { id: 'phase_transition', type: 'regular', label: '相变', contentTitle: '相变', content: '<p>相变是物质宏观性质发生突变的现象，如固态、液态、气态之间的转变，以及超导、磁性等更复杂的量子相变。理解相变是凝聚态物理的核心问题之一。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/phase_transition.html' },
+            { id: 'critical_phenomena', type: 'regular', label: '临界现象', contentTitle: '临界现象', content: '<p>临界现象是指在相变点附近，物质的宏观性质（如比热、磁化率）表现出异常行为的现象。它通常伴随着长程关联和标度不变性。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/critical_phenomena.html' },
+            { id: 'anderson_localization', type: 'regular', label: '安德森局域化', contentTitle: '安德森局域化', content: '<p>安德森局域化是指在无序介质中，电子波函数由于散射而变得局域化的现象，导致材料从导体变为绝缘体，即使在零温度下也是如此。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/anderson_localization.html' },
+            { id: 'kondo_effect', type: 'regular', label: '近藤效应', contentTitle: '近藤效应', content: '<p>近藤效应是指在含有少量磁性杂质的金属中，在极低温下电阻率出现异常增大的现象。这是由于导电电子与磁性杂质自旋之间的相互作用引起的。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/kondo_effect.html' },
+            { id: 'bec', type: 'regular', label: '玻色-爱因斯坦凝聚', contentTitle: '玻色-爱因斯坦凝聚 (BEC)', content: '<p>玻色-爱因斯坦凝聚是玻色子在极低温下占据最低量子态的现象，形成一个宏观量子态。它是一种宏观量子现象，在超流体和量子计算等领域有应用。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/bec.html' },
+
+            // Right column (from top to bottom) - 6 elements (1 corner + 5 regular)
+            { id: 'superfluidity', type: 'corner', label: '超流体', contentTitle: '超流体', content: '<p>超流体是一种具有零粘滞性流动的量子流体，可以在没有摩擦的情况下流动。氦-4在极低温下可以转变为超流体。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/superfluidity.html' },
+            { id: 'quantum_phase_transition', type: 'regular', label: '量子相变', contentTitle: '量子相变', content: '<p>量子相变是指在绝对零度下，由量子涨落而非热涨落驱动的相变。它通常通过改变非热参数（如磁场、压力）来实现。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/quantum_phase_transition.html' },
+            { id: 'strongly_correlated', type: 'regular', label: '强关联电子系统', contentTitle: '强关联电子系统', content: '<p>强关联电子系统是指电子之间的相互作用非常强，以至于简单的单粒子图像无法描述其行为的材料。这些系统常表现出奇特的量子现象，如高温超导。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/strongly_correlated.html' },
+            { id: '2d_materials', type: 'regular', label: '二维材料', contentTitle: '二维材料', content: '<p>二维材料是指只有一个原子层厚度的材料，如石墨烯、二硫化钼等。它们具有独特的电子、光学和机械性质，在纳米技术和新材料领域有广阔前景。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/2d_materials.html' },
+            { id: 'graphene', type: 'regular', label: '石墨烯', contentTitle: '石墨烯', content: '<p>石墨烯是单层碳原子以六边形蜂窝状结构排列的二维材料。它具有极高的导电性、导热性和机械强度，被誉为“神奇材料”。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/graphene.html' },
+            { id: 'topological_superconductor', type: 'regular', label: '拓扑超导', contentTitle: '拓扑超导', content: '<p>拓扑超导体是一种特殊的超导态，其表面或边缘可能存在马约拉纳费米子，这些准粒子有望用于构建容错量子计算机。</p>', githubUrl: 'https://github.com/your-username/your-repo/blob/main/pages/topological_superconductor.html' },
+        ];
+
+        /**
+         * Updates the content displayed in the central information area.
+         * @param {object} space - The space object containing contentTitle and content.
+         */
+        function updateCentralContent(space) {
+            centralTitle.innerHTML = space.contentTitle;
+            centralText.innerHTML = space.content;
+        }
+
+        /**
+         * Initializes the Three.js scene, camera, renderer, and adds lights.
+         */
+        function init3DScene() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0d1117); // Match body background
+
+            // Camera (Perspective for initial 3D view)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Initial camera position for a side/isometric view
+            camera.position.set(BOARD_SIZE * 0.8, BOARD_SIZE * 0.7, BOARD_SIZE * 0.8);
+            camera.lookAt(0, 0, 0); // Look at the center of the board
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Controls (enabled initially for debugging, disabled after first click)
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Smooth camera movements
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below ground
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(50, 100, 50); // Position the light
+            directionalLight.castShadow = true; // Enable shadows (requires renderer.shadowMap.enabled = true)
+            scene.add(directionalLight);
+
+            // Raycaster for click and hover detection on 3D objects
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            createBoard(); // Create the 3D board elements
+        }
+
+        /**
+         * Creates the 3D board plane and all its staggered spaces.
+         */
+        function createBoard() {
+            boardGroup = new THREE.Group();
+            scene.add(boardGroup);
+
+            // Main board plane (optional, can be removed if only floating blocks are desired)
+            const boardGeometry = new THREE.BoxGeometry(BOARD_SIZE, BOARD_THICKNESS, BOARD_SIZE);
+            const boardMaterial = new THREE.MeshStandardMaterial({ color: 0x161b22, metalness: 0.1, roughness: 0.8 }); // Dark background
+            const mainBoard = new THREE.Mesh(boardGeometry, boardMaterial);
+            mainBoard.position.y = -BOARD_THICKNESS / 2; // Place it slightly below origin (0,0,0)
+            // We don't need to name it for exclusion anymore, as we'll raycast only interactiveMeshes
+            boardGroup.add(mainBoard);
+
+            // Calculate dimensions for spaces
+            const cornerDim = BOARD_SIZE * CORNER_RATIO; // e.g., 15 units
+            const regularSpaceDim = (BOARD_SIZE - 2 * cornerDim) / NUM_SPACES_SIDE; // e.g., 14 units
+
+            // Pre-calculate all space positions (centers) in the correct order
+            const positions = [];
+
+            // Bottom Row (indices 0-5, from right to left)
+            // Bottom-right corner (index 0)
+            positions.push({ x: BOARD_SIZE / 2 - cornerDim / 2, z: BOARD_SIZE / 2 - cornerDim / 2, w: cornerDim, d: cornerDim });
+            // Regular spaces (indices 1-5)
+            for (let i = 0; i < NUM_SPACES_SIDE; i++) {
+                const x = (BOARD_SIZE / 2 - cornerDim) - (i * regularSpaceDim) - regularSpaceDim / 2;
+                positions.push({ x: x, z: BOARD_SIZE / 2 - cornerDim / 2, w: regularSpaceDim, d: cornerDim });
+            }
+
+            // Left Column (indices 6-11, from bottom to top)
+            // Bottom-left corner (index 6)
+            positions.push({ x: -BOARD_SIZE / 2 + cornerDim / 2, z: BOARD_SIZE / 2 - cornerDim / 2, w: cornerDim, d: cornerDim });
+            // Regular spaces (indices 7-11)
+            for (let i = 0; i < NUM_SPACES_SIDE; i++) {
+                const z = (BOARD_SIZE / 2 - cornerDim) - (i * regularSpaceDim) - regularSpaceDim / 2;
+                positions.push({ x: -BOARD_SIZE / 2 + cornerDim / 2, z: z, w: cornerDim, d: regularSpaceDim });
+            }
+
+            // Top Row (indices 12-17, from left to right)
+            // Top-left corner (index 12)
+            positions.push({ x: -BOARD_SIZE / 2 + cornerDim / 2, z: -BOARD_SIZE / 2 + cornerDim / 2, w: cornerDim, d: cornerDim });
+            // Regular spaces (indices 13-17)
+            for (let i = 0; i < NUM_SPACES_SIDE; i++) {
+                const x = (-BOARD_SIZE / 2 + cornerDim) + (i * regularSpaceDim) + regularSpaceDim / 2;
+                positions.push({ x: x, z: -BOARD_SIZE / 2 + cornerDim / 2, w: regularSpaceDim, d: cornerDim });
+            }
+
+            // Right Column (indices 18-23, from top to bottom)
+            // Top-right corner (index 18)
+            positions.push({ x: BOARD_SIZE / 2 - cornerDim / 2, z: -BOARD_SIZE / 2 + cornerDim / 2, w: cornerDim, d: cornerDim });
+            // Regular spaces (indices 19-23)
+            for (let i = 0; i < NUM_SPACES_SIDE; i++) {
+                const z = (-BOARD_SIZE / 2 + cornerDim) + (i * regularSpaceDim) + regularSpaceDim / 2;
+                positions.push({ x: BOARD_SIZE / 2 - cornerDim / 2, z: z, w: cornerDim, d: regularSpaceDim });
+            }
+
+            // Now, iterate through boardSpaces and positions array to add meshes
+            interactiveMeshes = []; // Clear the array before populating
+            for (let i = 0; i < boardSpaces.length; i++) {
+                const space = boardSpaces[i];
+                const pos = positions[i];
+                // Random height for staggered effect
+                const height = SPACE_THICKNESS + (Math.random() * MAX_SPACE_HEIGHT);
+                
+                const geometry = new THREE.BoxGeometry(pos.w, height, pos.d);
+                const materialColor = space.type === 'corner' ? 0x3a4047 : 0x21262d; // Slightly different color for corners
+                const material = new THREE.MeshStandardMaterial({ color: materialColor, metalness: 0.2, roughness: 0.7 });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(pos.x, height / 2, pos.z); // Position correctly based on height
+                mesh.userData.spaceData = space; // Store original space data for click detection
+                boardGroup.add(mesh);
+                interactiveMeshes.push(mesh); // Add this mesh to our interactive list
+                space.mesh = mesh; // Store mesh reference in space data
+            }
+        }
+
+        /**
+         * Animation loop for Three.js.
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (is3DView) {
+                boardGroup.rotation.y += 0.005; // Continuous rotation in initial 3D view
+            }
+
+            controls.update(); // Only needed if controls are enabled and for damping
+            renderer.render(scene, camera);
+        }
+
+        /**
+         * Handles window resizing to keep the Three.js scene responsive.
+         */
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /**
+         * Handles clicks on the canvas for both 3D view transition and space selection.
+         */
+        function onCanvasClick(event) {
+            console.log("Canvas clicked. Initial is3DView:", is3DView); // Debug log
+            if (is3DView) {
+                console.log("Attempting to transition to top-down view.");
+                // Immediately disable controls to prevent interference during animation
+                controls.enabled = false;
+                canvas.classList.add('top-down-mode'); // Change cursor immediately
+
+                // Transition to top-down view
+                gsap.to(camera.position, {
+                    x: 0,
+                    y: BOARD_SIZE * 2, // Increased height for a clearer top-down view
+                    z: 0,
+                    duration: 1.5,
+                    ease: "power2.inOut",
+                    onUpdate: function() {
+                        camera.lookAt(0, 0, 0); // Always look at the center of the board
+                        // console.log("Camera position during animation:", camera.position.toArray()); // Detailed debug
+                    },
+                    onComplete: () => {
+                        is3DView = false; // Switch to 2D-like view
+                        centralContentDiv.classList.add('show'); // Show central content
+                        updateCentralContent(boardSpaces[0]); // Display initial welcome message
+                        console.log("Transition complete. is3DView now:", is3DView); // Debug log
+                        console.log("Final camera position:", camera.position.toArray());
+                    }
+                });
+            } else {
+                // In 2D-like view, detect clicked space
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+
+                // Intersect only with the interactive meshes (the individual blocks)
+                const intersects = raycaster.intersectObjects(interactiveMeshes);
+
+                if (intersects.length > 0) {
+                    const clickedMesh = intersects[0].object;
+                    // Find the corresponding space data from the mesh's userData
+                    const clickedSpace = clickedMesh.userData.spaceData;
+
+                    if (clickedSpace) {
+                        showModal(clickedSpace);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Handles mouse movement for hover effect on 3D spaces in 2D-like view.
+         */
+        function onCanvasMouseMove(event) {
+            if (!is3DView) { // Only apply hover effect in 2D-like view
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+
+                // Intersect only with the interactive meshes (the individual blocks)
+                const intersects = raycaster.intersectObjects(interactiveMeshes);
+
+                let newHoveredMesh = null;
+                if (intersects.length > 0) {
+                    newHoveredMesh = intersects[0].object;
+                }
+
+                if (currentHoveredMesh !== newHoveredMesh) {
+                    // Reset previous hovered mesh material (remove emissive light)
+                    if (currentHoveredMesh) {
+                        currentHoveredMesh.material.emissive.setHex(0x000000);
+                    }
+                    // Set new hovered mesh material (add subtle emissive glow)
+                    currentHoveredMesh = newHoveredMesh;
+                    if (currentHoveredMesh) { // Only apply if a new mesh is actually hovered
+                        currentHoveredMesh.material.emissive.setHex(0x0a0a0a); // Subtle glow on hover
+                    }
+                }
+            }
+        }
+
+        /**
+         * Shows the modal with content from the clicked space.
+         * @param {object} space - The space object containing contentTitle, content, and githubUrl.
+         */
+        function showModal(space) {
+            modalTitle.innerHTML = space.contentTitle;
+            modalBody.innerHTML = space.content;
+            infoModal.classList.add('show');
+
+            // Set the "Learn More" button's action
+            learnMoreButton.onclick = () => {
+                if (space.githubUrl) {
+                    window.open(space.githubUrl, '_blank'); // Open in new tab
+                } else {
+                    console.warn("此空间未定义 GitHub URL。");
+                }
+                hideModal(); // Close modal after clicking "Learn More"
+            };
+        }
+
+        /**
+         * Hides the modal.
+         */
+        function hideModal() {
+            infoModal.classList.remove('show');
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', onWindowResize);
+        canvas.addEventListener('click', onCanvasClick);
+        canvas.addEventListener('mousemove', onCanvasMouseMove); // For hover effect
+        closeModalButton.addEventListener('click', hideModal);
+        // Event listener for clicking outside modal content to close (backdrop click)
+        infoModal.addEventListener('click', (event) => {
+            if (event.target === infoModal) {
+                hideModal();
+            }
+        });
+
+        // --- Initial Setup on Window Load ---
+        window.onload = function() {
+            init3DScene(); // Initialize Three.js scene
+            animate(); // Start the animation loop
+            // Central content is hidden initially, and will be shown after the first click
+        };
+    </script>
+</body>
+</html>
