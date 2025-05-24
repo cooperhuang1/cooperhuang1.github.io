@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地月大碰撞模拟器 - 融合、吸积与双球形成</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Global styles */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        /* Three.js render container style */
+        #threejs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        /* UI control panel style */
+        .ui-controls {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: calc(100vh - 2rem); /* Limit height to prevent overflow */
+            overflow-y: auto; /* Allow scrolling */
+            padding-right: 0.5rem; /* Space for scrollbar */
+            padding-bottom: 1rem; /* Add some padding at the bottom to prevent controls from touching the bottom edge */
+        }
+        /* Button common style */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.2rem;
+            background-color: #4a5568;
+            color: white;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background-color: #2d3748;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .btn i {
+            margin-right: 0.5rem;
+        }
+        /* Info display panel style */
+        .info-panel {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem; /* Moved to bottom right to avoid overlap */
+            z-index: 10;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        .info-panel p {
+            margin-bottom: 0.4rem;
+        }
+        .info-panel p:last-child {
+            margin-bottom: 0;
+        }
+        /* Slider container style */
+        .slider-container {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            background-color: rgba(31, 41, 55, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .slider-container label {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .slider-container input[type="range"]:hover {
+            opacity: 1;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* Top header and description */
+        .page-header {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            text-align: right;
+            max-width: 400px;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="threejs-container"></div>
+
+    <div class="ui-controls">
+        <a href="solar_system_map.html" class="btn">
+            <i class="fas fa-arrow-left"></i> 返回太阳系地图
+        </a>
+        <button id="playPauseBtn" class="btn bg-blue-600 hover:bg-blue-700">
+            <i class="fas fa-play"></i> 播放
+        </button>
+        <button id="resetBtn" class="btn bg-red-600 hover:bg-red-700">
+            <i class="fas fa-sync-alt"></i> 重置
+        </button>
+
+        <div class="slider-container">
+            <label for="simSpeedSlider">模拟速度: <span id="simSpeedValue">1.0</span>x</label>
+            <input type="range" id="simSpeedSlider" min="0.1" max="10.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="particleCountSlider">粒子数量 (总): <span id="particleCountValue">20000</span></label>
+            <input type="range" id="particleCountSlider" min="1000" max="50000" step="1000" value="20000">
+        </div>
+        <div class="slider-container">
+            <label for="impactorSizeSlider">撞击体大小: <span id="impactorSizeValue">0.5</span> (地球倍数)</label>
+            <input type="range" id="impactorSizeSlider" min="0.1" max="1.0" step="0.05" value="0.5">
+        </div>
+        <div class="slider-container">
+            <label for="impactorVelocitySlider">撞击体速度: <span id="impactorVelocityValue">1.0</span></label>
+            <input type="range" id="impactorVelocitySlider" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="impactOffsetSlider">撞击偏移量: <span id="impactOffsetValue">0.5</span></label>
+            <input type="range" id="impactOffsetSlider" min="0.0" max="1.0" step="0.1" value="0.5">
+        </div>
+        <div class="slider-container">
+            <label for="gravityStrengthSlider">引力强度: <span id="gravityStrengthValue">0.001</span></label>
+            <input type="range" id="gravityStrengthSlider" min="0.0001" max="0.005" step="0.0001" value="0.001">
+        </div>
+    </div>
+
+    <div class="page-header">
+        <h1>地月大碰撞模拟器 - 粒子版</h1>
+        <p>模拟早期地球与忒伊亚的巨大撞击，探索月球的起源。地球由三层不同颜色的粒子组成。</p>
+        <p class="text-sm text-gray-400 mt-2">注意：此模拟器为简化版，粒子碰撞和新天体形成过程并非完全物理精确。</p>
+    </div>
+
+    <div class="info-panel">
+        <p>模拟状态: <span id="simStatus">暂停</span></p>
+        <p>模拟时间: <span id="simTime">0.00</span> 秒</p>
+        <p>撞击状态: <span id="impactStatus">未发生</span></p>
+        <p>活跃粒子: <span id="currentParticleCount">0</span></p>
+        <p>地球粒子: <span id="earthParticleCount">0</span></p>
+        <p>月球粒子: <span id="moonParticleCount">0</span></p>
+    </div>
+
+    <script>
+        // --- Three.js Scene, Camera, Renderer Global Variables ---
+        let scene, camera, renderer, controls;
+        let particlesMesh; // THREE.Points mesh for all particles
+        let positions, colors; // Buffer attributes for particles
+        let particleGeometry; // BufferGeometry for particles
+
+        // Array to store particle data (position, velocity, color, mass, original body ID, current body ID)
+        let allParticles = [];
+        let simulationRunning = false;
+        let animationFrameId;
+        let lastFrameTime = performance.now();
+        let currentSimTime = 0;
+        let impactTime = -1; // Time when impact occurred
+
+        let hasImpactOccurred = false;
+        let initialEarthCOM = new THREE.Vector3(0, 0, 0); // Store initial Earth's center of mass for reference
+
+        // Core celestial bodies (ProtoEarth and ProtoMoon)
+        // These are abstract entities that particles will gravitate towards
+        class CelestialBody {
+            constructor(id, initialPosition, initialVelocity, initialMass, initialRadius, color) {
+                this.id = id; // 0 for Earth, 1 for Moon
+                this.position = initialPosition.clone();
+                this.velocity = initialVelocity.clone();
+                this.mass = initialMass;
+                this.radius = initialRadius;
+                this.color = color; // Base color for the body
+                this.particles = []; // Particles assigned to this body
+            }
+
+            // Update COM and total mass based on assigned particles
+            updateFromParticles() {
+                let com = new THREE.Vector3();
+                let totalMass = 0;
+                if (this.particles.length > 0) {
+                    for (const p of this.particles) {
+                        com.add(p.position.clone().multiplyScalar(p.mass));
+                        totalMass += p.mass;
+                    }
+                    this.position.copy(com.divideScalar(totalMass));
+                    this.mass = totalMass;
+                } else {
+                    // If no particles, effectively remove it from simulation by setting mass to 0
+                    this.mass = 0;
+                    this.position.set(1e10, 1e10, 1e10); // Move far away to avoid influencing other bodies
+                }
+            }
+        }
+
+        let protoEarthBody; // Represents the new Earth after impact
+        let protoMoonBody; // Represents the new Moon after impact
+
+        // --- Simulation Parameters ---
+        const SIM_PARAMS = {
+            EARTH_RADIUS_VISUAL: 30, // Visual radius of proto-Earth
+            IMPACTOR_SIZE_RATIO: 0.5, // Impactor size relative to Earth (adjustable)
+            IMPACTOR_VELOCITY: 1.0, // Impactor initial velocity
+            IMPACT_OFFSET: 0.5, // Impact offset (0.0 for head-on, 1.0 for graze) (adjustable) - Default to glancing
+            TOTAL_PARTICLE_COUNT: 20000, // Total number of particles (adjustable)
+            GRAVITY_STRENGTH: 0.001, // Universal Gravitational Constant (G)
+            SIM_SPEED: 1.0, // Simulation time multiplier (adjustable)
+
+            // Internal fixed parameters
+            PROTO_EARTH_PARTICLE_RATIO: 0.7, // Percentage of particles for proto-Earth
+            PARTICLE_MASS: 0.01, // Mass of each individual particle
+            PARTICLE_SIZE: 0.2, // Visual size of each particle
+            INITIAL_SEPARATION_FACTOR: 4, // Initial separation of bodies
+            COLLISION_DETECTION_THRESHOLD: 1.05, // How close the body centers need to be for impact (radius sum * this factor)
+            IMPACT_EXPLOSION_FORCE: 0.8, // Force applied to particles during impact (tuned for ejection)
+            IMPACT_TANGENTIAL_FORCE_FACTOR: 0.5, // Factor for tangential force during impact to impart angular momentum
+            PARTICLE_FRICTION: 0.95, // Simple friction to damp particle movement (increased damping for faster settling)
+            CORE_RADIUS_RATIO: 0.3, // Percentage of Earth radius for core
+            MANTLE_RADIUS_RATIO: 0.7, // Percentage of Earth radius for mantle
+
+            // New parameters for "fusion-ejection-accretion-coalescence" model
+            ROCHE_LIMIT_RADIUS_FACTOR: 3.5, // Approx. Roche limit in Earth radii for Moon formation
+            ORBITAL_VELOCITY_THRESHOLD_FACTOR: 0.05, // Minimum tangential velocity relative to system COM for Moon-bound particles
+            COHESION_GRAVITY_FACTOR: 800.0, // Strong force pulling particles towards their assigned body's COM (VERY HIGH for rapid sphere formation)
+            INTER_BODY_GRAVITY_FACTOR: 1.0, // Normal gravity between the two main bodies
+            COALESCENCE_DAMPING: 0.15, // Additional damping for particles to settle into spheres (increased)
+            MIN_MOON_PARTICLES_FOR_BODY: 100, // Minimum particles to consider protoMoonBody active
+        };
+
+        // --- DOM Element References ---
+        let playPauseBtn, resetBtn;
+        let simSpeedSlider, simSpeedValueDisplay;
+        let particleCountSlider, particleCountValueDisplay;
+        let impactorSizeSlider, impactorSizeValueDisplay;
+        let impactorVelocitySlider, impactorVelocityValueDisplay;
+        let impactOffsetSlider, impactOffsetValueDisplay;
+        let gravityStrengthSlider, gravityStrengthValueDisplay;
+        let simStatusDisplay, simTimeDisplay, impactStatusDisplay, currentParticleCountDisplay;
+        let earthParticleCountDisplay, moonParticleCountDisplay;
+
+
+        // --- Initialize Three.js Scene ---
+        const initThreeJS = () => {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Black background
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 50, SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.INITIAL_SEPARATION_FACTOR); // Camera initial position
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Enable damping
+            controls.dampingFactor = 0.05;
+            controls.minDistance = SIM_PARAMS.EARTH_RADIUS_VISUAL * 1.5; // Min zoom distance
+            controls.maxDistance = SIM_PARAMS.EARTH_RADIUS_VISUAL * 8; // Max zoom distance
+
+            // --- Lighting ---
+            const ambientLight = new THREE.AmbientLight(0x404040); // Soft ambient light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Main light source
+            directionalLight.position.set(50, 50, 50).normalize();
+            scene.add(directionalLight);
+            
+            // Impact glow light (will be positioned at impact point)
+            const impactGlowLight = new THREE.PointLight(0xFF4500, 0, 200); // Initial intensity 0
+            impactGlowLight.position.set(0, 0, 0);
+            scene.add(impactGlowLight);
+
+            // --- Initialize Particle Geometry and Material ---
+            particleGeometry = new THREE.BufferGeometry();
+            positions = new Float32Array(SIM_PARAMS.TOTAL_PARTICLE_COUNT * 3);
+            colors = new Float32Array(SIM_PARAMS.TOTAL_PARTICLE_COUNT * 3);
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: SIM_PARAMS.PARTICLE_SIZE,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                sizeAttenuation: true,
+            });
+
+            particlesMesh = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particlesMesh);
+
+            window.addEventListener('resize', onWindowResize, false);
+        };
+
+        // --- Window Resize Function ---
+        const onWindowResize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+
+        // --- Generate Particles for a Sphere ---
+        const generateSphereParticles = (center, radius, count, bodyId, earthLayerColors = false) => {
+            const tempParticles = [];
+            const coreColor = new THREE.Color(0xFF0000); // Bright Red
+            const mantleColor = new THREE.Color(0xFFA500); // Bright Orange
+            const crustColor = new THREE.Color(0x8B4513); // Distinct Brown
+            const impactorColor = new THREE.Color(0x00008B); // Dark Blue (Theia)
+
+            for (let i = 0; i < count; i++) {
+                const r = radius * Math.cbrt(Math.random());
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((2 * Math.random()) - 1);
+
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+
+                const pos = new THREE.Vector3(x, y, z).add(center);
+                const vel = new THREE.Vector3();
+
+                let particleColor;
+                if (earthLayerColors) {
+                    const distFromCenter = pos.distanceTo(center);
+                    if (distFromCenter < radius * SIM_PARAMS.CORE_RADIUS_RATIO) {
+                        particleColor = coreColor.clone();
+                    } else if (distFromCenter < radius * SIM_PARAMS.MANTLE_RADIUS_RATIO) {
+                        particleColor = mantleColor.clone();
+                    } else {
+                        particleColor = crustColor.clone();
+                    }
+                } else {
+                    particleColor = impactorColor.clone(); // Initial impactor particles
+                }
+
+                tempParticles.push({
+                    position: pos,
+                    velocity: vel,
+                    color: particleColor,
+                    mass: SIM_PARAMS.PARTICLE_MASS,
+                    originalBodyId: bodyId, // 0 for Earth, 1 for Impactor
+                    currentBodyId: bodyId, // Initially same as original, will change after impact
+                });
+            }
+            return tempParticles;
+        };
+
+        // --- Initialize Simulation State ---
+        const initSimulation = () => {
+            currentSimTime = 0;
+            impactTime = -1;
+            hasImpactOccurred = false;
+            allParticles = [];
+
+            scene.children.forEach(obj => {
+                if (obj instanceof THREE.PointLight && obj.color.getHex() === 0xFF4500) {
+                    obj.intensity = 0;
+                }
+            });
+
+            const earthParticleCount = Math.floor(SIM_PARAMS.TOTAL_PARTICLE_COUNT * SIM_PARAMS.PROTO_EARTH_PARTICLE_RATIO);
+            const impactorParticleCount = SIM_PARAMS.TOTAL_PARTICLE_COUNT - earthParticleCount;
+
+            initialEarthCOM.set(0, 0, 0); // Earth starts at origin
+
+            // Generate Earth particles
+            const earthParticles = generateSphereParticles(
+                initialEarthCOM,
+                SIM_PARAMS.EARTH_RADIUS_VISUAL,
+                earthParticleCount,
+                0, // bodyId = 0 for Earth
+                true // Apply layered colors
+            );
+
+            // Generate Impactor particles
+            let impactorInitialCenter = new THREE.Vector3(
+                -SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.INITIAL_SEPARATION_FACTOR,
+                SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.IMPACT_OFFSET, // Use offset for glancing blow
+                0
+            );
+            const impParticles = generateSphereParticles(
+                impactorInitialCenter,
+                SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.IMPACTOR_SIZE_RATIO,
+                impactorParticleCount,
+                1 // bodyId = 1 for Impactor
+            );
+            // Apply initial velocity to impactor particles
+            const impactorInitialVelocity = new THREE.Vector3(SIM_PARAMS.IMPACTOR_VELOCITY, 0, 0);
+            for (const p of impParticles) {
+                p.velocity.copy(impactorInitialVelocity);
+            }
+            
+            // Combine all particles for rendering
+            allParticles = [...earthParticles, ...impParticles];
+
+            // Initialize protoEarthBody and protoMoonBody as placeholder, their properties will be dynamically updated
+            protoEarthBody = new CelestialBody(0, new THREE.Vector3(), new THREE.Vector3(), 0, SIM_PARAMS.EARTH_RADIUS_VISUAL, new THREE.Color(0x8B4513));
+            protoMoonBody = new CelestialBody(1, new THREE.Vector3(), new THREE.Vector3(), 0, SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.IMPACTOR_SIZE_RATIO, new THREE.Color(0x808080));
+
+            updateParticleBuffers();
+            updateInfoPanel();
+        };
+
+        // --- Update Particle BufferGeometry attributes ---
+        const updateParticleBuffers = () => {
+            let pIdx = 0;
+            for (let i = 0; i < allParticles.length; i++) {
+                const p = allParticles[i];
+                positions[pIdx * 3] = p.position.x;
+                positions[pIdx * 3 + 1] = p.position.y;
+                positions[pIdx * 3 + 2] = p.position.z;
+
+                colors[pIdx * 3] = p.color.r;
+                colors[pIdx * 3 + 1] = p.color.g;
+                colors[pIdx * 3 + 2] = p.color.b;
+                pIdx++;
+            }
+            particleGeometry.attributes.position.needsUpdate = true;
+            particleGeometry.attributes.color.needsUpdate = true;
+            particleGeometry.setDrawRange(0, allParticles.length);
+        };
+
+        // --- Handle Impact Event ---
+        const handleImpact = () => {
+            if (hasImpactOccurred) return;
+
+            hasImpactOccurred = true;
+            impactTime = currentSimTime; // Record impact time
+            impactStatusDisplay.textContent = '已发生';
+
+            // Calculate current center of collision for visual effect
+            let combinedCOM = new THREE.Vector3();
+            let totalMass = 0;
+            for (const p of allParticles) {
+                combinedCOM.add(p.position.clone().multiplyScalar(p.mass));
+                totalMass += p.mass;
+            }
+            combinedCOM.divideScalar(totalMass);
+
+            scene.children.forEach(obj => {
+                if (obj instanceof THREE.PointLight && obj.color.getHex() === 0xFF4500) {
+                    obj.position.copy(combinedCOM);
+                    obj.intensity = 5.0; // Increase intensity for impact glow
+                }
+            });
+
+            // Apply explosion force and tangential force to all particles near the impact point
+            // This imparts angular momentum and scatters material
+            for (const p of allParticles) {
+                const distanceToImpactPoint = p.position.distanceTo(combinedCOM);
+                if (distanceToImpactPoint < SIM_PARAMS.EARTH_RADIUS_VISUAL * 1.5) {
+                    const directionFromImpact = p.position.clone().sub(combinedCOM).normalize();
+                    const forceStrength = SIM_PARAMS.IMPACT_EXPLOSION_FORCE * (1 - (distanceToImpactPoint / (SIM_PARAMS.EARTH_RADIUS_VISUAL * 1.5)));
+                    p.velocity.add(directionFromImpact.multiplyScalar(forceStrength));
+
+                    // Add tangential force to impart angular momentum
+                    const tangentialDirection = new THREE.Vector3(-directionFromImpact.y, directionFromImpact.x, 0).normalize(); // Perpendicular in XY plane
+                    p.velocity.add(tangentialDirection.multiplyScalar(forceStrength * SIM_PARAMS.IMPACT_TANGENTIAL_FORCE_FACTOR));
+                }
+            }
+        };
+
+        // --- Simulation Physics Step ---
+        const updateSimulation = (deltaTime) => {
+            // Calculate overall system COM for gravitational pull
+            let systemCOM = new THREE.Vector3();
+            let systemTotalMass = 0;
+            for (const p of allParticles) {
+                systemCOM.add(p.position.clone().multiplyScalar(p.mass));
+                systemTotalMass += p.mass;
+            }
+            if (systemTotalMass > 0) systemCOM.divideScalar(systemTotalMass);
+
+            // Pre-impact phase: Earth and Impactor move towards each other
+            if (!hasImpactOccurred) {
+                // Calculate current COM of Earth and Impactor particles for collision detection
+                let earthCOM_pre = new THREE.Vector3();
+                let earthMass_pre = 0;
+                let impactorCOM_pre = new THREE.Vector3();
+                let impactorMass_pre = 0;
+
+                for (const p of allParticles) {
+                    if (p.originalBodyId === 0) {
+                        earthCOM_pre.add(p.position.clone().multiplyScalar(p.mass));
+                        earthMass_pre += p.mass;
+                    } else {
+                        impactorCOM_pre.add(p.position.clone().multiplyScalar(p.mass));
+                        impactorMass_pre += p.mass;
+                    }
+                }
+                if (earthMass_pre > 0) earthCOM_pre.divideScalar(earthMass_pre);
+                if (impactorMass_pre > 0) impactorCOM_pre.divideScalar(impactorMass_pre);
+
+                // Check for collision between the two initial bodies
+                const distance = earthCOM_pre.distanceTo(impactorCOM_pre);
+                const combinedRadius = SIM_PARAMS.EARTH_RADIUS_VISUAL + (SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.IMPACTOR_SIZE_RATIO);
+                if (distance < combinedRadius * SIM_PARAMS.COLLISION_DETECTION_THRESHOLD) {
+                    handleImpact(); // Trigger impact
+                }
+
+                // Apply gravity between the two initial bodies (abstractly, to guide particles)
+                const dir = impactorCOM_pre.clone().sub(earthCOM_pre);
+                const distSq = dir.lengthSq();
+                if (distSq > 0.1 * 0.1) {
+                    const forceMagnitude = SIM_PARAMS.GRAVITY_STRENGTH * earthMass_pre * impactorMass_pre / distSq;
+                    const force = dir.normalize().multiplyScalar(forceMagnitude);
+                    
+                    // Apply force to particles based on their original body's COM
+                    for (const p of allParticles) {
+                        if (p.originalBodyId === 0) { // Earth particle
+                            p.velocity.add(force.clone().multiplyScalar(deltaTime / p.mass));
+                        } else { // Impactor particle
+                            p.velocity.sub(force.clone().multiplyScalar(deltaTime / p.mass)); // Opposite force
+                        }
+                    }
+                }
+
+                // Update particle positions
+                for (const p of allParticles) {
+                    p.position.add(p.velocity.clone().multiplyScalar(deltaTime));
+                }
+
+            } else { // Post-impact: Fusion, Ejection, Accretion, Coalescence
+                // Dynamic Particle Assignment to Earth or Moon (Emergent)
+                // This is the core of the "fusion-ejection-accretion" logic
+                const rocheLimitDistance = SIM_PARAMS.EARTH_RADIUS_VISUAL * SIM_PARAMS.ROCHE_LIMIT_RADIUS_FACTOR;
+
+                for (const p of allParticles) {
+                    const posRelativeCOM = p.position.clone().sub(systemCOM);
+                    const distFromCOM = posRelativeCOM.length();
+                    const velRelativeCOM = p.velocity.clone().sub(systemCOM.velocity || new THREE.Vector3()); // Use system COM velocity if available
+
+                    // Calculate tangential velocity component
+                    const radialDirection = posRelativeCOM.clone().normalize();
+                    const tangentialVelocityMagnitude = velRelativeCOM.clone().sub(radialDirection.multiplyScalar(velRelativeCOM.dot(radialDirection))).length();
+
+                    // Condition for Moon-bound particle: beyond Roche limit and sufficient tangential velocity
+                    if (distFromCOM > rocheLimitDistance && tangentialVelocityMagnitude > SIM_PARAMS.ORBITAL_VELOCITY_THRESHOLD_FACTOR) {
+                        if (p.currentBodyId !== 1) { // If not already assigned to Moon
+                            p.currentBodyId = 1; // Assign to Moon
+                            p.color.set(0x808080); // Change color to grey for Moon particles
+                        }
+                    } else {
+                        if (p.currentBodyId !== 0) { // If not already assigned to Earth
+                            p.currentBodyId = 0; // Assign to Earth
+                            // Revert color to original Earth layer color
+                            const distFromInitialEarthCenter = p.position.distanceTo(initialEarthCOM);
+                            const radius = SIM_PARAMS.EARTH_RADIUS_VISUAL;
+                            const coreColor = new THREE.Color(0xFF0000);
+                            const mantleColor = new THREE.Color(0xFFA500);
+                            const crustColor = new THREE.Color(0x8B4513);
+                            if (distFromInitialEarthCenter < radius * SIM_PARAMS.CORE_RADIUS_RATIO) {
+                                p.color.copy(coreColor);
+                            } else if (distFromInitialEarthCenter < radius * SIM_PARAMS.MANTLE_RADIUS_RATIO) {
+                                p.color.copy(mantleColor);
+                            } else {
+                                p.color.copy(crustColor);
+                            }
+                        }
+                    }
+                }
+                
+                // Update the particles arrays for the celestial bodies based on new assignments
+                protoEarthBody.particles = allParticles.filter(p => p.currentBodyId === 0);
+                protoMoonBody.particles = allParticles.filter(p => p.currentBodyId === 1);
+
+                // Update COM and mass of the two main bodies based on their assigned particles
+                // Only update if enough particles are assigned to form a meaningful body
+                if (protoEarthBody.particles.length > 0) {
+                    protoEarthBody.updateFromParticles();
+                } else {
+                    protoEarthBody.mass = 0; // Effectively disable if no particles
+                }
+
+                if (protoMoonBody.particles.length >= SIM_PARAMS.MIN_MOON_PARTICLES_FOR_BODY) {
+                    protoMoonBody.updateFromParticles();
+                } else {
+                    protoMoonBody.mass = 0; // Effectively disable if not enough particles for a moon
+                }
+
+
+                // Apply gravity between the two main bodies (Earth and Proto-Moon)
+                if (protoEarthBody.mass > 0 && protoMoonBody.mass > 0) {
+                    const dir = protoMoonBody.position.clone().sub(protoEarthBody.position);
+                    const distSq = dir.lengthSq();
+                    if (distSq > 0.1 * 0.1) {
+                        const forceMagnitude = SIM_PARAMS.GRAVITY_STRENGTH * protoEarthBody.mass * protoMoonBody.mass / distSq * SIM_PARAMS.INTER_BODY_GRAVITY_FACTOR;
+                        const force = dir.normalize().multiplyScalar(forceMagnitude);
+                        
+                        // Apply forces to the abstract bodies' velocities
+                        protoEarthBody.velocity.add(force.clone().multiplyScalar(deltaTime / protoEarthBody.mass));
+                        protoMoonBody.velocity.sub(force.clone().multiplyScalar(deltaTime / protoMoonBody.mass)); // Opposite force
+                    }
+                }
+
+                // Update main body positions based on their velocities
+                protoEarthBody.position.add(protoEarthBody.velocity.clone().multiplyScalar(deltaTime));
+                protoMoonBody.position.add(protoMoonBody.velocity.clone().multiplyScalar(deltaTime));
+
+
+                // Apply forces to individual particles
+                for (const p of allParticles) {
+                    let acceleration = new THREE.Vector3();
+                    let targetBody = (p.currentBodyId === 0) ? protoEarthBody : protoMoonBody;
+
+                    if (targetBody.mass > 0) { // Ensure target body exists and has mass
+                        const dirToTargetCOM = targetBody.position.clone().sub(p.position);
+                        const distToTargetCOMSq = dirToTargetCOM.lengthSq();
+
+                        if (distToTargetCOMSq > 0.1 * 0.1) { // Avoid instability at very close distances
+                            const forceMagnitude = SIM_PARAMS.GRAVITY_STRENGTH * p.mass * targetBody.mass / distToTargetCOMSq * SIM_PARAMS.COHESION_GRAVITY_FACTOR;
+                            acceleration.add(dirToTargetCOM.normalize().multiplyScalar(forceMagnitude / p.mass));
+                        }
+                    } else {
+                        // If target body is not active (e.g., Moon not yet formed), pull towards overall system COM
+                        const dirToSystemCOM = systemCOM.clone().sub(p.position);
+                        const distToSystemCOMSq = dirToSystemCOM.lengthSq();
+                        if (distToSystemCOMSq > 0.1 * 0.1) {
+                            const forceMagnitude = SIM_PARAMS.GRAVITY_STRENGTH * p.mass * systemTotalMass / distToSystemCOMSq; // Use system total mass
+                            acceleration.add(dirToSystemCOM.normalize().multiplyScalar(forceMagnitude / p.mass));
+                        }
+                    }
+
+                    p.velocity.add(acceleration.multiplyScalar(deltaTime));
+
+                    // Apply friction/damping to individual particles
+                    p.velocity.multiplyScalar(SIM_PARAMS.PARTICLE_FRICTION);
+                    p.velocity.multiplyScalar(1 - SIM_PARAMS.COALESCENCE_DAMPING); // Additional damping for settling
+
+                    // Update particle position
+                    p.position.add(p.velocity.clone().multiplyScalar(deltaTime));
+                }
+            }
+
+            updateParticleBuffers(); // Update positions and colors in GPU buffers
+        };
+
+        // --- Animation Loop ---
+        const animateSimulation = (currentTime) => {
+            animationFrameId = requestAnimationFrame(animateSimulation);
+
+            const deltaTime = (currentTime - lastFrameTime) / 1000;
+            lastFrameTime = currentTime;
+
+            if (simulationRunning) {
+                currentSimTime += deltaTime * SIM_PARAMS.SIM_SPEED;
+                updateSimulation(deltaTime * SIM_PARAMS.SIM_SPEED);
+                simStatusDisplay.textContent = '运行中';
+            } else {
+                simStatusDisplay.textContent = '暂停';
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            updateInfoPanel();
+        };
+
+        // --- Update Info Panel Display ---
+        const updateInfoPanel = () => {
+            simTimeDisplay.textContent = currentSimTime.toFixed(2);
+            impactStatusDisplay.textContent = hasImpactOccurred ? '已发生' : '未发生';
+            currentParticleCountDisplay.textContent = allParticles.length;
+            earthParticleCountDisplay.textContent = protoEarthBody ? protoEarthBody.particles.length : 0;
+            moonParticleCountDisplay.textContent = protoMoonBody ? protoMoonBody.particles.length : 0;
+        };
+
+        // --- Play/Pause Simulation ---
+        const playSimulation = () => {
+            if (!simulationRunning) {
+                simulationRunning = true;
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                playPauseBtn.classList.replace('bg-blue-600', 'bg-yellow-600');
+                playPauseBtn.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+                lastFrameTime = performance.now();
+            }
+        };
+
+        const pauseSimulation = () => {
+            if (simulationRunning) {
+                simulationRunning = false;
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> 播放';
+                playPauseBtn.classList.replace('bg-yellow-600', 'bg-blue-600');
+                playPauseBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
+            }
+        };
+
+        // --- Reset Simulation ---
+        const resetSimulation = () => {
+            pauseSimulation();
+            initSimulation();
+        };
+
+        // --- Bind UI Events ---
+        const setupUIEvents = () => {
+            playPauseBtn = document.getElementById('playPauseBtn');
+            resetBtn = document.getElementById('resetBtn');
+            simSpeedSlider = document.getElementById('simSpeedSlider');
+            simSpeedValueDisplay = document.getElementById('simSpeedValue');
+            particleCountSlider = document.getElementById('particleCountSlider');
+            particleCountValueDisplay = document.getElementById('particleCountValue');
+            impactorSizeSlider = document.getElementById('impactorSizeSlider');
+            impactorSizeValueDisplay = document.getElementById('impactorSizeValue');
+            impactorVelocitySlider = document.getElementById('impactorVelocitySlider');
+            impactorVelocityValueDisplay = document.getElementById('impactorVelocityValue');
+            impactOffsetSlider = document.getElementById('impactOffsetSlider'); 
+            impactOffsetValueDisplay = document.getElementById('impactOffsetValue');
+            gravityStrengthSlider = document.getElementById('gravityStrengthSlider');
+            gravityStrengthValueDisplay = document.getElementById('gravityStrengthValue');
+            simStatusDisplay = document.getElementById('simStatus');
+            simTimeDisplay = document.getElementById('simTime');
+            impactStatusDisplay = document.getElementById('impactStatus');
+            currentParticleCountDisplay = document.getElementById('currentParticleCount');
+            earthParticleCountDisplay = document.getElementById('earthParticleCount');
+            moonParticleCountDisplay = document.getElementById('moonParticleCount');
+
+            if (playPauseBtn) {
+                playPauseBtn.addEventListener('click', () => {
+                    if (simulationRunning) {
+                        pauseSimulation();
+                    } else {
+                        playSimulation();
+                    }
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetSimulation);
+            }
+
+            if (simSpeedSlider) {
+                simSpeedSlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.SIM_SPEED = parseFloat(event.target.value);
+                    if (simSpeedValueDisplay) simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+                });
+            }
+
+            if (particleCountSlider) {
+                particleCountSlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.TOTAL_PARTICLE_COUNT = parseInt(event.target.value);
+                    if (particleCountValueDisplay) particleCountValueDisplay.textContent = SIM_PARAMS.TOTAL_PARTICLE_COUNT;
+                    resetSimulation(); 
+                });
+            }
+
+            if (impactorSizeSlider) {
+                impactorSizeSlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.IMPACTOR_SIZE_RATIO = parseFloat(event.target.value);
+                    if (impactorSizeValueDisplay) impactorSizeValueDisplay.textContent = SIM_PARAMS.IMPACTOR_SIZE_RATIO.toFixed(1);
+                    resetSimulation();
+                });
+            }
+
+            if (impactorVelocitySlider) {
+                impactorVelocitySlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.IMPACTOR_VELOCITY = parseFloat(event.target.value);
+                    if (impactorVelocityValueDisplay) impactorVelocityValueDisplay.textContent = SIM_PARAMS.IMPACTOR_VELOCITY.toFixed(1);
+                    resetSimulation();
+                });
+            }
+
+            if (impactOffsetSlider) {
+                impactOffsetSlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.IMPACT_OFFSET = parseFloat(event.target.value);
+                    if (impactOffsetValueDisplay) impactOffsetValueDisplay.textContent = SIM_PARAMS.IMPACT_OFFSET.toFixed(1);
+                    resetSimulation();
+                });
+            }
+
+            if (gravityStrengthSlider) {
+                gravityStrengthSlider.addEventListener('input', (event) => {
+                    SIM_PARAMS.GRAVITY_STRENGTH = parseFloat(event.target.value);
+                    if (gravityStrengthValueDisplay) gravityStrengthValueDisplay.textContent = SIM_PARAMS.GRAVITY_STRENGTH.toFixed(4);
+                });
+            }
+        };
+
+        // --- Execute on Page Load ---
+        window.onload = () => {
+            setupUIEvents(); // Ensure DOM elements are available before initThreeJS
+            // Initialize slider display values with null checks
+            if (simSpeedSlider) simSpeedSlider.value = SIM_PARAMS.SIM_SPEED;
+            if (simSpeedValueDisplay) simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+
+            if (particleCountSlider) particleCountSlider.value = SIM_PARAMS.TOTAL_PARTICLE_COUNT;
+            if (particleCountValueDisplay) particleCountValueDisplay.textContent = SIM_PARAMS.TOTAL_PARTICLE_COUNT;
+
+            if (impactorSizeSlider) impactorSizeSlider.value = SIM_PARAMS.IMPACTOR_SIZE_RATIO;
+            if (impactorSizeValueDisplay) impactorSizeValueDisplay.textContent = SIM_PARAMS.IMPACTOR_SIZE_RATIO.toFixed(1);
+
+            if (impactorVelocitySlider) impactorVelocitySlider.value = SIM_PARAMS.IMPACTOR_VELOCITY;
+            if (impactorVelocityValueDisplay) impactorVelocityValueDisplay.textContent = SIM_PARAMS.IMPACTOR_VELOCITY.toFixed(1);
+
+            if (impactOffsetSlider) impactOffsetSlider.value = SIM_PARAMS.IMPACT_OFFSET;
+            if (impactOffsetValueDisplay) impactOffsetValueDisplay.textContent = SIM_PARAMS.IMPACT_OFFSET.toFixed(1);
+
+            if (gravityStrengthSlider) gravityStrengthSlider.value = SIM_PARAMS.GRAVITY_STRENGTH;
+            if (gravityStrengthValueDisplay) gravityStrengthValueDisplay.textContent = SIM_PARAMS.GRAVITY_STRENGTH.toFixed(4);
+
+            initThreeJS();
+            resetSimulation();
+            animateSimulation(performance.now());
+        };
+    </script>
+</body>
+</html>
