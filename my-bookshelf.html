@@ -136,8 +136,8 @@
 
 
         .book-container { /* 新增容器，用于包裹书本主体和封面，实现整体3D变换 */
-            width: var(--book-actual-width);
-            height: var(--book-actual-height);
+            width: 100%; /* 继承父容器 book-shelf-item 的宽度 */
+            height: 100%; /* 继承父容器 book-shelf-item 的高度 */
             position: absolute;
             top: 0;
             left: 0;
@@ -235,7 +235,8 @@
 
         /* `.is-pulled-out` 类：当书本被点击“拿出”时的状态 */
         .book-shelf-item.is-pulled-out {
-            transform: translateX(0px) translateY(-50px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+            /* 模拟拿出并转向正面，同时略微放大 */
+            transform: translateX(0px) translateY(-50px) rotateX(0deg) rotateY(0deg) scale(1.1);
             transform-origin: center center;
             opacity: 1 !important;
             animation: none; /* 拿出时停止波浪动画 */
@@ -244,6 +245,76 @@
         /* `.is-open` 类：当书本封面被点击“翻开”时的状态 */
         .front-cover.is-open {
             transform: rotateY(160deg) translateZ(calc(var(--book-thickness) / 2)); /* 调整旋转角度，使其向右前方翻开 */
+        }
+
+        /* 新增：书本过渡到全屏页面视图时的状态 */
+        .book-shelf-item.is-transitioning-to-page {
+            /* 移动到中心，放大，并完全正对用户 */
+            transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg) scale(3); /* 调整 scale 以适应屏幕 */
+            width: 100vw; /* 占据整个视口宽度 */
+            height: 100vh; /* 占据整个视口高度 */
+            max-width: none; /* 移除最大宽度限制 */
+            max-height: none; /* 移除最大高度限制 */
+            border-radius: 0; /* 移除圆角 */
+            background-color: #1a202c; /* 与背景色一致，模拟全屏 */
+            z-index: 101; /* 确保在所有内容之上 */
+            transition: transform 1.5s ease-in-out, width 1.5s ease-in-out, height 1.5s ease-in-out, background-color 1.5s ease-in-out, border-radius 1.5s ease-in-out; /* 平滑过渡所有属性 */
+            opacity: 1; /* 确保完全可见 */
+            pointer-events: none; /* 确保不阻碍点击 */
+        }
+
+        /* 当书本过渡时，其容器也应调整 */
+        .book-shelf-item.is-transitioning-to-page .book-container {
+            width: 100%;
+            height: 100%;
+            transform: translateX(0); /* 移除书脊偏移 */
+            transition: transform 1.5s ease-in-out;
+        }
+
+        /* 当书本过渡时，封面完全打开并平铺 */
+        .book-shelf-item.is-transitioning-to-page .front-cover {
+            transform: rotateY(180deg) translateZ(0); /* 完全翻开并与书页对齐 */
+            width: 50%; /* 封面占据一半宽度 */
+            height: 100%;
+            left: 0; /* 定位到左侧 */
+            border-radius: 0;
+            transition: transform 1.5s ease-in-out, width 1.5s ease-in-out, left 1.5s ease-in-out, border-radius 1.5s ease-in-out;
+        }
+
+        /* 当书本过渡时，书页平铺到右侧 */
+        .book-shelf-item.is-transitioning-to-page .book-pages {
+            width: 50%; /* 书页占据一半宽度 */
+            height: 100%;
+            left: 50%; /* 定位到右侧 */
+            top: 0;
+            border-radius: 0;
+            animation: pageTurnAnimation 0.3s linear infinite; /* 快速、连续翻页动画 */
+            transition: width 1.5s ease-in-out, left 1.5s ease-in-out, height 1.5s ease-in-out, border-radius 1.5s ease-in-out;
+        }
+
+        /* 当书本过渡时，隐藏书脊和右侧 */
+        .book-shelf-item.is-transitioning-to-page .book-spine,
+        .book-shelf-item.is-transitioning-to-page .book-right-side,
+        .book-shelf-item.is-transitioning-to-page .back-cover {
+            opacity: 0; /* 隐藏书脊和封底 */
+            transition: opacity 0.5s ease-out;
+        }
+
+
+        /* 书页翻动动画的关键帧（修改为连续循环） */
+        @keyframes pageTurnAnimation {
+            0% {
+                transform: translateZ(calc(var(--book-thickness) / 2 + 1px)) scaleX(1);
+                background-color: #f8f8f8;
+            }
+            50% {
+                transform: translateZ(calc(var(--book-thickness) / 2 + 3px)) scaleX(0.98); /* 模拟页面轻微收缩 */
+                background-color: #e0e0e0; /* 模拟页面颜色变化 */
+            }
+            100% {
+                transform: translateZ(calc(var(--book-thickness) / 2 + 1px)) scaleX(1);
+                background-color: #f8f8f8;
+            }
         }
 
 
@@ -936,7 +1007,9 @@
             {
                 title: "太阳系边际探索",
                 author: "黄俊鑫 孙导航",
-                pageUrl: "sun_explorer.html",
+                // 修复：将相对路径替换为绝对路径或占位符 URL，以避免 'Failed to set the 'href' property on 'Location'' 错误。
+                // 在实际部署中，请确保这些 URL 指向有效的页面。
+                pageUrl: "https://example.com/sun_explorer.html",
                 summary: "本书详细介绍了Vue.js的核心概念、组件化开发、状态管理以及性能优化等内容，是前端开发者学习Vue的必备指南。",
                 coverUrl: "https://placehold.co/200x280/FFD700/000000?text=Vue.js+Book",
                 spineText: "Vue.js",
@@ -945,7 +1018,7 @@
             {
                 title: "React高级指南",
                 author: "李四",
-                pageUrl: "react-advanced.html",
+                pageUrl: "https://example.com/react-advanced.html",
                 summary: "本书从Hooks、Context API到性能优化、服务端渲染，全面讲解React高级特性，助你成为React专家。",
                 coverUrl: "https://placehold.co/200x280/87CEEB/000000?text=React+Book",
                 spineText: "React",
@@ -954,7 +1027,7 @@
             {
                 title: "JavaScript设计模式",
                 author: "王五",
-                pageUrl: "js-design-patterns.pdf",
+                pageUrl: "https://example.com/js-design-patterns.pdf",
                 summary: "探索JavaScript中常用的设计模式，提升代码的可维护性和扩展性，编写更优雅的JavaScript代码。这是一个PDF示例。",
                 coverUrl: "https://placehold.co/200x280/FF6347/ffffff?text=JS+Patterns",
                 spineText: "JS设计模式",
@@ -963,7 +1036,7 @@
             {
                 title: "CSS揭秘",
                 author: "赵六",
-                pageUrl: "css-secrets.html",
+                pageUrl: "https://example.com/css-secrets.html",
                 summary: "本书揭示了CSS的许多不为人知的技巧和高级用法，让你能够创作出更具创意和表现力的网页界面。",
                 coverUrl: "https://placehold.co/200x280/90EE90/000000?text=CSS+Secrets",
                 spineText: "CSS揭秘",
@@ -972,7 +1045,7 @@
             {
                 title: "Web性能优化",
                 author: "钱七",
-                pageUrl: "web-performance.pdf",
+                pageUrl: "https://example.com/web-performance.pdf",
                 summary: "从网络、渲染到资源加载，全面讲解Web性能优化策略，提升用户体验和网站加载速度。这是一个PDF示例。",
                 coverUrl: "https://placehold.co/200x280/DA70D6/ffffff?text=Web+Perf",
                 spineText: "Web性能",
@@ -981,7 +1054,7 @@
             {
                 title: "深度学习",
                 author: "伊恩·古德费洛等",
-                pageUrl: "deep-learning.html",
+                pageUrl: "https://example.com/deep-learning.html",
                 summary: "深度学习领域的“圣经”，全面涵盖了深度学习的理论、算法和应用。",
                 coverUrl: "https://placehold.co/200x280/5F9EA0/000000?text=Deep+Learning",
                 spineText: "深度学习",
@@ -990,7 +1063,7 @@
             {
                 title: "原子习惯",
                 author: "詹姆斯·克利尔",
-                pageUrl: "atomic-habits.html",
+                pageUrl: "https://example.com/atomic-habits.html",
                 summary: "通过微小改变，养成良好习惯，实现个人成长的实用指南。",
                 coverUrl: "https://placehold.co/200x280/FFB6C1/000000?text=Atomic+Habits",
                 spineText: "原子习惯",
@@ -999,7 +1072,7 @@
             {
                 title: "宇宙的琴弦",
                 author: "布莱恩·格林",
-                pageUrl: "elegant-universe.html",
+                pageUrl: "https://example.com/elegant-universe.html",
                 summary: "一本深入浅出地介绍弦理论的科普巨著，带你领略宇宙最深层的奥秘。",
                 coverUrl: "https://placehold.co/200x280/ADD8E6/000000?text=Elegant+Universe",
                 spineText: "宇宙的琴弦",
@@ -1086,21 +1159,21 @@
                         </div>
                         <div class="book-face front-cover"></div>
                     </div>
-                    `;
+                `;
 
-                // 设置封面图片
+                // Set cover image
                 bookItem.querySelector('.front-cover').style.backgroundImage = `url('${bookData.coverUrl}')`;
-                // 设置书脊文本
+                // Set spine text
                 bookItem.querySelector('.book-spine').textContent = bookData.spineText;
 
-                // 绑定事件监听器
+                // Bind event listeners
                 setupBookEventListeners(bookItem);
 
                 currentRowContainer.appendChild(bookItem);
                 currentBookCount++;
             });
 
-            // 如果最后一排不满，也要添加一个书架板
+            // If the last row is not full, add a bottom shelf board
             if (booksToRender.length > 0) {
                 const bottomShelfRow = document.createElement('div');
                 bottomShelfRow.classList.add('bookshelf-row');
@@ -1108,13 +1181,13 @@
             }
         }
 
-        // 设置单个书籍的事件监听器
+        // Setup event listeners for individual books
         function setupBookEventListeners(bookItem) {
             const frontCover = bookItem.querySelector('.front-cover');
 
-            // 鼠标悬停显示悬停预览面板
+            // Mouse hover to show preview panel
             bookItem.addEventListener('mouseenter', (e) => {
-                // 如果详情面板已经打开，则不显示悬停预览
+                // If the details panel is already open, do not show hover preview
                 if (bookDetailsPanel.classList.contains('show')) {
                     return;
                 }
@@ -1129,82 +1202,142 @@
             });
 
             bookItem.addEventListener('mouseleave', () => {
-                // 只有当详情面板未打开时，才隐藏悬停预览
+                // Only hide hover preview if the details panel is not open
                 if (!bookDetailsPanel.classList.contains('show')) {
                     bookHoverPreview.classList.remove('show');
                 }
             });
 
-            // 点击书本触发拿出和翻开动画，并显示信息面板
+            // Click book to trigger pull-out and open animation, and show details panel
             bookItem.addEventListener('click', () => {
                 if (activeBook && activeBook !== bookItem) {
-                    // 如果有其他书本是激活状态，先关闭它
+                    // If another book is active, close it first
                     resetBookState(activeBook);
                 }
 
                 activeBook = bookItem;
                 const pageUrl = bookItem.dataset.pageUrl;
 
-                // 1. 拿出书本动画
+                // 1. Pull out book animation (book moves and turns to face forward)
                 bookItem.classList.add('is-pulled-out');
-                mainContent.classList.add('main-blurred'); // 模糊背景
-                bookHoverPreview.classList.remove('show'); // 点击时隐藏悬停预览
+                mainContent.classList.add('main-blurred'); // Blur background
+                bookHoverPreview.classList.remove('show'); // Hide hover preview when clicked
 
-                // 2. 翻开封面动画 (延迟执行，在拿出动画之后)
+                // 2. Open cover animation (starts during pull-out for more realistic transition)
+                // The 150ms delay makes the cover start opening slightly after the pull-out begins,
+                // creating an overlapping and smoother effect.
                 setTimeout(() => {
                     frontCover.classList.add('is-open');
-                }, 300); // 0.3秒后翻开
+                }, 150); // Start opening cover after 150ms
 
-                // 3. 显示信息面板 (延迟执行，在翻开动画之后)
+                // 3. Show details panel (after both animations have progressed sufficiently)
                 setTimeout(() => {
                     showBookDetailsPanel(bookItem.dataset);
-                }, 1000); // 1秒后显示面板
+                }, 1000); // Show panel after 1 second
             });
         }
 
-        // 显示书籍详细信息面板
+        // Show book details panel
         function showBookDetailsPanel(bookData) {
             panelBookCover.style.backgroundImage = `url('${bookData.coverUrl}')`;
             panelBookTitle.textContent = bookData.title;
             panelBookAuthor.textContent = `作者: ${bookData.author}`;
             panelBookSummary.textContent = bookData.summary;
             
-            // 设置“进入详情页”按钮的链接
+            // Set "Go to Details Page" button link
             if (bookData.pageUrl) {
                 panelGoToDetailsBtn.onclick = () => {
-                    window.location.href = bookData.pageUrl;
+                    // Hide the details panel immediately
+                    bookDetailsPanel.classList.remove('show');
+                    mainContent.classList.remove('main-blurred'); // Remove blur from main content
+
+                    if (activeBook) {
+                        const rect = activeBook.getBoundingClientRect();
+
+                        // Set initial fixed position to current visual position
+                        activeBook.style.position = 'fixed';
+                        activeBook.style.top = `${rect.top}px`;
+                        activeBook.style.left = `${rect.left}px`;
+                        activeBook.style.width = `${rect.width}px`;
+                        activeBook.style.height = `${rect.height}px`;
+                        activeBook.style.margin = '0'; // Remove any margin that might interfere
+                        activeBook.style.zIndex = '101'; // Ensure it's on top during transition
+
+                        // Force reflow to ensure styles are applied before transition
+                        activeBook.offsetWidth; // This is a common trick for reflow
+
+                        // Now, apply the transition class to animate to the final state
+                        // Use requestAnimationFrame for smoother visual update
+                        requestAnimationFrame(() => {
+                            activeBook.classList.add('is-transitioning-to-page');
+                            // Ensure cover is fully open and pages are turning during this transition
+                            activeBook.querySelector('.front-cover').classList.add('is-open'); // Ensure it's fully open
+                            activeBook.querySelector('.book-pages').classList.add('is-turning-pages'); // Start continuous page turning
+                        });
+                    }
+                    
+                    // After the animation, navigate to the details page
+                    // The transition is 1.5s, so wait slightly longer for a smooth visual.
+                    setTimeout(() => {
+                        // Reset the book's fixed positioning before navigation to prevent visual glitches
+                        if (activeBook) {
+                            activeBook.style.position = ''; // Revert to original positioning
+                            activeBook.style.top = '';
+                            activeBook.style.left = '';
+                            activeBook.style.width = '';
+                            activeBook.style.height = '';
+                            activeBook.style.margin = '';
+                            activeBook.style.zIndex = ''; // Reset z-index
+                            resetBookState(activeBook); // Ensure all animation classes are removed
+                        }
+                        window.location.href = bookData.pageUrl;
+                    }, 1800); // Wait for 1.8 seconds (transition duration + buffer)
                 };
-                panelGoToDetailsBtn.style.display = 'inline-flex'; // 显示按钮
+                panelGoToDetailsBtn.style.display = 'inline-flex'; // Show button
             } else {
-                panelGoToDetailsBtn.style.display = 'none'; // 隐藏按钮
+                panelGoToDetailsBtn.style.display = 'none'; // Hide button
             }
 
             bookDetailsPanel.classList.add('show');
         }
 
-        // 关闭书籍详细信息面板并重置书本状态
+        // Close book details panel and reset book state
         function closeBookDetailsPanel() {
             bookDetailsPanel.classList.remove('show');
-            mainContent.classList.remove('main-blurred'); // 移除模糊
+            mainContent.classList.remove('main-blurred'); // Remove blur
             if (activeBook) {
                 resetBookState(activeBook);
             }
-            activeBook = null; // 清除激活的书本
+            activeBook = null; // Clear active book
         }
 
-        // 重置单个书本的3D状态
+        // Reset individual book's 3D state
         function resetBookState(bookItem) {
             const frontCover = bookItem.querySelector('.front-cover');
+            const bookPages = bookItem.querySelector('.book-pages'); // 获取书页元素
+            
             frontCover.classList.remove('is-open');
             bookItem.classList.remove('is-pulled-out');
+            bookItem.classList.remove('is-transitioning-to-page'); // 新增：移除过渡动画类
+            if (bookPages) { // 确保元素存在再移除类
+                bookPages.classList.remove('is-turning-pages'); // 新增：移除翻页动画类
+            }
+            // Ensure any inline styles from fixed positioning are cleared
+            bookItem.style.position = '';
+            bookItem.style.top = '';
+            bookItem.style.left = '';
+            bookItem.style.width = '';
+            bookItem.style.height = '';
+            bookItem.style.margin = '';
+            bookItem.style.zIndex = '';
         }
 
-        // 绑定关闭详情面板按钮事件
+        // Bind close details panel button events
         closeDetailsPanelBtn.addEventListener('click', closeBookDetailsPanel);
         panelCloseBtn.addEventListener('click', closeBookDetailsPanel);
 
 
-        // 搜索功能
+        // Search function
         searchButton.addEventListener('click', () => filterAndRenderBooks(searchInput.value, currentCategory));
         searchInput.addEventListener('keyup', (event) => {
             if (event.key === 'Enter') {
@@ -1213,22 +1346,22 @@
         });
         clearSearchButton.addEventListener('click', () => {
             searchInput.value = '';
-            filterAndRenderBooks('', currentCategory); // 清空后重新过滤
+            filterAndRenderBooks('', currentCategory); // Clear and re-filter
         });
 
-        // 类别筛选功能
+        // Category filter function
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // 移除所有按钮的 active 类
+                // Remove active class from all buttons
                 categoryButtons.forEach(btn => btn.classList.remove('active'));
-                // 为当前点击的按钮添加 active 类
+                // Add active class to the clicked button
                 button.classList.add('active');
-                currentCategory = button.dataset.category; // 更新当前分类
-                filterAndRenderBooks(searchInput.value, currentCategory); // 重新过滤并渲染
+                currentCategory = button.dataset.category; // Update current category
+                filterAndRenderBooks(searchInput.value, currentCategory); // Re-filter and render
             });
         });
 
-        // 综合过滤和渲染函数
+        // Combined filter and render function
         function filterAndRenderBooks(searchTerm, category) {
             const lowerCaseSearchTerm = searchTerm.toLowerCase();
             const filteredBooks = booksData.filter(book => {
@@ -1243,9 +1376,9 @@
             renderBooks(filteredBooks);
         }
 
-        // 滚动到顶部按钮功能
+        // Scroll to top button function
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) { // 当页面滚动超过300px时显示按钮
+            if (window.scrollY > 300) { // Show button when scrolled more than 300px
                 scrollToTopBtn.classList.add('show');
             } else {
                 scrollToTopBtn.classList.remove('show');
@@ -1260,11 +1393,11 @@
         });
 
 
-        // 页面加载完成后初始化 Three.js 和书籍效果
+        // Initialize Three.js and book effects after page load
         window.onload = function () {
             initThreeJS();
             animateThreeJS();
-            filterAndRenderBooks('', 'all'); // 初始加载所有书籍
+            filterAndRenderBooks('', 'all'); // Initially load all books
         };
     </script>
 </body>
