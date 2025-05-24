@@ -5,27 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>跳转中...</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
+        /* 全局样式 */
         body {
             margin: 0;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
+            background-color: #000; /* 最终的背景色 */
             color: #fff;
+            /* 保持渐变背景作为 Three.js 加载前的初始背景 */
+            background: linear-gradient(135deg, #1a202c, #2d3748, #4a5568, #2d3748, #1a202c);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        /* Three.js 渲染容器 */
+        #threejs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* 确保在加载覆盖层之下 */
+            transition: opacity 1s ease-in-out; /* 用于淡出效果 */
+        }
+
+        /* 加载覆盖层，包含文本和旋转器 */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            opacity: 0; /* 初始透明度为0 */
-            transition: opacity 0.5s ease-in-out; /* 淡入淡出动画 */
-
-            /* 新增：背景渐变动画 */
-            background: linear-gradient(135deg, #1a202c, #2d3748, #4a5568, #2d3748, #1a202c);
-            background-size: 400% 400%; /* 扩大背景尺寸以允许动画 */
-            animation: gradientAnimation 15s ease infinite; /* 渐变动画 */
+            z-index: 10; /* 确保在 Three.js 场景之上 */
+            opacity: 1;
+            transition: opacity 1s ease-in-out; /* 淡出动画 */
+            background: transparent; /* 透明背景，让 Three.js 场景显示出来 */
         }
-        body.loaded {
-            opacity: 1; /* 加载完成后淡入 */
+
+        /* 全屏星球纹理显示容器 */
+        #fullscreen-planet-display {
+            position: fixed;
+            inset: 0; /* 铺满全屏 */
+            display: flex; /* 使用 flexbox 居中图片 */
+            justify-content: center;
+            align-items: center;
+            background-color: #000; /* 黑色背景 */
+            opacity: 0; /* 初始隐藏 */
+            transition: opacity 1s ease-in-out; /* 淡入效果 */
+            z-index: 20; /* 确保在最顶层 */
+            pointer-events: none; /* 初始禁用鼠标事件 */
+        }
+
+        #planet-fullscreen-img {
+            width: 100%; /* 铺满父容器宽度 */
+            height: 100%; /* 铺满父容器高度 */
+            object-fit: cover; /* 关键：裁剪图片以铺满容器，保持比例 */
+            border-radius: 0.75rem; /* 圆角 */
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8), 0 0 60px rgba(0, 255, 255, 0.5); /* 发光效果 */
         }
 
         /* 渐变背景动画关键帧 */
@@ -41,6 +83,7 @@
             letter-spacing: 0.1em; /* 增加字间距 */
             text-shadow: 0 0 15px rgba(0, 255, 255, 0.7), 0 0 25px rgba(0, 255, 255, 0.5); /* 霓虹光晕效果 */
             animation: textFadeInScale 2s ease-out forwards; /* 新的文本动画 */
+            color: #fff; /* 确保文本颜色为白色 */
         }
 
         /* 文本淡入缩放动画关键帧 */
@@ -66,32 +109,360 @@
     </style>
 </head>
 <body>
-    <p class="loading-text">正在进入星球...</p>
-    <div class="spinner"></div>
+    <div id="threejs-container"></div>
+
+    <div id="loading-overlay">
+        <p class="loading-text">正在进入星球...</p>
+        <div class="spinner"></div>
+    </div>
+
+    <div id="fullscreen-planet-display">
+        <img id="planet-fullscreen-img" src="" alt="Target Planet Texture">
+    </div>
 
     <script>
-        document.body.classList.add('loaded'); // 页面加载后淡入
+        let scene, camera, renderer;
+        let targetPlanet = null; // 存储目标星球对象
 
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetPage = decodeURIComponent(urlParams.get('target') || '');
+        // 星球数据，包含位置、大小和对应的页面URL，以及纹理图片URL
+        const planetsData = [
+            // 使用更具代表性的占位符纹理图片
+            { name: 'sun', label: '太阳', radius: 8, x: 0, y: 0, z: 0, texture: 'https://placehold.co/1000x1000/FFA500/000000?text=Sun+Surface', pageUrl: 'sun_page.html' },
+            { name: 'mercury', label: '水星', radius: 0.7, x: -30, y: 0, z: -10, texture: 'https://placehold.co/1000x1000/A0A0A0/ffffff?text=Mercury+Surface', pageUrl: 'from-sun-to-orat.html' },
+            { name: 'venus', label: '金星（写作空间）', radius: 1.8, x: -50, y: 0, z: 20, texture: 'https://placehold.co/1000x1000/FFD700/000000?text=Venus+Surface', pageUrl: 'writing-space.html' },
+            { name: 'earth', label: '地球（个人主页）', radius: 2.0, x: -70, y: 0, z: -30, texture: 'https://placehold.co/1000x1000/0000FF/ffffff?text=Earth+Surface', pageUrl: 'personal-homepage.html' },
+            { name: 'moon', label: '月球', radius: 0.5, x: -75, y: 0, z: -35, texture: 'https://placehold.co/1000x1000/C0C0C0/000000?text=Moon+Surface', pageUrl: 'moon_page.html' },
+            { name: 'mars', label: '火星（我的书架）', radius: 1.3, x: -90, y: 0, z: 10, texture: 'https://placehold.co/1000x1000/FF4500/ffffff?text=Mars+Surface', pageUrl: 'my-bookshelf.html' },
+            { name: 'jupiter', label: '木星（岩浆样演化模拟器）', radius: 6.0, x: -130, y: 0, z: -50, texture: 'https://placehold.co/1000x1000/D2B48C/000000?text=Jupiter+Surface', pageUrl: 'magma_ocean_sim.html' },
+            { name: 'saturn', label: '土星(地月大碰撞模拟器)', radius: 5.0, x: 100, y: 0, z: -80, texture: 'https://placehold.co/1000x1000/F4A460/000000?text=Saturn+Surface', pageUrl: 'great-impact.html' },
+            { name: 'uranus', label: '天王星', radius: 3.5, x: 150, y: 0, z: 50, texture: 'https://placehold.co/1000x1000/AFEEEE/000000?text=Uranus+Surface', pageUrl: 'uranus_page.html' },
+            { name: 'neptune', label: '海王星', radius: 3.3, x: 180, y: 0, z: -20, texture: 'https://placehold.co/1000x1000/4169E1/ffffff?text=Neptune+Surface', pageUrl: 'neptune_page.html' },
+        ];
 
-            if (targetPage) {
-                setTimeout(() => {
+        // 计算太阳系最大半径，用于确定柯伊伯带和奥尔特云的范围
+        let maxPlanetDistance = 0;
+        planetsData.forEach(p => {
+            const dist = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+            if (dist > maxPlanetDistance) {
+                maxPlanetDistance = dist;
+            }
+        });
+        const solarSystemRadius = maxPlanetDistance * 1.5; // 给太阳系一个缓冲半径
+
+        // 柯伊伯带参数 (增加粒子密度，减小粒子尺寸，保持细腻感)
+        const N_kuiper = 2000; // 增加粒子数量
+        const r_min_kuiper = solarSystemRadius * 1.2;
+        const r_max_kuiper = solarSystemRadius * 2.0;
+        const kuiper_thickness = solarSystemRadius * 0.1;
+
+        // 奥尔特云参数
+        const N_ort = 1000;
+        const r_min_oort = solarSystemRadius * 5;
+        const r_max_oort = solarSystemRadius * 10;
+
+        // 动画变量
+        let isAnimating = true;
+        let animationStartTime = 0;
+
+        // 动画阶段时长 (总时长缩短为约 6.5 秒)
+        const stage1Duration = 1500; // 快速接近柯伊伯带
+        const stage2Duration = 3000; // 减速穿过柯伊伯带并接近目标星球
+        const stage3Duration = 2000; // 最终垂直进入目标星球 (降落感)
+        const totalAnimationDuration = stage1Duration + stage2Duration + stage3Duration;
+
+        // 相机路径关键点
+        let startPos = new THREE.Vector3(); // 动画起始点 (奥尔特云外)
+        let kuiperApproachPos = new THREE.Vector3(); // 接近柯伊伯带时的位置
+        let targetPlanetVicinityPos = new THREE.Vector3(); // 目标星球附近，准备降落的位置
+        let finalCameraPosition = new THREE.Vector3(); // 最终垂直进入目标星球的位置 (落地)
+        let lookAtOrigin = new THREE.Vector3(0, 0, 0); // 初始看向原点
+        let finalLookAtTarget = new THREE.Vector3(); // 最终看向目标星球中心
+
+        // 初始化 Three.js 场景、相机、渲染器
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // 黑色背景
+            // 添加雾效，增强深度感和柔和过渡
+            scene.fog = new THREE.Fog(0x000000, solarSystemRadius * 4, r_max_oort * 1.5);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, r_max_oort * 2);
+            // 初始相机位置将在确定目标星球后设置
+            camera.lookAt(lookAtOrigin);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+            // 光源
+            const ambientLight = new THREE.AmbientLight(0x404040); // 柔和环境光
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // 主光源
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
+
+            drawPlanets(); // 绘制所有星球 (包括太阳)
+            drawKuiperBelt(); // 绘制柯伊伯带
+            drawOortCloud(); // 绘制奥尔特云
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // 绘制所有星球 (包括太阳)，并应用纹理
+        function drawPlanets() {
+            const textureLoader = new THREE.TextureLoader();
+            planetsData.forEach(p => {
+                const geometry = new THREE.SphereGeometry(p.radius, 50, 50);
+                let material;
+
+                // 加载纹理
+                textureLoader.load(p.texture,
+                    function (texture) {
+                        // 纹理加载成功
+                        if (p.name === 'sun') {
+                            // 太阳使用 MeshBasicMaterial，因为它自身发光
+                            material = new THREE.MeshBasicMaterial({ map: texture });
+                        } else {
+                            // 其他星球使用 MeshLambertMaterial，会受光照影响
+                            material = new THREE.MeshLambertMaterial({ map: texture });
+                        }
+                        const planetMesh = new THREE.Mesh(geometry, material);
+                        planetMesh.position.set(p.x, p.y, p.z);
+                        scene.add(planetMesh);
+                    },
+                    undefined, // onProgress 回调 (可选)
+                    function (err) {
+                        // 纹理加载失败，使用默认颜色材质
+                        console.error('加载纹理时发生错误:', p.name, err);
+                        if (p.name === 'sun') {
+                            material = new THREE.MeshBasicMaterial({ color: 0xFFA500 });
+                        } else {
+                            material = new THREE.MeshLambertMaterial({ color: 0xAAAAAA });
+                        }
+                        const planetMesh = new THREE.Mesh(geometry, material);
+                        planetMesh.position.set(p.x, p.y, p.z);
+                        scene.add(planetMesh);
+                    }
+                );
+            });
+        }
+
+        // 绘制柯伊伯带 (增加粒子密度，减小粒子尺寸，调整透明度以获得更细腻的外观)
+        function drawKuiperBelt() {
+            const positions = new Float32Array(N_kuiper * 3);
+            const colors = new Float32Array(N_kuiper * 3);
+            const kuiperBeltColor = new THREE.Color(0xADD8E6); // 淡蓝色/青色，营造微妙感
+
+            for (let i = 0; i < N_kuiper; i++) {
+                const r = r_min_kuiper + Math.random() * (r_max_kuiper - r_min_kuiper);
+                const angle = Math.random() * Math.PI * 2;
+                const z = (Math.random() * 2 - 1) * kuiper_thickness * 0.5;
+
+                const x = r * Math.cos(angle);
+                const y = r * Math.sin(angle);
+                
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                colors[i * 3] = kuiperBeltColor.r;
+                colors[i * 3 + 1] = kuiperBeltColor.g;
+                colors[i * 3 + 2] = kuiperBeltColor.b;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 10, // 更小的粒子尺寸，获得更细腻的外观
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.05, // 单个粒子透明度更低，通过密度补偿
+                sizeAttenuation: true
+            });
+
+            const kuiperBelt = new THREE.Points(geometry, material);
+            scene.add(kuiperBelt);
+        }
+
+        // 绘制奥尔特云 (粒子数量减少，透明度降低)
+        function drawOortCloud() {
+            const positions = new Float32Array(N_ort * 3);
+            const colors = new Float32Array(N_ort * 3);
+            const oortCloudColor = new THREE.Color(0x808080); // 灰色
+
+            for (let i = 0; i < N_ort; i++) {
+                const phi = Math.random() * Math.PI * 2;
+                const costh = (Math.random() * 2) - 1;
+                const u = Math.random();
+                const theta = Math.acos(costh);
+                const r_lin = Math.pow(((Math.pow(r_max_oort, 3) - Math.pow(r_min_oort, 3)) * u + Math.pow(r_min_oort, 3)), 1/3);
+
+                const x = r_lin * Math.sin(theta) * Math.cos(phi);
+                const y = r_lin * Math.sin(theta) * Math.sin(phi);
+                const z = r_lin * Math.cos(theta);
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                colors[i * 3] = oortCloudColor.r;
+                colors[i * 3 + 1] = oortCloudColor.g;
+                colors[i * 3 + 2] = oortCloudColor.b;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 200, // 粒子大小
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.1, // 降低透明度
+                sizeAttenuation: true
+            });
+
+            const oortCloud = new THREE.Points(geometry, material);
+            scene.add(oortCloud);
+        }
+
+        // 窗口大小调整处理
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 页面跳转逻辑
+        function triggerRedirect() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const threejsContainer = document.getElementById('threejs-container');
+            const fullscreenPlanetDisplay = document.getElementById('fullscreen-planet-display');
+            const planetFullscreenImg = document.getElementById('planet-fullscreen-img');
+
+            // 设置全屏显示的目标星球纹理图片
+            if (targetPlanet && targetPlanet.texture) {
+                planetFullscreenImg.src = targetPlanet.texture;
+            } else {
+                // 如果没有找到纹理，使用默认占位符
+                planetFullscreenImg.src = 'https://placehold.co/1000x1000/000000/ffffff?text=Planet+Texture+Missing';
+            }
+
+            // 隐藏 Three.js 容器并显示全屏图片
+            threejsContainer.style.opacity = '0'; // Three.js 场景淡出
+            fullscreenPlanetDisplay.style.opacity = '1'; // 全屏图片淡入
+            fullscreenPlanetDisplay.style.pointerEvents = 'auto'; // 启用鼠标事件
+
+            // 淡出加载覆盖层 (如果仍然可见)
+            loadingOverlay.style.opacity = '0';
+
+            // 在显示全屏图片一段时间后，再进行页面跳转
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none'; // 隐藏加载覆盖层
+                threejsContainer.style.display = 'none'; // 隐藏 Three.js 容器
+                fullscreenPlanetDisplay.style.display = 'none'; // 隐藏全屏图片容器，准备跳转
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetPageUrl = decodeURIComponent(urlParams.get('target') || '');
+
+                if (targetPageUrl) {
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    const fullUrl = window.location.origin + currentDir + targetPage;
+                    const fullUrl = window.location.origin + currentDir + targetPageUrl;
                     console.log('即将跳转到目标页面:', fullUrl);
                     window.location.href = fullUrl;
-                }, 2000); // 增加跳转延迟到 2 秒，让动画有更多时间播放
-            } else {
-                console.error("未指定目标页面，无法跳转。将重定向回地球页面。");
-                setTimeout(() => {
+                } else {
+                    console.error("未指定目标页面，无法跳转。将重定向回地球页面。");
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    window.location.href = window.location.origin + currentDir + "earth_page.html";
-                }, 2500); // 错误跳转延迟也相应增加
+                    // 默认跳转到地球页面 (personal-homepage.html)
+                    window.location.href = window.location.origin + currentDir + "personal-homepage.html";
+                }
+            }, 2000); // 全屏纹理显示 2 秒后跳转
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isAnimating) {
+                const elapsed = performance.now() - animationStartTime;
+                let currentPosition = new THREE.Vector3();
+                let currentLookAt = new THREE.Vector3();
+
+                if (elapsed < stage1Duration) {
+                    // 阶段 1: 快速接近柯伊伯带
+                    const stageProgress = elapsed / stage1Duration;
+                    currentPosition.lerpVectors(startPos, kuiperApproachPos, stageProgress);
+                    currentLookAt.copy(lookAtOrigin); // 仍看向原点
+                } else if (elapsed < stage1Duration + stage2Duration) {
+                    // 阶段 2: 减速穿过柯伊伯带并接近目标星球
+                    const stageProgress = (elapsed - stage1Duration) / stage2Duration;
+                    currentPosition.lerpVectors(kuiperApproachPos, targetPlanetVicinityPos, stageProgress);
+                    // 逐渐将视角从原点转向目标星球
+                    currentLookAt.lerpVectors(lookAtOrigin, finalLookAtTarget, stageProgress);
+                } else if (elapsed < totalAnimationDuration) {
+                    // 阶段 3: 最终垂直进入目标星球 (降落感)
+                    const stageProgress = (elapsed - (stage1Duration + stage2Duration)) / stage3Duration;
+                    currentPosition.lerpVectors(targetPlanetVicinityPos, finalCameraPosition, stageProgress);
+                    currentLookAt.copy(finalLookAtTarget); // 锁定看向目标星球
+                } else {
+                    // 动画完成
+                    isAnimating = false;
+                    currentPosition.copy(finalCameraPosition);
+                    currentLookAt.copy(finalLookAtTarget);
+                    triggerRedirect(); // 触发页面跳转
+                }
+
+                camera.position.copy(currentPosition);
+                camera.lookAt(currentLookAt);
             }
+            renderer.render(scene, camera);
+        }
+
+        // 页面加载完成后执行
+        window.onload = function() {
+            // 1. 识别目标星球
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetPageUrl = decodeURIComponent(urlParams.get('target') || '');
+
+            if (targetPageUrl) {
+                targetPlanet = planetsData.find(p => p.pageUrl === targetPageUrl);
+            }
+
+            // 如果未找到目标星球或未指定，则默认跳转到地球（个人主页）
+            if (!targetPlanet) {
+                targetPlanet = planetsData.find(p => p.name === 'earth');
+                if (!targetPlanet) { // 如果地球也不存在，则默认第一个星球
+                    targetPlanet = planetsData[0];
+                }
+                console.warn(`未找到目标页面 "${targetPageUrl}" 对应的星球，或未指定目标。将默认跳转到 "${targetPlanet.label}"。`);
+            }
+
+            // 2. 根据目标星球计算相机路径关键点
+            const targetPlanetPos = new THREE.Vector3(targetPlanet.x, targetPlanet.y, targetPlanet.z);
+
+            // 动画起始点 (奥尔特云外)
+            startPos.set(0, 0, r_max_oort * 1.2);
+            // 接近柯伊伯带时的位置 (在柯伊伯带外一点)
+            kuiperApproachPos.set(0, 0, r_max_kuiper * 1.5);
+            
+            // 目标星球附近的位置 (从这个点开始精确对准并垂直进入/降落)
+            // 相机位于目标星球上方较高处，并略微偏后，为垂直降落留出空间
+            targetPlanetVicinityPos.copy(targetPlanetPos).add(new THREE.Vector3(0, targetPlanet.radius * 30, targetPlanet.radius * 60));
+            
+            // 最终垂直进入目标星球的位置 (直接在星球上方，更接近表面，营造落地感)
+            finalCameraPosition.copy(targetPlanetPos).add(new THREE.Vector3(0, targetPlanet.radius * 1.5, 0)); // 更接近星球表面
+            
+            // 最终看向目标星球中心
+            finalLookAtTarget.copy(targetPlanetPos);
+
+            // 3. 初始化 Three.js 场景并开始动画
+            init(); // 初始化场景、星球等
+            camera.position.copy(startPos); // 设置相机初始位置
+            animationStartTime = performance.now(); // 记录动画开始时间
+            animate(); // 启动动画循环
         };
     </script>
 </body>
