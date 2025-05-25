@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>线性尺度：太阳 → 奥尔特云</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
     <style>
         /* 全局样式 */
         body {
@@ -148,6 +150,7 @@
     <script>
         let scene, camera, renderer, controls;
         const labels = {}; // 存储 HTML 标签，用于动态定位
+        let oortCloudMesh, kuiperBeltMesh; // 全局变量，用于在动画中操作粒子
 
         // MATLAB 脚本中的参数定义
         const bodies = [
@@ -187,13 +190,16 @@
         let animationDirection = 1; // 1 for far to near, -1 for near to far
         const baseAnimationDuration = 30000; // 30 秒 (毫秒) - 基础持续时间
         let animationSpeed = 1.0; // 动画速度乘数 (1.0 = 正常速度)
-        let animationStartTime = 0;
-        let currentAnimationProgress = 0; // 存储当前的动画进度
+        let cameraTween = null; // GSAP 动画实例
 
         // 相机动画位置
         const farCameraPosition = new THREE.Vector3(0, 0, r_max_oort * 1.2); // 远景位置
         const nearCameraPosition = new THREE.Vector3(0, 0, 10); // 近景位置 (靠近内太阳系)
         const lookAtTarget = new THREE.Vector3(0, 0, 0); // 始终看向原点
+
+        let mouseX = 0, mouseY = 0; // 全局鼠标坐标，用于相机互动
+        const cameraFollowStrength = 0.00005; // 相机对鼠标反应的强度
+        const cameraMaxOffset = 50; // 相机最大偏移量
 
         // 初始化 Three.js 场景、相机、渲染器
         function init() {
@@ -227,6 +233,7 @@
             drawOortCloud();
 
             window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false); // 添加鼠标移动事件监听器
 
             // 添加按钮事件监听器
             document.getElementById('toggleAnimationBtn').addEventListener('click', toggleCameraAnimation);
@@ -237,20 +244,12 @@
             const currentSpeedValue = document.getElementById('currentSpeedValue');
 
             speedSlider.addEventListener('input', (event) => {
-                const oldSpeed = animationSpeed;
                 animationSpeed = parseFloat(event.target.value);
                 currentSpeedValue.textContent = `${animationSpeed.toFixed(1)}x`;
 
-                // 如果正在动画，调整 animationStartTime 以保持平滑过渡
-                if (isAnimating) {
-                    // currentAnimationProgress 是 0 到 1 的值，表示动画的完成度
-                    // oldAnimationDuration = baseAnimationDuration / oldSpeed
-                    // newAnimationDuration = baseAnimationDuration / newSpeed
-                    // elapsed = oldAnimationDuration * currentAnimationProgress
-                    // newStartTime = performance.now() - (newAnimationDuration * currentAnimationProgress)
-                    const oldAnimationDuration = baseAnimationDuration / oldSpeed;
-                    const elapsed = oldAnimationDuration * currentAnimationProgress; // 动画开始以来经过的“逻辑”时间
-                    animationStartTime = performance.now() - (elapsed / (animationSpeed / oldSpeed)); // 根据新速度调整实际开始时间
+                // 如果动画正在进行，更新 GSAP 动画的速度
+                if (cameraTween) {
+                    cameraTween.timeScale(animationSpeed);
                 }
             });
         }
@@ -349,8 +348,8 @@
                 sizeAttenuation: true
             });
 
-            const kuiperBelt = new THREE.Points(geometry, material);
-            scene.add(kuiperBelt);
+            kuiperBeltMesh = new THREE.Points(geometry, material); // 赋值给全局变量
+            scene.add(kuiperBeltMesh);
 
             // 为柯伊伯带添加 HTML 标签
             const kuiperLabelDiv = document.createElement('div');
@@ -402,8 +401,8 @@
                 sizeAttenuation: true // 粒子越近显得越大
             });
 
-            const oortCloud = new THREE.Points(geometry, material);
-            scene.add(oortCloud);
+            oortCloudMesh = new THREE.Points(geometry, material); // 赋值给全局变量
+            scene.add(oortCloudMesh);
 
             // 为奥尔特云添加 HTML 标签
             const oortLabelDiv = document.createElement('div');
@@ -423,41 +422,108 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // 切换相机动画
+        // 处理鼠标移动事件，更新鼠标坐标
+        function onMouseMove(event) {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        // 启动相机动画
+        function startCameraAnimation(direction) {
+            // 如果有正在进行的动画，先停止它
+            if (cameraTween) {
+                cameraTween.kill(); // 终止之前的动画
+            }
+
+            isAnimating = true;
+            animationDirection = direction;
+            controls.enabled = false; // 动画进行时禁用轨道控制器
+            document.getElementById('toggleAnimationBtn').textContent = '停止动画';
+
+            let startPos, endPos;
+            if (direction === 1) { // 从远到近
+                startPos = camera.position.clone(); // 从当前相机位置开始
+                endPos = nearCameraPosition;
+            } else { // 从近到远
+                startPos = camera.position.clone(); // 从当前相机位置开始
+                endPos = farCameraPosition;
+            }
+
+            // 使用 GSAP 动画相机位置和控制器目标
+            cameraTween = gsap.to(camera.position, {
+                duration: baseAnimationDuration / 1000 / animationSpeed, // 转换为秒
+                x: endPos.x,
+                y: endPos.y,
+                z: endPos.z,
+                ease: "power2.inOut", // 平滑的缓动函数
+                onUpdate: () => {
+                    camera.lookAt(lookAtTarget); // 确保相机始终看向中心
+                    // controls.update(); // GSAP 动画相机时，不需要手动更新 controls
+                },
+                onComplete: () => {
+                    isAnimating = false;
+                    controls.enabled = true; // 动画结束后启用轨道控制器
+                    document.getElementById('toggleAnimationBtn').textContent = '开始动画';
+                    // 确保相机停留在正确的终点位置
+                    camera.position.copy(endPos);
+                    camera.lookAt(lookAtTarget);
+                    controls.target.copy(lookAtTarget); // 重置控制器目标
+                    controls.update();
+                }
+            });
+
+            // 同时动画 controls.target，使其始终指向中心
+            gsap.to(controls.target, {
+                duration: baseAnimationDuration / 1000 / animationSpeed,
+                x: lookAtTarget.x,
+                y: lookAtTarget.y,
+                z: lookAtTarget.z,
+                ease: "power2.inOut",
+            });
+        }
+
+        // 停止相机动画
+        function stopCameraAnimation() {
+            if (cameraTween) {
+                cameraTween.kill(); // 终止动画
+                cameraTween = null;
+            }
+            isAnimating = false;
+            controls.enabled = true; // 启用轨道控制器
+            document.getElementById('toggleAnimationBtn').textContent = '开始动画';
+            controls.target.copy(lookAtTarget); // 重置控制器目标
+            controls.update();
+        }
+
+        // 切换相机动画（开始/停止）
         function toggleCameraAnimation() {
             if (isAnimating) {
-                isAnimating = false;
-                controls.enabled = true;
-                document.getElementById('toggleAnimationBtn').textContent = '开始动画';
+                stopCameraAnimation();
             } else {
-                isAnimating = true;
-                animationDirection = 1; // 始终从远到近开始
-                animationStartTime = performance.now();
-                currentAnimationProgress = 0; // 重置进度
-                controls.enabled = false;
-                document.getElementById('toggleAnimationBtn').textContent = '停止动画';
-                camera.position.copy(farCameraPosition); // 确保相机从远景位置开始
-                camera.lookAt(lookAtTarget);
+                // 如果当前相机在远景位置，开始从远到近；否则从当前位置开始
+                const currentZ = camera.position.z;
+                if (Math.abs(currentZ - farCameraPosition.z) < 100) { // 如果接近远景位置
+                    startCameraAnimation(1); // 从远到近
+                } else { // 从当前位置继续
+                    startCameraAnimation(animationDirection); // 保持当前方向
+                }
             }
         }
 
         // 反转相机动画方向
         function reverseCameraAnimation() {
-            if (!isAnimating) { // 如果当前没有动画，则开始反向动画
-                isAnimating = true;
-                animationDirection = -1; // 从近到远开始
-                animationStartTime = performance.now();
-                currentAnimationProgress = 0; // 重置进度
-                controls.enabled = false;
-                document.getElementById('toggleAnimationBtn').textContent = '停止动画';
-                camera.position.copy(nearCameraPosition); // 确保相机从近景位置开始
-                camera.lookAt(lookAtTarget);
-            } else { // 如果正在动画，则反转方向
+            if (isAnimating) {
+                // 如果正在动画，反转方向并从当前进度继续
                 animationDirection *= -1;
-                // 调整 animationStartTime 以保持动画连续性
-                // currentAnimationProgress 已经是 0 到 1 的值
-                const currentDuration = baseAnimationDuration / animationSpeed;
-                animationStartTime = performance.now() - (currentDuration * (1 - currentAnimationProgress));
+                startCameraAnimation(animationDirection); // 重新启动动画，但方向相反
+            } else {
+                // 如果没有动画，则根据当前相机位置决定反向动画的起始点
+                const currentZ = camera.position.z;
+                if (Math.abs(currentZ - nearCameraPosition.z) < 100) { // 如果接近近景位置
+                    startCameraAnimation(-1); // 从近到远
+                } else { // 如果接近远景位置或中间位置
+                    startCameraAnimation(1); // 从远到近
+                }
             }
         }
 
@@ -465,36 +531,11 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            if (isAnimating) {
-                const currentAnimationDuration = baseAnimationDuration / animationSpeed;
-                const elapsed = performance.now() - animationStartTime;
-                currentAnimationProgress = Math.min(elapsed / currentAnimationDuration, 1); // 0 到 1
-
-                let interpolatedProgress;
-                if (animationDirection === 1) { // 从远到近
-                    interpolatedProgress = currentAnimationProgress;
-                } else { // 从近到远
-                    interpolatedProgress = 1 - currentAnimationProgress;
-                }
-
-                const currentPosition = new THREE.Vector3();
-                currentPosition.lerpVectors(farCameraPosition, nearCameraPosition, interpolatedProgress);
-                camera.position.copy(currentPosition);
-                camera.lookAt(lookAtTarget);
-
-                if (currentAnimationProgress >= 1) { // 动画片段完成
-                    isAnimating = false;
-                    controls.enabled = true;
-                    document.getElementById('toggleAnimationBtn').textContent = '开始动画';
-                    // 确保相机停留在正确的终点位置
-                    if (animationDirection === 1) {
-                        camera.position.copy(nearCameraPosition);
-                    } else {
-                        camera.position.copy(farCameraPosition);
-                    }
-                    camera.lookAt(lookAtTarget);
-                }
-            } else {
+            if (!isAnimating) {
+                // 当没有自动动画时，应用鼠标互动相机控制
+                camera.position.x += (mouseX * cameraMaxOffset - camera.position.x) * cameraFollowStrength;
+                camera.position.y += (mouseY * cameraMaxOffset - camera.position.y) * cameraFollowStrength;
+                camera.lookAt(lookAtTarget); // 确保相机仍然看向中心
                 controls.update(); // 只有在不动画时才更新控制器
             }
 
@@ -511,6 +552,19 @@
 
                 element.style.left = `${x}px`;
                 element.style.top = `${y}px`;
+            }
+
+            // 粒子动态效果
+            if (oortCloudMesh) {
+                oortCloudMesh.rotation.y += 0.00001 * animationSpeed;
+                // Subtle scaling for a "breathing" effect
+                const scaleFactor = 1 + Math.sin(performance.now() * 0.0001 * animationSpeed) * 0.005;
+                oortCloudMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            }
+            if (kuiperBeltMesh) {
+                kuiperBeltMesh.rotation.y += 0.00005 * animationSpeed;
+                const scaleFactor = 1 + Math.cos(performance.now() * 0.00015 * animationSpeed) * 0.003;
+                kuiperBeltMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
             }
 
             renderer.render(scene, camera);

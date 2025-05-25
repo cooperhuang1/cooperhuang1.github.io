@@ -3,28 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>太阳系平面图</title>
+    <title>太阳系模拟器</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            margin: 0;
-            overflow: hidden;
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* 深色背景，模拟太空 */
-            color: #fff;
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars as canvas is full screen */
+            background-color: #000000; /* Black background for space */
+            color: #ffffff; /* White text */
         }
-        #solar-map-container {
+        #webglCanvas {
+            display: block;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             z-index: 0;
         }
+        .ui-panel {
+            position: fixed;
+            background-color: rgba(20, 20, 30, 0.8); /* Dark semi-transparent background */
+            backdrop-filter: blur(5px);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; /* Add opacity transition */
+        }
+        /* Control Panel (top-right) */
+        #controlPanel {
+            top: 1rem;
+            right: 1rem;
+            transform: translateX(0); /* Default visible */
+        }
+        /* Planet Info Panel (bottom-left) */
+        #planetInfoPanel {
+            bottom: 1rem;
+            left: 1rem;
+            max-width: 350px;
+            transform: translateX(-110%); /* Start hidden */
+            opacity: 0;
+            pointer-events: none; /* Disable interaction when hidden */
+        }
+        #planetInfoPanel.show {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Toggle button for mobile */
+        #toggleControlsBtn {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 11; /* Above control panel when hidden */
+            display: none; /* Hidden by default, shown on mobile */
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            #controlPanel {
+                top: 1rem;
+                right: 1rem;
+                transform: translateX(110%); /* Hidden by default on mobile */
+            }
+            #controlPanel.show {
+                transform: translateX(0);
+            }
+            #toggleControlsBtn {
+                display: block; /* Show toggle button on mobile */
+            }
+            #planetInfoPanel {
+                bottom: 1rem;
+                left: 50%;
+                transform: translateX(-50%) translateY(110%); /* Hidden at bottom center */
+                max-width: 90%;
+            }
+            #planetInfoPanel.show {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Styles from the plane map for UI elements */
         .controls {
             position: absolute;
             top: 1rem;
@@ -99,6 +165,8 @@
             list-style: none;
             padding: 0;
             margin: 0;
+            max-height: 70vh; /* Limit height for scrolling */
+            overflow-y: auto; /* Enable scrolling */
         }
         #planet-nav-list li {
             margin-bottom: 0.5rem;
@@ -196,8 +264,8 @@
     </style>
 </head>
 <body>
-    <div id="solar-map-container"></div>
-
+    <canvas id="webglCanvas"></canvas> 
+    
     <div class="controls">
         <a href="personal-homepage.html" class="btn-back">
             <i class="fas fa-undo"></i> 返回地球页面
@@ -208,390 +276,618 @@
         <h3 class="navbar-title">太阳系导航</h3>
         <ul id="planet-nav-list">
             <li><button id="reset-view-btn">总览</button></li>
-            </ul>
+        </ul>
     </div>
 
     <div class="planet-info-panel" id="planet-info-panel">
         <button class="close-panel-btn" id="close-panel-btn"><i class="fas fa-times"></i></button>
-        <h3 class="panel-title">星球信息与操作</h3>
-        <p id="panel-planet-name" class="text-xl font-bold mb-2 text-green-400"></p>
-        <p class="text-gray-300 text-sm mb-6">点击登录以查看更多详细信息或执行相关操作。</p>
+        <h3 class="panel-title">天体信息与操作</h3>
+        <p id="panel-body-name" class="text-xl font-bold mb-2 text-green-400"></p>
+        <p id="panel-body-fact" class="text-gray-300 text-sm mb-2"></p>
+        <p id="panel-host-star" class="text-gray-400 text-xs mb-6 hidden"></p> 
         <button class="login-btn" id="login-button" disabled> <i class="fas fa-sign-in-alt"></i> 登录
         </button>
     </div>
 
     <script>
+        // --- Three.js Variables ---
         let scene, camera, renderer, controls;
-        let sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune;
-        let plane;
-        let backgroundStars;
-        const textureLoader = new THREE.TextureLoader();
+        let sunMesh;
+        let celestialBodies = []; // Array to hold all orbiting bodies (planets, dwarf planets, moons, probes, fictional, exoplanets)
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let animationSpeed = 1.0; // Default simulation speed
+        let focusedCelestialBody = null; // Stores the mesh of the currently focused body
+        let backgroundStars; // Declare globally
 
-        // 将 frustumSize 声明为全局变量
-        const frustumSize = 300; 
+        // Variables for Three-Body System
+        let threeBodyStars = [];
+        // Fixed barycenter for the three-body system, positioned far from the main solar system
+        let threeBodySystemBarycenter = new THREE.Vector3(400, 0, 0); 
 
-        // 行星数据（半径、在平面上的位置、纹理、标签、以及新增的 pageUrl）
-        const PLANETS_DATA = [
-            { name: 'sun', label: '太阳', radius: 8, x: 0, z: 0, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_sun.jpg', pageUrl: 'sun_page.html' },
-            { name: 'mercury', label: '水星', radius: 0.7, x: -30, z: -10, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mercury.jpg', pageUrl: 'from-sun-to-orat.html' },
-            { name: 'venus', label: '金星（写作空间）', radius: 1.8, x: -50, z: 20, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_venus_surface.jpg', pageUrl: 'writing-space.html' },
-            { name: 'earth', label: '地球（个人主页）', radius: 2.0, x: -70, z: -30, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_earth_daymap.jpg', pageUrl: 'personal-homepage.html' }, // 地球跳转到 personal-homepage.html
-            { name: 'moon', label: '月球', radius: 0.5, x: -75, z: -35, texture: 'https://placehold.co/100x100/C0C0C0/000000?text=Moon', pageUrl: 'moon_page.html' },
-            { name: 'mars', label: '火星（我的书架）', radius: 1.3, x: -90, z: 10, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mars.jpg', pageUrl: 'my-bookshelf.html' },
-            { name: 'jupiter', label: '木星（岩浆样演化模拟器）', radius: 6.0, x: -130, z: -50, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_jupiter.jpg', pageUrl: 'magma_ocean_sim.html ' },
-            { name: 'saturn', label: '土星(地月大碰撞模拟器)', radius: 5.0, x: 100, z: -80, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_saturn.jpg', pageUrl: 'great-impact.html' },
-            { name: 'uranus', label: '天王星', radius: 3.5, x: 150, z: 50, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_uranus.jpg', pageUrl: 'uranus_page.html', pageUrl: 'uranus_page.html' },
-            { name: 'neptune', label: '海王星', radius: 3.3, x: 180, z: -20, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_neptune.jpg', pageUrl: 'neptune_page.html' },
-        ];
+        // --- DOM Elements ---
+        const webglCanvas = document.getElementById('webglCanvas');
+        const resetViewBtn = document.getElementById('reset-view-btn');
+        const planetInfoPanel = document.getElementById('planet-info-panel');
+        const panelBodyName = document.getElementById('panel-body-name');
+        const panelBodyFact = document.getElementById('panel-body-fact');
+        const panelHostStar = document.getElementById('panel-host-star');
+        const closePanelBtn = document.getElementById('close-panel-btn');
+        const loginButton = document.getElementById('login-button');
+        const navList = document.getElementById('planet-nav-list');
+        
+        const RAYCAST_ENLARGEMENT_FACTOR = 2.5;
 
-        const celestialBodies = {}; // 存储行星的视觉对象
-        const clickableMeshes = []; // 存储用于点击检测的辅助网格
-
-        const RAYCAST_ENLARGEMENT_FACTOR = 2.5; // 射线检测区域的放大系数
-
-        // Raycaster 用于鼠标交互
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        let intersectedPlanet = null;
+        let intersectedCelestialBody = null; // For mouse hover effect
         let tooltipElement = document.createElement('div');
         tooltipElement.className = 'planet-info-tooltip';
         document.body.appendChild(tooltipElement);
 
-        let currentActiveNavButton = null; // 用于跟踪当前激活的导航按钮
+        let currentActiveNavButton = null;
+        let currentBodyDataForPanel = null;
 
-        // 获取行星信息面板的 DOM 元素
-        const planetInfoPanel = document.getElementById('planet-info-panel');
-        const panelPlanetName = document.getElementById('panel-planet-name');
-        const closePanelBtn = document.getElementById('close-panel-btn');
-        const loginButton = document.getElementById('login-button'); // 获取登录按钮
+        // --- Solar System Data (Simplified for visualization, not true scale) ---
+        // radius: relative size for visualization
+        // orbitRadius: distance from parent in relative units
+        // orbitSpeed: multiplier for orbital period, higher means faster orbit
+        // parent: for moons/probes, indicates the name of their parent body (e.g., '地球', '冥王星')
+        // label: text to display in UI (e.g., navigation, info panel)
+        // pageUrl: URL to navigate to when 'Login' button is clicked
+        // hostStar: for exoplanets/fictional_planets, indicates their host star(s)
+        // texture: URL for the planet's texture map
+        const solarSystemData = [
+            { name: '太阳', type: 'star', radius: 10, orbitRadius: 0, color: 0xFFD700, fact: '太阳是太阳系的中心，一颗黄矮星，占太阳系总质量的99.8%。', label: '太阳', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_sun.jpg' },
+            { name: '水星', type: 'planet', radius: 0.5, orbitRadius: 20, orbitSpeed: 0.04, color: 0x8A8A8A, fact: '水星是太阳系中最小的行星，也是离太阳最近的行星。', label: '水星(真实比例太阳系模拟)', pageUrl: 'from-sun-to-orat.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mercury.jpg' },
+            { name: '金星', type: 'planet', radius: 0.9, orbitRadius: 30, orbitSpeed: 0.016, color: 0xFFA500, fact: '金星以其极热的表面和浓密的大气层而闻名。', label: '金星（写作空间）', pageUrl: 'writing-space.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_venus_surface.jpg' },
+            { name: '地球', type: 'planet', radius: 1.0, orbitRadius: 40, orbitSpeed: 0.01, color: 0x0077BE, fact: '地球是太阳系中唯一已知存在生命的行星，拥有独特的液态水和适宜的温度。', label: '地球（个人主页）', pageUrl: 'personal-homepage.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_earth_daymap.jpg' },
+            { name: '月球', type: 'moon', radius: 0.2, orbitRadius: 3, orbitSpeed: 0.1, color: 0xCCCCCC, fact: '月球是地球唯一的天然卫星，对地球的潮汐和自转轴稳定性至关重要。', parent: '地球', label: '月球', texture: 'https://placehold.co/100x100/C0C0C0/000000?text=Moon' },
+            { name: '火星', type: 'planet', radius: 0.7, orbitRadius: 55, orbitSpeed: 0.005, color: 0xC1440E, fact: '火星被称为“红色星球”，因其表面富含氧化铁而呈现红色。', label: '火星（我的书架）', pageUrl: 'my-bookshelf.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mars.jpg' },
+            { name: '谷神星', type: 'dwarf_planet', radius: 0.4, orbitRadius: 65, orbitSpeed: 0.003, color: 0x6E6E6E, fact: '谷神星是小行星带中最大的天体，也是唯一的矮行星。', label: '谷神星' },
+            { name: '木星', type: 'planet', radius: 5.0, orbitRadius: 80, orbitSpeed: 0.0008, color: 0xD8D4C8, fact: '木星是太阳系中最大的行星，它是一颗巨大的气态巨行星，拥有著名的大红斑。', label: '木星（岩浆样演化模拟器）', pageUrl: 'magma_ocean_sim.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_jupiter.jpg' },
+            { name: '木卫一', type: 'moon', radius: 0.3, orbitRadius: 6, orbitSpeed: 0.08, color: 0xFF8C00, fact: '木卫一是木星的四大卫星之一，以其剧烈的火山活动而闻名。', parent: '木星', label: '木卫一' },
+            { name: '木卫二', type: 'moon', radius: 0.28, orbitRadius: 8, orbitSpeed: 0.06, color: 0xADD8E6, fact: '木卫二表面覆盖着冰层，被认为是太阳系中最有可能存在液态海洋的地方之一。', parent: '木星', label: '木卫二' },
+            { name: '木卫三', type: 'moon', radius: 0.4, orbitRadius: 10, orbitSpeed: 0.04, color: 0x964B00, fact: '木卫三是太阳系中最大的卫星，甚至比水星还要大。', parent: '木星', label: '木卫三' },
+            { name: '木卫四', type: 'moon', radius: 0.35, orbitRadius: 12, orbitSpeed: 0.03, color: 0x778899, fact: '木卫四是木星最外侧的伽利略卫星，表面布满了撞击坑。', parent: '木星', label: '木卫四' },
+            { name: '土星', type: 'planet', radius: 4.5, orbitRadius: 110, orbitSpeed: 0.0003, color: 0xE0C9A6, fact: '土星以其壮观的光环系统而闻名，这些光环主要由冰粒和岩石碎片组成。', label: '土星(地月大碰撞模拟器)', pageUrl: 'great-impact.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_saturn.jpg' },
+            { name: '土卫六', type: 'moon', radius: 0.45, orbitRadius: 8, orbitSpeed: 0.05, color: 0xDAA520, fact: '土卫六是土星最大的卫星，也是太阳系中唯一拥有浓密大气层的卫星。', parent: '土星', label: '土卫六' },
+            { name: '天王星', type: 'planet', radius: 2.5, orbitRadius: 140, orbitSpeed: 0.0001, color: 0xADD8E6, fact: '天王星是一颗冰巨星，它的自转轴几乎与轨道平面平行。', label: '天王星（行星种群合成模拟）', pageUrl: 'planet_population_synthesis.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_uranus.jpg' },
+            { name: '海王星', type: 'planet', radius: 2.4, orbitRadius: 170, orbitSpeed: 0.00005, color: 0x4682B4, fact: '海王星是太阳系中最远的气态巨行星，以其强风和巨大的风暴系统而著称。', label: '海王星(凝聚态理论)', pageUrl: 'condensed-matter-theory.html', texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_neptune.jpg' },
+            { name: '冥王星', type: 'dwarf_planet', radius: 0.3, orbitRadius: 200, orbitSpeed: 0.00002, color: 0x964B00, fact: '冥王星曾被认为是第九大行星，但现在被归类为矮行星。', label: '冥王星' },
+            { name: '卡戎', type: 'moon', radius: 0.15, orbitRadius: 2, orbitSpeed: 0.08, color: 0xAAAAAA, fact: '卡戎是冥王星最大的卫星，与冥王星形成一个双矮行星系统。', parent: '冥王星', label: '卡戎' },
+            { name: '阋神星', type: 'dwarf_planet', radius: 0.35, orbitRadius: 250, orbitSpeed: 0.00001, color: 0x8B008B, fact: '阋神星是已知最大的矮行星之一，位于柯伊伯带之外。', label: '阋神星' },
+            { name: '妊神星', type: 'dwarf_planet', radius: 0.25, orbitRadius: 230, orbitSpeed: 0.000015, color: 0xFFC0CB, fact: '妊神星以其独特的椭圆形形状和快速自转而闻名。', label: '妊神星' },
+            { name: '鸟神星', type: 'dwarf_planet', radius: 0.28, orbitRadius: 240, orbitSpeed: 0.000012, color: 0x00FF7F, fact: '鸟神星是柯伊伯带中最大的矮行星之一，表面覆盖着甲烷冰。', label: '鸟神星' },
+            // Human-made Probes/Satellites (symbolic representation)
+            { name: '旅行者号探测器', type: 'probe', radius: 0.05, orbitRadius: 300, orbitSpeed: 0.000005, color: 0x00FFFF, fact: '旅行者号是美国NASA发射的深空探测器，已飞出太阳圈，探索星际空间。', label: '旅行者号探测器' },
+            { name: '嫦娥号探测器', type: 'probe', radius: 0.04, orbitRadius: 42, orbitSpeed: 0.03, color: 0xFF00FF, fact: '嫦娥号是中国探月工程的系列探测器，实现了月球背面着陆等壮举。', parent: '地球', label: '嫦娥号探测器' },
+            { name: '火星探测器 (毅力号)', type: 'probe', radius: 0.04, orbitRadius: 57, orbitSpeed: 0.008, color: 0x00FF00, fact: '毅力号是美国NASA的火星漫游车，正在火星表面寻找生命迹象。', parent: '火星', label: '火星探测器 (毅力号)' },
+            { name: '早期卫星 (斯普特尼克)', type: 'probe', radius: 0.03, orbitRadius: 41, orbitSpeed: 0.05, color: 0xAAAAAA, fact: '斯普特尼克1号是苏联发射的第一颗人造地球卫星，开启了太空时代。', parent: '地球', label: '早期卫星 (斯普特尼克)' },
+            // Fictional and Exoplanets
+            { name: '三体星恒星A', type: 'three_body_star', radius: 5, orbitRadius: 10, orbitSpeed: 0.005, color: 0xFF0000, fact: '三体星系统中的第一颗恒星。', label: '三体星恒星A' },
+            { name: '三体星恒星B', type: 'three_body_star', radius: 4.8, orbitRadius: 12, orbitSpeed: 0.006, color: 0xFFFF00, fact: '三体星系统中的第二颗恒星。', label: '三体星恒星B' },
+            { name: '三体星恒星C', type: 'three_body_star', radius: 5.2, orbitRadius: 11, orbitSpeed: 0.0055, color: 0x00FFFF, fact: '三体星系统中的第三颗恒星。', label: '三体星恒星C' },
+            { name: '三体星', type: 'fictional_planet', radius: 1.5, orbitRadius: 15, orbitSpeed: 0.05, color: 0x800080, fact: '三体星是《三体》小说中一颗虚构的行星，在一个由三颗恒星（半人马座A、B、C）组成的系统中运行，文明饱受摧残。在模拟器中，它围绕三体星恒星A运行。', label: '三体星', parent: '三体星恒星A' },
+            { name: '比邻星b', type: 'exoplanet', radius: 1.2, orbitRadius: 500, orbitSpeed: 0.0000005, color: 0x00FF00, fact: '比邻星b是距离太阳系最近的系外行星之一，围绕红矮星比邻星（Proxima Centauri）运行，位于宜居带内。', label: '比邻星b', hostStar: '比邻星 (Proxima Centauri)' },
+            { name: 'TRAPPIST-1e', type: 'exoplanet', radius: 1.0, orbitRadius: 550, orbitSpeed: 0.0000003, color: 0x00BFFF, fact: 'TRAPPIST-1e是TRAPPIST-1系统中的一颗行星，围绕超冷红矮星TRAPPIST-1运行，位于宜居带内，可能存在液态水。', label: 'TRAPPIST-1e', hostStar: 'TRAPPIST-1' },
+            // Fictional: Santa's Sleigh
+            { name: '圣诞老人雪橇', type: 'fictional_object', radius: 0.1, orbitRadius: 350, orbitSpeed: 0.0001, color: 0xFF0000, fact: '每年圣诞节前夕，圣诞老人会驾驶他的雪橇，带着礼物飞越地球上空。它以一种神秘而快速的方式在太阳系中穿梭。', label: '圣诞老人雪橇' }
+        ];
 
-        // 用于存储当前面板显示的行星数据
-        let currentPlanetDataForPanel = null; 
-
-        function initSolarMap() {
+        // --- Initialization ---
+        function init() {
+            // Scene
             scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Black space background
 
-            const aspect = window.innerWidth / window.innerHeight;
-            camera = new THREE.OrthographicCamera(
-                -frustumSize * aspect / 2,
-                frustumSize * aspect / 2,
-                frustumSize / 2,
-                -frustumSize / 2,
-                0.1,
-                1000
-            );
-            camera.position.set(0, 200, 0);
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 150, 250); // Initial camera position
             camera.lookAt(0, 0, 0);
-            camera.initialZoom = camera.zoom; // 存储初始缩放值，用于“总览”
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: webglCanvas, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('solar-map-container').appendChild(renderer.domElement);
+            renderer.setPixelRatio(window.devicePixelRatio);
 
+            // Controls
             controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
+            controls.enableDamping = true; // Smooth camera movements
             controls.dampingFactor = 0.05;
             controls.screenSpacePanning = false;
-            controls.maxPolarAngle = Math.PI / 2 - 0.1;
-            controls.minDistance = 50;
-            controls.maxDistance = 500;
+            controls.maxDistance = 800; // Increased limit for new distant objects
+            controls.minDistance = 5; // Limit zoom in
 
-            const ambientLight = new THREE.AmbientLight(0x404040);
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 1); // Soft ambient light
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(50, 100, 50);
-            scene.add(directionalLight);
-            
-            const sunLight = new THREE.PointLight(0xFFFFFF, 1.0, 0);
-            sunLight.position.set(0, 50, 0);
+
+            // Sun Light (point light from the sun's position)
+            const sunLight = new THREE.PointLight(0xffffff, 2, 0, 2); // Color, intensity, distance, decay
+            sunLight.position.set(0, 0, 0); // At the center where the sun will be
             scene.add(sunLight);
 
-            const planeGeometry = new THREE.PlaneGeometry(300, 300);
-            const planeTexture = textureLoader.load('https://placehold.co/500x500/0a0a0a/00ff00?text=TECH+GRID');
-            planeTexture.wrapS = THREE.RepeatWrapping;
-            planeTexture.wrapT = THREE.RepeatWrapping;
-            planeTexture.repeat.set(5, 5);
+            // Create Solar System Objects
+            createSolarSystem();
+            addStars(); // Add background stars
 
-            const planeMaterial = new THREE.MeshLambertMaterial({
-                map: planeTexture,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.8
-            });
-            plane = new THREE.Mesh(planeGeometry, planeMaterial);
-            plane.rotation.x = -Math.PI / 2;
-            scene.add(plane);
-
-            // 创建所有天体及其辅助点击区域
-            PLANETS_DATA.forEach(data => {
-                // 1. 创建行星的视觉模型
-                const geometry = new THREE.SphereGeometry(data.radius, 32, 32);
-                const material = new THREE.MeshLambertMaterial({ map: textureLoader.load(data.texture) });
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.set(data.x, data.radius, data.z);
-                
-                // 为后续的自转动画方便，将行星存储起来
-                celestialBodies[data.name] = mesh; 
-                scene.add(mesh); // 将行星添加到场景中
-
-                // 2. 创建一个稍大的、不可见的辅助球体用于射线检测
-                const clickableGeometry = new THREE.SphereGeometry(data.radius * RAYCAST_ENLARGEMENT_FACTOR, 16, 16);
-                const clickableMaterial = new THREE.MeshBasicMaterial({ 
-                    transparent: true, 
-                    opacity: 0, // 完全透明，不可见
-                    depthWrite: false // 不写入深度缓冲区，防止遮挡行星
-                });
-                const clickableMesh = new THREE.Mesh(clickableGeometry, clickableMaterial);
-                clickableMesh.position.copy(mesh.position); // 与行星位置相同
-                clickableMesh.userData = { name: data.name, visualMesh: mesh, planetData: data }; // 存储关联数据，包括完整的行星数据
-
-                clickableMeshes.push(clickableMesh); // 将辅助网格添加到可点击列表中
-                scene.add(clickableMesh); // 将辅助网格也添加到场景中
-            });
-
-            const backgroundSphereGeometry = new THREE.SphereGeometry(800, 32, 32);
-            const backgroundTexture = textureLoader.load('https://placehold.co/1024x1024/000000/FFFFFF?text=GALAXY+BACKGROUND');
-            const backgroundMaterial = new THREE.MeshBasicMaterial({
-                map: backgroundTexture,
-                side: THREE.BackSide
-            });
-            backgroundStars = new THREE.Mesh(backgroundSphereGeometry, backgroundMaterial);
-            scene.add(backgroundStars);
-
-            window.addEventListener('resize', onWindowResize);
-            window.addEventListener('mousemove', onMouseMove);
-
-            // 设置行星导航
+            // Populate focus planet dropdown (now handled by setupPlanetNavigation for the navbar)
             setupPlanetNavigation();
 
-            // 为关闭按钮添加事件监听器
-            closePanelBtn.addEventListener('click', hidePlanetInfoPanel);
+            // --- Event Listeners ---
+            window.addEventListener('resize', onWindowResize);
+            webglCanvas.addEventListener('click', onCanvasClick);
+            webglCanvas.addEventListener('mousemove', onMouseMove); // Add mousemove listener for tooltips
 
-            // 为登录按钮添加事件监听器
+            // Reset view button in navbar
+            resetViewBtn.addEventListener('click', () => {
+                focusedCelestialBody = null; // Unfocus any planet
+                hideCelestialBodyInfoPanel();
+                updateNavButtonActiveState('none'); // Deactivate all buttons
+
+                // Reset OrbitControls target and camera position smoothly
+                gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power2.inOut" });
+                gsap.to(camera.position, { x: 0, y: 150, z: 250, duration: 1.5, ease: "power2.inOut", onComplete: () => {
+                    controls.update(); // Ensure controls are updated after GSAP animation
+                }});
+                gsap.to(camera, {
+                    duration: 1.5,
+                    zoom: 1, // Reset zoom to initial (assuming 1 is initial for perspective camera)
+                    ease: "power2.inOut",
+                    onUpdate: () => { camera.updateProjectionMatrix(); }
+                });
+            });
+
+            // Close info panel button
+            closePanelBtn.addEventListener('click', hideCelestialBodyInfoPanel);
+
+            // Login button click handler
             loginButton.addEventListener('click', () => {
-                console.log('登录按钮被点击！');
-                console.log('当前面板行星数据:', currentPlanetDataForPanel);
-
-                if (currentPlanetDataForPanel && currentPlanetDataForPanel.pageUrl) {
+                if (currentBodyDataForPanel && currentBodyDataForPanel.pageUrl) {
                     const currentPath = window.location.pathname;
                     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    
-                    // 确保 pageUrl 被正确编码
-                    const encodedTargetPage = encodeURIComponent(currentPlanetDataForPanel.pageUrl);
+                    const encodedTargetPage = encodeURIComponent(currentBodyDataForPanel.pageUrl);
                     const transitionUrl = window.location.origin + currentDir + "transition_to_planet.html?target=" + encodedTargetPage;
-                    
-                    console.log('即将跳转到过渡页:', transitionUrl);
-                    window.location.href = transitionUrl; // 跳转到过渡页
+                    window.location.href = transitionUrl; // Navigate to transition page
                 } else {
-                    console.warn('没有为当前行星定义跳转页面或行星数据缺失。请先选择一个星球。');
-                    // 可以添加一个简单的提示，例如：
-                    // alert('此星球暂无专属页面，可以替换为自定义模态框'); // 避免使用 alert()，可以替换为自定义模态框
+                    // Fallback if pageUrl is missing (should be disabled by loginButton.disabled)
+                    console.warn('此天体没有关联的页面。');
+                }
+            });
+
+            // Initial render
+            animate();
+        }
+
+        /**
+         * Creates the sun, planets, dwarf planets, moons, probes, and belts.
+         */
+        function createSolarSystem() {
+            // Map to store meshes by name for parent lookup
+            const meshMap = new Map();
+
+            solarSystemData.forEach(data => {
+                let mesh;
+                // For probes and fictional_object, use a smaller segment count to make them appear as tiny dots
+                const segmentCount = (data.type === 'probe' || data.type === 'fictional_object') ? 8 : 32;
+                const geometry = new THREE.SphereGeometry(data.radius, segmentCount, segmentCount);
+                
+                let material;
+                if (data.texture) {
+                    const textureLoader = new THREE.TextureLoader();
+                    const loadedTexture = textureLoader.load(data.texture,
+                        // Optional: on success
+                        (texture) => {
+                            // console.log(`Texture loaded for ${data.name}`);
+                        },
+                        // Optional: on progress
+                        undefined,
+                        // Optional: on error
+                        (err) => {
+                            console.error(`Error loading texture for ${data.name}:`, err);
+                            // Fallback to color if texture fails
+                            mesh.material = new THREE.MeshStandardMaterial({ color: data.color });
+                        }
+                    );
+                    material = new THREE.MeshStandardMaterial({ map: loadedTexture });
+                } else {
+                    material = new THREE.MeshStandardMaterial({ color: data.color });
+                }
+
+                if (data.type === 'star') {
+                    // Sun uses BasicMaterial as it emits light
+                    const sunGeometry = new THREE.SphereGeometry(data.radius, 64, 64);
+                    let sunMaterial;
+                    if (data.texture) {
+                        const textureLoader = new THREE.TextureLoader();
+                        const loadedTexture = textureLoader.load(data.texture,
+                            undefined, undefined,
+                            (err) => {
+                                console.error(`Error loading sun texture:`, err);
+                                sunMesh.material = new THREE.MeshBasicMaterial({ color: data.color });
+                            }
+                        );
+                        sunMaterial = new THREE.MeshBasicMaterial({ map: loadedTexture });
+                    } else {
+                        sunMaterial = new THREE.MeshBasicMaterial({ color: data.color });
+                    }
+                    mesh = new THREE.Mesh(sunGeometry, sunMaterial);
+                    sunMesh = mesh; // Store reference to the sun
+                } else {
+                    mesh = new THREE.Mesh(geometry, material);
+                    // Store original data on the mesh for easy access on click and animation
+                    // For three_body_star, add an initial thetaOffset for chaotic motion
+                    mesh.userData = { ...data, theta: Math.random() * Math.PI * 2, thetaOffset: Math.random() * Math.PI * 2 }; 
+                    celestialBodies.push(mesh); // Add to celestialBodies array for animation and click detection
+                    
+                    // Create orbit path for planets/dwarf_planets/fictional/exoplanets/fictional_object
+                    if (data.type === 'planet' || data.type === 'dwarf_planet' || data.type === 'fictional_planet' || data.type === 'exoplanet' || data.type === 'fictional_object') {
+                        const orbitGeometry = new THREE.RingGeometry(data.orbitRadius - 0.2, data.orbitRadius + 0.2, 128);
+                        const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
+                        const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
+                        orbit.rotation.x = Math.PI / 2; // Rotate to lie flat on XZ plane
+                        scene.add(orbit);
+                    }
+                    // Moons and probes will be positioned relative to their parent in the animate loop
+                }
+                scene.add(mesh);
+                meshMap.set(data.name, mesh); // Store mesh in map for parent lookup
+            });
+
+            // Create Asteroid Belt
+            const asteroidBeltGroup = new THREE.Group();
+            const asteroidBeltRadiusMin = 60; // Between Mars (55) and Jupiter (80)
+            const asteroidBeltRadiusMax = 75;
+            const numAsteroids = 8000; // Increased number for better density
+            const asteroidVertices = [];
+            for (let i = 0; i < numAsteroids; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = asteroidBeltRadiusMin + Math.random() * (asteroidBeltRadiusMax - asteroidBeltRadiusMin);
+                const yOffset = (Math.random() - 0.5) * 5; // Slight vertical spread for belt
+                asteroidVertices.push(radius * Math.cos(angle), yOffset, radius * Math.sin(angle));
+            }
+            const asteroidBeltGeometry = new THREE.BufferGeometry();
+            asteroidBeltGeometry.setAttribute('position', new THREE.Float32BufferAttribute(asteroidVertices, 3));
+            const asteroidBeltMaterial = new THREE.PointsMaterial({ color: 0x666666, size: 0.1 }); // Smaller, darker points
+            const asteroidBelt = new THREE.Points(asteroidBeltGeometry, asteroidBeltMaterial);
+            asteroidBelt.rotationSpeed = 0.0001; // Custom property for rotation
+            scene.add(asteroidBelt);
+
+            // Create Kuiper Belt
+            const kuiperBeltGroup = new THREE.Group();
+            const kuiperBeltRadiusMin = 210; // Beyond Pluto (200)
+            const kuiperBeltRadiusMax = 250;
+            const numKuiperObjects = 15000; // Even more objects
+            const kuiperVertices = [];
+            for (let i = 0; i < numKuiperObjects; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = kuiperBeltRadiusMin + Math.random() * (kuiperBeltRadiusMax - kuiperBeltRadiusMin);
+                const yOffset = (Math.random() - 0.5) * 10; // More vertical spread
+                kuiperVertices.push(radius * Math.cos(angle), yOffset, radius * Math.sin(angle));
+            }
+            const kuiperBeltGeometry = new THREE.BufferGeometry();
+            kuiperBeltGeometry.setAttribute('position', new THREE.Float32BufferAttribute(kuiperVertices, 3));
+            const kuiperBeltMaterial = new THREE.PointsMaterial({ color: 0xAAAAAA, size: 0.15 }); // Slightly larger points
+            const kuiperBelt = new THREE.Points(kuiperBeltGeometry, kuiperBeltMaterial);
+            kuiperBelt.rotationSpeed = 0.00005;
+            scene.add(kuiperBelt);
+
+            // Store parent meshes in userData for easy access in animation loop
+            celestialBodies.forEach(body => {
+                if (body.userData.parent) {
+                    body.userData.parentMesh = meshMap.get(body.userData.parent);
+                }
+                // If it's a three-body star, add it to the specific array
+                if (body.userData.type === 'three_body_star') {
+                    threeBodyStars.push(body);
                 }
             });
         }
 
+        /**
+         * Adds background stars to the scene.
+         */
+        function addStars() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({ color: 0xAAAAAA, size: 0.5 }); // Grayish white stars
+
+            const vertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                vertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            backgroundStars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(backgroundStars); 
+        }
+
+        /**
+         * Populates the dropdown for focusing on celestial bodies (planets, dwarf planets, and some prominent moons/probes).
+         * This function is now integrated into setupPlanetNavigation to populate the list.
+         */
+        function populateFocusPlanetSelect() {
+            // This function is no longer directly used for a dropdown, but its logic is now part of setupPlanetNavigation
+        }
+
+        /**
+         * Animation loop for the solar system simulation.
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update celestial body positions
+            celestialBodies.forEach(body => {
+                // If a celestial body is focused, it should stop its own motion.
+                // However, its moons/probes should still orbit around it.
+                if (focusedCelestialBody && body === focusedCelestialBody) {
+                    // Do not update position or rotation for the focused, static planet
+                    // Its position is already set by the focus logic or its last animated state
+                    // Its rotation will also be static
+                } else {
+                    // Normal animation for unfocused bodies
+                    if (body.userData.type === 'planet' || body.userData.type === 'dwarf_planet' || body.userData.type === 'fictional_planet' || body.userData.type === 'exoplanet') {
+                        body.userData.theta += body.userData.orbitSpeed * animationSpeed;
+                        body.position.x = body.userData.orbitRadius * Math.cos(body.userData.theta);
+                        body.position.z = body.userData.orbitRadius * Math.sin(body.userData.theta);
+                    } else if (body.userData.type === 'moon' || body.userData.type === 'probe') {
+                        const parentMesh = body.userData.parentMesh;
+                        if (parentMesh) {
+                            // Moons/probes always orbit their parent, even if the parent is focused and static
+                            body.userData.theta += body.userData.orbitSpeed * animationSpeed;
+                            const relativeX = body.userData.orbitRadius * Math.cos(body.userData.theta);
+                            const relativeZ = body.userData.orbitRadius * Math.sin(body.userData.theta);
+                            body.position.x = parentMesh.position.x + relativeX;
+                            body.position.z = parentMesh.position.z + relativeZ;
+                            body.position.y = parentMesh.position.y + Math.sin(body.userData.theta * 5) * 0.5;
+                        } else {
+                            // If a probe has no parent, it orbits the sun directly (e.g., deep space probes)
+                            body.userData.theta += body.userData.orbitSpeed * animationSpeed;
+                            body.position.x = body.userData.orbitRadius * Math.cos(body.userData.theta);
+                            body.position.z = body.userData.orbitRadius * Math.sin(body.userData.theta);
+                        }
+                    } else if (body.userData.type === 'three_body_star') {
+                        // Simulate chaotic motion for three-body stars around their barycenter
+                        // Modulate orbit speed with a sine wave for a "chaotic" feel
+                        body.userData.theta += (body.userData.orbitSpeed + Math.sin(Date.now() * 0.00001 + body.userData.thetaOffset) * 0.0005) * animationSpeed;
+                        
+                        // Position relative to the three-body system barycenter
+                        body.position.x = threeBodySystemBarycenter.x + body.userData.orbitRadius * Math.cos(body.userData.theta);
+                        body.position.z = threeBodySystemBarycenter.z + body.userData.orbitRadius * Math.sin(body.userData.theta);
+                        // Add a small Y oscillation for more dynamic movement
+                        body.position.y = threeBodySystemBarycenter.y + Math.sin(body.userData.theta * 2 + body.userData.thetaOffset) * 5;
+                    } else if (body.userData.type === 'fictional_object') {
+                        // Fictional objects like Santa's Sleigh might have their own unique movement
+                        body.userData.theta += body.userData.orbitSpeed * animationSpeed;
+                        body.position.x = body.userData.orbitRadius * Math.cos(body.userData.theta);
+                        body.position.z = body.userData.orbitRadius * Math.sin(body.userData.theta);
+                        body.position.y = Math.sin(body.userData.theta * 0.5) * 10; // Example tilt
+                    }
+
+                    // Rotate each celestial body on its own axis, unless it's the focused one
+                    body.rotation.y += 0.005 * animationSpeed; // General rotation speed for unfocused bodies
+                }
+            });
+
+            // Rotate asteroid and Kuiper belts (represented by Points objects)
+            scene.children.forEach(obj => {
+                // Check if the object is one of our belt groups by checking for the custom rotationSpeed property
+                if (obj.rotationSpeed !== undefined) {
+                    obj.rotation.y += obj.rotationSpeed * animationSpeed;
+                }
+            });
+
+            // Rotate background stars
+            if (backgroundStars) {
+                backgroundStars.rotation.y += 0.0002 * animationSpeed;
+            }
+
+            // Camera focus logic
+            if (focusedCelestialBody) {
+                // Smoothly move camera towards the focused celestial body
+                // Adjusted Y and Z offsets to reduce the "downward" feeling and zoom out more
+                const targetPosition = focusedCelestialBody.position.clone().add(new THREE.Vector3(0, focusedCelestialBody.userData.radius * 10, focusedCelestialBody.userData.radius * 25)); 
+                controls.target.copy(focusedCelestialBody.position); // Keep controls target on the focused body
+                camera.position.lerp(targetPosition, 0.05); // Smooth interpolation
+            } else {
+                controls.update(); // Only update controls if not focused on a body
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        /**
+         * Handles window resizing to keep the Three.js scene responsive.
+         */
         function onWindowResize() {
-            const aspect = window.innerWidth / window.innerHeight;
-            camera.left = -frustumSize * aspect / 2;
-            camera.right = frustumSize * aspect / 2;
-            camera.top = frustumSize / 2;
-            camera.bottom = -frustumSize / 2;
+            camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function animateSolarMap() {
-            requestAnimationFrame(animateSolarMap);
+        /**
+         * Handles clicks on the canvas to select celestial bodies.
+         * @param {Event} event - The click event.
+         */
+        function onCanvasClick(event) {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-            // 让所有行星自转，增加3D感
-            Object.values(celestialBodies).forEach(planet => {
-                planet.rotation.y += 0.005;
-            });
+            raycaster.setFromCamera(mouse, camera);
 
-            if (backgroundStars) {
-                backgroundStars.rotation.y += 0.0002;
+            // Check for intersections with all celestial bodies that can be clicked
+            const clickableMeshes = celestialBodies.filter(b => b.userData.type !== 'star'); // Exclude sun from click info for now
+            const intersects = raycaster.intersectObjects(clickableMeshes);
+
+            if (intersects.length > 0) {
+                const clickedBody = intersects[0].object;
+                showCelestialBodyInfoPanel(clickedBody.userData);
+                focusedCelestialBody = clickedBody; // Set clicked body as focused
+                // Update navigation button active state
+                updateNavButtonActiveState(clickedBody.userData.name);
+            } else {
+                // If clicked nowhere, unfocus and hide info panel
+                focusedCelestialBody = null;
+                hideCelestialBodyInfoPanel();
+                updateNavButtonActiveState('none'); // Deactivate all buttons
             }
-
-            controls.update();
-
-            renderer.render(scene, camera);
         }
 
+        /**
+         * Handles mouse move for hover tooltips.
+         */
         function onMouseMove(event) {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
 
-            // 现在对 clickableMeshes 数组进行射线检测
+            const clickableMeshes = celestialBodies.filter(b => b.userData.type !== 'star'); // Exclude sun
             const intersects = raycaster.intersectObjects(clickableMeshes);
 
             if (intersects.length > 0) {
                 const newIntersected = intersects[0].object;
-                if (intersectedPlanet != newIntersected.userData.visualMesh) {
-                    // 恢复上一个被选中的行星的颜色（如果存在）
-                    if (intersectedPlanet) {
-                        intersectedPlanet.material.emissive.setHex(0x000000);
+                if (intersectedCelestialBody !== newIntersected) {
+                    // Restore color of previously intersected body
+                    if (intersectedCelestialBody) {
+                        intersectedCelestialBody.material.emissive.setHex(0x000000);
                     }
-                    // 更新当前被悬停的行星为视觉网格
-                    intersectedPlanet = newIntersected.userData.visualMesh;
-                    intersectedPlanet.material.emissive.setHex(0x050505); // 鼠标悬停时发光
+                    // Set new intersected body and apply hover effect
+                    intersectedCelestialBody = newIntersected;
+                    intersectedCelestialBody.material.emissive.setHex(0x050505); // Subtle glow on hover
 
-                    // 显示 tooltip，从辅助网格的 userData 获取行星名称
-                    tooltipElement.textContent = `行星: ${newIntersected.userData.label}`; // 使用 label 属性
+                    // Show tooltip
+                    tooltipElement.textContent = newIntersected.userData.label || newIntersected.userData.name;
                     tooltipElement.style.left = `${event.clientX}px`;
                     tooltipElement.style.top = `${event.clientY}px`;
                     tooltipElement.classList.add('show');
                 }
             } else {
-                // 如果没有相交，恢复上一个被选中的行星的颜色
-                if (intersectedPlanet) {
-                    intersectedPlanet.material.emissive.setHex(0x000000);
+                // If no intersection, remove hover effect and hide tooltip
+                if (intersectedCelestialBody) {
+                    intersectedCelestialBody.material.emissive.setHex(0x000000);
                 }
-                intersectedPlanet = null;
+                intersectedCelestialBody = null;
                 tooltipElement.classList.remove('show');
             }
         }
 
-        // ---------- 新增的面板显示/隐藏函数 ----------
-        function showPlanetInfoPanel(planetData) {
-            currentPlanetDataForPanel = planetData; // 存储当前行星数据
-            panelPlanetName.textContent = `当前星球: ${planetData.label}`;
-            loginButton.disabled = false; // 启用登录按钮
-            // 使用 GSAP 动画面板滑入
+        /**
+         * Shows the celestial body information panel.
+         * @param {Object} bodyData - The data object for the clicked celestial body.
+         */
+        function showCelestialBodyInfoPanel(bodyData) {
+            currentBodyDataForPanel = bodyData; // Store current body data
+
+            panelBodyName.textContent = bodyData.label || bodyData.name;
+            panelBodyFact.textContent = bodyData.fact;
+
+            if (bodyData.hostStar) {
+                panelHostStar.textContent = `宿主恒星: ${bodyData.hostStar}`;
+                panelHostStar.classList.remove('hidden');
+            } else {
+                panelHostStar.classList.add('hidden');
+            }
+
+            if (bodyData.pageUrl) {
+                loginButton.disabled = false;
+            } else {
+                loginButton.disabled = true;
+            }
+
+            // Use GSAP to animate panel slide in
             gsap.to(planetInfoPanel, {
                 duration: 0.5,
-                x: "0%", // 滑动到原始位置 (从 -110% 变为 0%)
+                x: "0%", // Slide to original position (from -110% to 0%)
                 opacity: 1,
                 ease: "power2.out",
                 onStart: () => {
-                    planetInfoPanel.style.pointerEvents = 'auto'; // 动画开始时启用鼠标事件
+                    planetInfoPanel.style.pointerEvents = 'auto'; // Enable mouse events when animation starts
                 }
             });
         }
 
-        function hidePlanetInfoPanel() {
-            // 使用 GSAP 动画面板滑出
+        /**
+         * Hides the celestial body information panel.
+         */
+        function hideCelestialBodyInfoPanel() {
+            // Use GSAP to animate panel slide out
             gsap.to(planetInfoPanel, {
                 duration: 0.5,
-                x: "-110%", // 滑动到屏幕左侧 (隐藏)
+                x: "-110%", // Slide to screen left (hidden)
                 opacity: 0,
                 ease: "power2.in",
                 onComplete: () => {
-                    planetInfoPanel.style.pointerEvents = 'none'; // 动画结束时禁用鼠标事件
-                    currentPlanetDataForPanel = null; // 清除存储的行星数据
-                    loginButton.disabled = true; // 禁用登录按钮
+                    planetInfoPanel.style.pointerEvents = 'none'; // Disable mouse events when animation ends
+                    currentBodyDataForPanel = null; // Clear stored body data
+                    loginButton.disabled = true; // Disable login button
                 }
             });
         }
-        // ---------------------------------------------
 
-        // 设置行星导航的函数
+        /**
+         * Sets up the navigation buttons in the navbar.
+         */
         function setupPlanetNavigation() {
-            const navList = document.getElementById('planet-nav-list');
-            const resetViewBtn = document.getElementById('reset-view-btn');
-
-            // “总览”按钮点击事件
-            resetViewBtn.addEventListener('click', () => {
-                if (currentActiveNavButton) {
-                    currentActiveNavButton.classList.remove('active');
-                }
-                currentActiveNavButton = null; // 总览时没有激活的行星
-
-                gsap.to(camera.position, {
-                    duration: 1.5,
-                    x: 0, y: 200, z: 0, // 初始摄像机位置
-                    ease: "power2.inOut",
-                    onUpdate: () => {
-                        controls.target.set(0, 0, 0); // 看向平面中心
-                        controls.update();
-                    }
-                });
-                gsap.to(camera, {
-                    duration: 1.5,
-                    zoom: camera.initialZoom, // 重置为初始缩放
-                    ease: "power2.inOut",
-                    onUpdate: () => {
-                        camera.updateProjectionMatrix(); // 缩放变化后更新摄像机投影矩阵
-                    }
-                });
-                gsap.to(controls.target, {
-                    duration: 1.5,
-                    x: 0, y: 0, z: 0,
-                    ease: "power2.inOut"
-                });
-
-                hidePlanetInfoPanel(); // 点击总览时隐藏面板
-            });
-
-            // 动态创建行星导航按钮
-            PLANETS_DATA.forEach(data => {
-                // 排除月球（因为它是地球的卫星）和太阳（因为有专门的总览按钮）
-                if (data.name === 'moon' || data.name === 'sun') {
-                    return;
-                }
-
+            // Add major planets, dwarf planets, fictional, exoplanets, and prominent moons/probes to the dropdown
+            solarSystemData.filter(d => d.type !== 'star').forEach(data => { // Exclude sun from navigation list
                 const listItem = document.createElement('li');
                 const button = document.createElement('button');
-                button.textContent = data.label; // 使用 PLANETS_DATA 中的 label
-                button.dataset.planetName = data.name; // 存储行星名称，方便查找
+                button.textContent = data.label || data.name; // Use label if available, otherwise name
+                button.dataset.bodyName = data.name; // Store original name for lookup
 
                 button.addEventListener('click', () => {
-                    // 移除之前激活按钮的样式
-                    if (currentActiveNavButton) {
-                        currentActiveNavButton.classList.remove('active');
-                    }
-                    // 添加当前按钮的激活样式
-                    button.classList.add('active');
-                    currentActiveNavButton = button;
+                    // Update active button state
+                    updateNavButtonActiveState(data.name);
 
-                    const targetPlanet = celestialBodies[data.name]; // 获取 Three.js 行星网格
-                    if (!targetPlanet) return;
+                    focusedCelestialBody = celestialBodies.find(b => b.userData.name === data.name);
+                    if (!focusedCelestialBody) return;
 
-                    // 计算目标摄像机位置 (保持 Y 轴高度不变，X 和 Z 移动到行星中心)
-                    const targetX = targetPlanet.position.x;
-                    const targetZ = targetPlanet.position.z;
-                    const targetY = camera.position.y; // 保持摄像机高度不变
+                    // Calculate target camera position (keeping Y-axis height relative to body for better view)
+                    // Adjusted Y and Z offsets for a less "downward" camera angle and further zoom
+                    const targetX = focusedCelestialBody.position.x;
+                    const targetZ = focusedCelestialBody.position.z;
+                    const targetY = focusedCelestialBody.position.y + focusedCelestialBody.userData.radius * 10; 
 
-                    // 计算缩放级别：根据行星半径调整，使行星在视图中占据合理大小
-                    const targetZoom = Math.max(camera.initialZoom * 2, frustumSize / (data.radius * 4)); 
-                    const maxAllowedZoom = 50; 
+                    // Calculate zoom level: adjust based on body radius to fit in view
+                    const targetZoom = Math.max(0.5, 100 / (focusedCelestialBody.userData.radius * 8)); // Increased divisor for further zoom
+                    const maxAllowedZoom = 50; // Prevent excessive zoom in
                     const finalZoom = Math.min(targetZoom, maxAllowedZoom);
 
-                    // 动画摄像机位置
+                    // Animate camera position
                     gsap.to(camera.position, {
-                        duration: 1.5, // 动画时长
+                        duration: 1.5,
                         x: targetX,
                         y: targetY,
-                        z: targetZ,
-                        ease: "power2.inOut", // 平滑缓动
+                        z: targetZ + focusedCelestialBody.userData.radius * 40, // Move camera further back for better view
+                        ease: "power2.inOut",
                         onUpdate: () => {
-                            // 在动画过程中持续更新 controls.target，确保摄像机看向正确位置
-                            controls.target.set(targetX, 0, targetZ); // 平面在 Y=0
-                            controls.update(); // 更新控制器
+                            controls.target.set(targetX, focusedCelestialBody.position.y, targetZ); // Look at the body's center
+                            controls.update();
                         }
                     });
 
-                    // 动画摄像机缩放
+                    // Animate camera zoom
                     gsap.to(camera, {
                         duration: 1.5,
                         zoom: finalZoom,
                         ease: "power2.inOut",
                         onUpdate: () => {
-                            camera.updateProjectionMatrix(); // 缩放变化后必须更新投影矩阵
+                            camera.updateProjectionMatrix();
                         }
                     });
 
-                    // 动画 controls.target (确保动画结束后焦点正确)
+                    // Animate controls.target (ensure focus remains after animation)
                     gsap.to(controls.target, {
                         duration: 1.5,
                         x: targetX,
-                        y: 0,
+                        y: focusedCelestialBody.position.y,
                         z: targetZ,
                         ease: "power2.inOut"
                     });
 
-                    showPlanetInfoPanel(data); // 点击行星时显示面板，并传入行星数据
+                    showCelestialBodyInfoPanel(data); // Show info panel for the selected body
                 });
 
                 listItem.appendChild(button);
@@ -599,10 +895,24 @@
             });
         }
 
-        window.onload = function() {
-            initSolarMap();
-            animateSolarMap();
-        };
+        /**
+         * Updates the active state of navigation buttons.
+         * @param {string} activeBodyName - The name of the currently active celestial body.
+         */
+        function updateNavButtonActiveState(activeBodyName) {
+            const navButtons = navList.querySelectorAll('button');
+            navButtons.forEach(button => {
+                if (button.dataset.bodyName === activeBodyName) {
+                    button.classList.add('active');
+                    currentActiveNavButton = button;
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

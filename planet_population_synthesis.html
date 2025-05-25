@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行星种群合成模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Global styles */
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            font-family: 'Inter', sans-serif; /* Set default font for the page */
+            background-color: #000; /* Black background for space simulation */
+            color: #fff; /* Default text color */
+        }
+        /* Three.js render container style */
+        #threejs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Ensure it's at the lowest layer */
+        }
+        /* UI control panel style */
+        .ui-controls {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem; /* Spacing between buttons */
+        }
+        /* Common button styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.2rem;
+            background-color: #4a5568; /* Gray button */
+            color: white;
+            border-radius: 0.5rem; /* Rounded corners */
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Shadow effect */
+        }
+        .btn:hover {
+            background-color: #2d3748; /* Darker on hover */
+            transform: translateY(-2px); /* Lift on hover */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Larger shadow on hover */
+        }
+        .btn i {
+            margin-right: 0.5rem; /* Spacing between icon and text */
+        }
+        /* Info display panel style */
+        .info-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 10;
+            background-color: rgba(31, 41, 55, 0.7); /* Dark semi-transparent background */
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        .info-panel p {
+            margin-bottom: 0.4rem;
+        }
+        .info-panel p:last-child {
+            margin-bottom: 0;
+        }
+        /* Slider container style */
+        .slider-container {
+            margin-top: 0.5rem; /* Adjusted margin for better spacing */
+            display: flex;
+            flex-direction: column; /* Stack label and slider vertically */
+            gap: 0.5rem;
+            background-color: rgba(31, 41, 55, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .slider-container label {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none; /* Remove default styles */
+            width: 100%; /* Full width of container */
+            height: 8px;
+            background: #d3d3d3; /* Track background */
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .slider-container input[type="range"]:hover {
+            opacity: 1; /* Increase opacity on hover */
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%; /* Circular thumb */
+            background: #3b82f6; /* Blue thumb */
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* Top title and description */
+        .page-header {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            text-align: right;
+            max-width: 400px;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            padding: 0.8rem 1.2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+        .page-header p {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="threejs-container"></div>
+
+    <div class="ui-controls">
+        <button id="playPauseBtn" class="btn bg-blue-600 hover:bg-blue-700">
+            <i class="fas fa-play"></i> 播放
+        </button>
+        <button id="resetBtn" class="btn bg-red-600 hover:bg-red-700">
+            <i class="fas fa-sync-alt"></i> 重置
+        </button>
+        <div class="slider-container">
+            <label for="simSpeedSlider">模拟速度: <span id="simSpeedValue">2.0</span>x</label>
+            <input type="range" id="simSpeedSlider" min="0.1" max="5.0" step="0.1" value="2.0">
+        </div>
+        <div class="slider-container">
+            <label for="diskDensitySlider">尘埃盘密度: <span id="diskDensityValue">1.0</span></label>
+            <input type="range" id="diskDensitySlider" min="0.1" max="2.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="terrestrialGrowthRateSlider">类地行星生长率: <span id="terrestrialGrowthRateValue">1.0</span></label>
+            <input type="range" id="terrestrialGrowthRateSlider" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="giantGrowthRateSlider">巨行星生长率: <span id="giantGrowthRateValue">1.0</span></label>
+            <input type="range" id="giantGrowthRateSlider" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+        <div class="slider-container">
+            <label for="planetCountSlider">行星种子数量: <span id="planetCountValue">10</span></label>
+            <input type="range" id="planetCountSlider" min="5" max="20" step="1" value="10">
+        </div>
+    </div>
+
+    <div class="page-header">
+        <h1>行星种群合成模拟器</h1>
+        <p>探索恒星周围行星从尘埃盘中诞生与演化的动态过程。</p>
+    </div>
+
+    <div class="info-panel">
+        <p>模拟状态: <span id="simStatus">暂停</span></p>
+        <p>当前阶段: <span id="currentStage">原行星盘形成</span></p>
+        <p>模拟时间: <span id="simTime">0</span> 万年</p>
+        <p>已形成行星: <span id="formedPlanetsCount">0</span> 颗</p>
+    </div>
+
+    <script>
+        // Global variables for Firebase (required by Canvas environment)
+        // These are typically provided by the Canvas runtime.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Three.js Scene, Camera, Renderer Global Variables ---
+        let scene, camera, renderer, controls;
+        let starMesh; // Central star Mesh
+        let diskParticlesMesh; // Dust disk InstancedMesh
+        // Stores all protoplanet objects { coreMesh: Three.Mesh, envelopeMesh: Three.Mesh, orbitLine: Three.Line, userData: {...} }
+        let protoPlanets = []; 
+
+        let simulationRunning = false; // Simulation running state
+        let animationFrameId; // requestAnimationFrame ID
+        let lastFrameTime = performance.now(); // Record time of the last frame
+
+        // --- Simulation Parameters ---
+        const SIM_PARAMS = {
+            STAR_RADIUS_VISUAL: 5, // Visual radius of the star
+            DISK_INNER_RADIUS: 10, // Inner radius of the dust disk
+            DISK_OUTER_RADIUS: 100, // Outer radius of the dust disk
+            DISK_THICKNESS: 3, // Thickness of the dust disk
+            MAX_DISK_PARTICLE_COUNT: 50000, // Number of dust particles
+            PARTICLE_SIZE: 0.5, // Visual size of dust particles
+            
+            NUM_PROTO_PLANETS: 10, // Initial number of planet seeds (adjustable)
+            PROTO_PLANET_INITIAL_SIZE: 0.1, // Initial visual size of protoplanets
+            ICE_LINE_RADIUS: 50, // Ice line radius, distinguishes terrestrial and giant planet regions
+            
+            TERRESTRIAL_MAX_SIZE: 3, // Maximum visual size for terrestrial planets
+            GIANT_MAX_CORE_SIZE: 3, // Maximum visual size for giant planet core (threshold for gas accretion)
+            GIANT_MAX_ENVELOPE_SIZE: 12, // Maximum visual size for giant planet gas envelope
+
+            GAS_ENVELOPE_OPACITY: 0.6, // Gas envelope transparency
+            GAS_ENVELOPE_COLOR_START: 0xf5deb3, // Gas envelope initial color (earthy yellow)
+            GAS_ENVELOPE_COLOR_END: 0x87ceeb, // Gas envelope final color (sky blue)
+
+            BASE_GROWTH_RATE: 0.00005, // Base growth rate (per millisecond)
+            TERRESTRIAL_GROWTH_MULTIPLIER: 1.0, // Terrestrial planet growth rate multiplier (adjustable)
+            GIANT_CORE_GROWTH_MULTIPLIER: 2.0, // Giant planet core growth rate multiplier
+            GAS_ACCRETION_MULTIPLIER: 15.0, // Additional growth rate multiplier during giant planet gas accretion phase
+
+            DISK_FADE_START_TIME: 0, // Simulation time (in million years) when dust disk starts to dissipate
+            DISK_FADE_END_TIME: 800, // Simulation time (in million years) when dust disk fully dissipates
+            PLANET_FORMATION_END_TIME: 1500, // Simulation time (in million years) when planet formation is largely complete
+            
+            SIM_SPEED: 2.0, // Simulation time flow speed (multiplier, adjustable)
+            DISK_DENSITY_FACTOR: 1.0, // Dust disk density factor (affects particle count and opacity, adjustable)
+            
+            // --- N-body Physics Parameters ---
+            G_CONSTANT: 0.00001, // Gravitational constant, adjusted for visual simulation units.
+                                 // A higher value means stronger gravity, leading to more chaotic orbits.
+            STAR_MASS: 10000, // Arbitrary mass for the central star. Should be much larger than planets.
+            PLANET_INITIAL_MASS: 1, // Arbitrary initial planet mass. Increases with growth.
+
+            // --- Orbit Line Parameters ---
+            ORBIT_LINE_MAX_POINTS: 1000, // Maximum number of points to store for each orbit trail
+            ORBIT_LINE_UPDATE_INTERVAL: 10, // Update orbit line every N frames to save performance
+        };
+
+        let currentSimTimeYears = 0; // Current simulation time (million years)
+        let formedPlanetsCount = 0; // Number of formed planets
+
+        // --- DOM Element References ---
+        let playPauseBtn, resetBtn;
+        let simSpeedSlider, simSpeedValueDisplay;
+        let diskDensitySlider, diskDensityValueDisplay;
+        let terrestrialGrowthRateSlider, terrestrialGrowthRateValueDisplay;
+        let giantGrowthRateSlider, giantGrowthRateValueDisplay;
+        let planetCountSlider, planetCountValueDisplay;
+        let simStatusDisplay, currentStageDisplay, simTimeDisplay, formedPlanetsCountDisplay;
+
+        // --- Initialize Three.js Scene ---
+        const initThreeJS = () => {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Black background
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 120, 150); // Initial camera position, overlooking the disk
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Enable damping
+            controls.dampingFactor = 0.05;
+            controls.minDistance = SIM_PARAMS.STAR_RADIUS_VISUAL * 3; // Minimum zoom distance
+            controls.maxDistance = SIM_PARAMS.DISK_OUTER_RADIUS * 2.5; // Maximum zoom distance
+
+            // --- Lighting ---
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft ambient light
+            scene.add(ambientLight);
+            
+            const starLight = new THREE.PointLight(0xFFD700, 2, 0, 2); // Star point light
+            starLight.position.set(0, 0, 0);
+            scene.add(starLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 50).normalize();
+            scene.add(directionalLight);
+
+            // Window resize event listener
+            window.addEventListener('resize', onWindowResize, false);
+        };
+
+        // --- Window Resize Function ---
+        const onWindowResize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+
+        /**
+         * Clears all dynamic objects from the scene (disk particles, proto-planets)
+         * but keeps the central star and lights. Disposes of geometries and materials.
+         */
+        function clearDynamicSceneObjects() {
+            const objectsToRemove = [];
+            scene.children.forEach(obj => {
+                // Keep the star and lights
+                if (obj !== starMesh && !(obj instanceof THREE.Light)) {
+                    objectsToRemove.push(obj);
+                }
+            });
+
+            objectsToRemove.forEach(obj => {
+                scene.remove(obj);
+                if (obj.geometry) {
+                    obj.geometry.dispose();
+                }
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(mat => mat.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
+            });
+
+            // Explicitly dispose protoPlanets and their associated meshes/lines
+            protoPlanets.forEach(pp => {
+                scene.remove(pp.coreMesh);
+                pp.coreMesh.geometry.dispose();
+                pp.coreMesh.material.dispose();
+                if (pp.envelopeMesh) {
+                    scene.remove(pp.envelopeMesh);
+                    pp.envelopeMesh.geometry.dispose();
+                    pp.envelopeMesh.material.dispose();
+                }
+                if (pp.orbitLine) { // Dispose orbit line
+                    scene.remove(pp.orbitLine);
+                    pp.orbitLine.geometry.dispose();
+                    pp.orbitLine.material.dispose();
+                }
+            });
+
+            // Reset global object references
+            diskParticlesMesh = null;
+            protoPlanets = [];
+        }
+
+        /**
+         * Resets the orbit line for a given protoplanet.
+         * @param {object} pp - The protoplanet object.
+         */
+        function resetOrbitLine(pp) {
+            const positions = pp.userData.orbitPoints;
+            for (let i = 0; i < SIM_PARAMS.ORBIT_LINE_MAX_POINTS * 3; i++) {
+                positions[i] = 0; // Clear all points
+            }
+            pp.userData.orbitPointIndex = 0;
+            pp.orbitLine.geometry.setDrawRange(0, 0); // Hide the line
+            pp.orbitLine.geometry.attributes.position.needsUpdate = true;
+        }
+
+        /**
+         * Sets up the central star.
+         */
+        function setupStar() {
+            if (!starMesh) {
+                const starGeometry = new THREE.SphereGeometry(SIM_PARAMS.STAR_RADIUS_VISUAL, 32, 32);
+                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffe082, emissive: 0xffd700, emissiveIntensity: 1.5 });
+                starMesh = new THREE.Mesh(starGeometry, starMaterial);
+                scene.add(starMesh);
+            }
+        }
+
+        /**
+         * Sets up the initial protoplanetary dust disk using THREE.InstancedMesh.
+         */
+        function setupDiskParticles() {
+            // Dispose of previous disk if it exists
+            if (diskParticlesMesh) {
+                scene.remove(diskParticlesMesh);
+                diskParticlesMesh.geometry.dispose();
+                diskParticlesMesh.material.dispose();
+            }
+
+            const particleCount = Math.floor(SIM_PARAMS.MAX_DISK_PARTICLE_COUNT * SIM_PARAMS.DISK_DENSITY_FACTOR);
+            const particleGeometry = new THREE.SphereGeometry(SIM_PARAMS.PARTICLE_SIZE, 8, 8); // Small sphere for each particle
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFF8C00, // Orange-yellow dust color
+                transparent: true,
+                opacity: 0.8 * SIM_PARAMS.DISK_DENSITY_FACTOR, // Initial opacity influenced by density factor
+                blending: THREE.AdditiveBlending,
+                depthWrite: false // Important for transparent particles
+            });
+
+            diskParticlesMesh = new THREE.InstancedMesh(particleGeometry, particleMaterial, particleCount);
+            const dummy = new THREE.Object3D(); // Helper object for setting instance matrices
+
+            for (let i = 0; i < particleCount; i++) {
+                const r = SIM_PARAMS.DISK_INNER_RADIUS + (SIM_PARAMS.DISK_OUTER_RADIUS - SIM_PARAMS.DISK_INNER_RADIUS) * Math.sqrt(Math.random());
+                const theta = Math.random() * Math.PI * 2;
+                const x = r * Math.cos(theta);
+                const y = (Math.random() - 0.5) * SIM_PARAMS.DISK_THICKNESS;
+                const z = r * Math.sin(theta);
+
+                dummy.position.set(x, y, z);
+                dummy.updateMatrix();
+                diskParticlesMesh.setMatrixAt(i, dummy.matrix);
+            }
+            diskParticlesMesh.instanceMatrix.needsUpdate = true;
+            scene.add(diskParticlesMesh);
+        }
+
+        /**
+         * Sets up the initial proto-planet "seeds" that will grow.
+         * Now includes initial position, velocity, mass, and orbit line.
+         */
+        function setupProtoPlanets() {
+            // Clear previous proto-planets and their associated Three.js objects
+            protoPlanets.forEach(pp => {
+                scene.remove(pp.coreMesh);
+                pp.coreMesh.geometry.dispose();
+                pp.coreMesh.material.dispose();
+                if (pp.envelopeMesh) {
+                    scene.remove(pp.envelopeMesh);
+                    pp.envelopeMesh.geometry.dispose();
+                    pp.envelopeMesh.material.dispose();
+                }
+                if (pp.orbitLine) {
+                    scene.remove(pp.orbitLine);
+                    pp.orbitLine.geometry.dispose();
+                    pp.orbitLine.material.dispose();
+                }
+            });
+            protoPlanets = []; // Clear previous proto-planets
+
+            // Generate unique initial radii with some spacing
+            const radii = [];
+            const MIN_RADIAL_SPACING = 5; // Minimum distance between initial planet orbits
+            const maxAttempts = 500; // Max attempts to find a suitable radius
+
+            for (let i = 0; i < SIM_PARAMS.NUM_PROTO_PLANETS; i++) {
+                let newRadius;
+                let attempts = 0;
+                let foundGoodSpot = false;
+                do {
+                    newRadius = SIM_PARAMS.DISK_INNER_RADIUS + Math.random() * (SIM_PARAMS.DISK_OUTER_RADIUS - SIM_PARAMS.DISK_INNER_RADIUS);
+                    let tooClose = false;
+                    for (const r of radii) {
+                        if (Math.abs(newRadius - r) < MIN_RADIAL_SPACING) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    if (!tooClose) {
+                        radii.push(newRadius);
+                        foundGoodSpot = true;
+                        break;
+                    }
+                    attempts++;
+                } while (attempts < maxAttempts);
+                
+                // Fallback if unable to find a spaced radius after many attempts
+                if (!foundGoodSpot) {
+                    radii.push(newRadius); // Just add it, better than fewer planets
+                }
+            }
+            radii.sort((a, b) => a - b); // Sort radii to ensure a more ordered distribution
+
+            for (let i = 0; i < SIM_PARAMS.NUM_PROTO_PLANETS; i++) {
+                const initialRadius = radii[i];
+                const initialAngle = Math.random() * Math.PI * 2; // Random initial angle
+
+                // Initial position based on radius and angle
+                const initialPosition = new THREE.Vector3(
+                    initialRadius * Math.cos(initialAngle),
+                    (Math.random() - 0.5) * 0.5, // Slight orbital inclination
+                    initialRadius * Math.sin(initialAngle)
+                );
+
+                // Calculate initial tangential velocity for a stable circular orbit around the star
+                // v = sqrt(G * M_star / r)
+                const tangentialSpeed = Math.sqrt((SIM_PARAMS.G_CONSTANT * SIM_PARAMS.STAR_MASS) / initialRadius);
+                const initialVelocity = new THREE.Vector3(
+                    -initialPosition.z, // X component of tangential vector (perpendicular to radius vector in XZ plane)
+                    0, // Y component (no initial vertical velocity for simplicity)
+                    initialPosition.x  // Z component of tangential vector
+                ).normalize().multiplyScalar(tangentialSpeed);
+
+                const isGiantCandidate = initialRadius > SIM_PARAMS.ICE_LINE_RADIUS;
+
+                // Core Mesh
+                const coreGeometry = new THREE.SphereGeometry(SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE, 32, 32);
+                const coreMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x8B4513, // Initial dusty/rocky brown color
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+                coreMesh.position.copy(initialPosition); // Set initial position
+
+                // Envelope Mesh (only for giant candidates, initially invisible)
+                let envelopeMesh = null;
+                if (isGiantCandidate) {
+                    const envelopeGeometry = new THREE.SphereGeometry(SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE * 1.1, 32, 32); // Slightly larger
+                    const envelopeMaterial = new THREE.MeshStandardMaterial({
+                        color: new THREE.Color(SIM_PARAMS.GAS_ENVELOPE_COLOR_START),
+                        transparent: true,
+                        opacity: 0, // Initially invisible
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false, // Important for transparency
+                        roughness: 0.5,
+                        metalness: 0
+                    });
+                    envelopeMesh = new THREE.Mesh(envelopeGeometry, envelopeMaterial);
+                    envelopeMesh.position.copy(initialPosition); // Set initial position
+                    envelopeMesh.visible = false; // Hide initially
+                }
+
+                // Orbit Line
+                const orbitGeometry = new THREE.BufferGeometry();
+                // Float32Array to store X, Y, Z coordinates for each point
+                const positions = new Float32Array(SIM_PARAMS.ORBIT_LINE_MAX_POINTS * 3); 
+                orbitGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 }); // Cyan line
+                const orbitLine = new THREE.Line(orbitGeometry, orbitMaterial);
+                scene.add(orbitLine);
+
+                protoPlanets.push({
+                    coreMesh: coreMesh,
+                    envelopeMesh: envelopeMesh,
+                    orbitLine: orbitLine, // Add orbit line to the planet object
+                    userData: {
+                        initialRadius: initialRadius, // Keep for reference, though position is now dynamic
+                        position: initialPosition, // Current position vector
+                        velocity: initialVelocity, // Current velocity vector
+                        mass: SIM_PARAMS.PLANET_INITIAL_MASS, // Initial mass
+                        currentCoreSize: SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE,
+                        currentEnvelopeSize: 0,
+                        maxCoreSize: isGiantCandidate ? SIM_PARAMS.GIANT_MAX_CORE_SIZE : SIM_PARAMS.TERRESTRIAL_MAX_SIZE,
+                        maxEnvelopeSize: isGiantCandidate ? SIM_PARAMS.GIANT_MAX_ENVELOPE_SIZE : 0,
+                        isGiantCandidate: isGiantCandidate,
+                        isGasGiantAccreting: false,
+                        initialCoreColor: coreMaterial.color.clone(),
+                        orbitPoints: positions, // Reference to the Float32Array for orbit line
+                        orbitPointIndex: 0, // Current index in the orbitPoints array
+                        framesSinceLastOrbitUpdate: 0, // Counter for orbit line updates
+                        isFormed: false, // Flag to track if the planet has reached its final size
+                    }
+                });
+                scene.add(coreMesh);
+                if (envelopeMesh) {
+                    scene.add(envelopeMesh);
+                }
+            }
+        }
+
+        /**
+         * Main animation loop. Updates the simulation state and renders the scene.
+         * Now includes N-body physics, orbit line updates, and collision detection/resolution.
+         * @param {number} time - Current time from requestAnimationFrame (in milliseconds).
+         */
+        const animateSimulation = (currentTime) => {
+            animationFrameId = requestAnimationFrame(animateSimulation);
+
+            const deltaTime = (currentTime - lastFrameTime); // Milliseconds
+            lastFrameTime = currentTime;
+
+            if (simulationRunning) {
+                // Advance simulation time, capped at total duration
+                currentSimTimeYears = Math.min(SIM_PARAMS.PLANET_FORMATION_END_TIME, currentSimTimeYears + (deltaTime * SIM_PARAMS.SIM_SPEED * 0.01)); // Scale to years
+
+                // Convert deltaTime to a simulation time step for physics calculations
+                // Scaling factor chosen empirically for visual stability and speed
+                const simDt = deltaTime * SIM_PARAMS.SIM_SPEED * 0.005; 
+
+                // 1. Update disk opacity and particle count (simulating dust consumption)
+                if (diskParticlesMesh) {
+                    let diskOpacity = 0.8 * SIM_PARAMS.DISK_DENSITY_FACTOR;
+                    let activeParticleCount = diskParticlesMesh.count;
+
+                    if (currentSimTimeYears >= SIM_PARAMS.DISK_FADE_START_TIME) {
+                        const fadeProgress = (currentSimTimeYears - SIM_PARAMS.DISK_FADE_START_TIME) / (SIM_PARAMS.DISK_FADE_END_TIME - SIM_PARAMS.DISK_FADE_START_TIME);
+                        diskOpacity = Math.max(0, diskOpacity * (1 - fadeProgress));
+                        activeParticleCount = Math.max(0, Math.floor(SIM_PARAMS.MAX_DISK_PARTICLE_COUNT * SIM_PARAMS.DISK_DENSITY_FACTOR * (1 - fadeProgress * 0.8))); // Reduce active particles based on initial count
+                    }
+                    diskParticlesMesh.material.opacity = diskOpacity;
+                    diskParticlesMesh.count = activeParticleCount; // Dynamically set active instances
+
+                    // Rotate the disk particles
+                    if (diskParticlesMesh.instanceMatrix && diskParticlesMesh.count > 0) {
+                        const dummy = new THREE.Object3D();
+                        for (let i = 0; i < diskParticlesMesh.count; i++) {
+                            diskParticlesMesh.getMatrixAt(i, dummy.matrix);
+                            dummy.matrix.decompose(dummy.position, dummy.rotation, dummy.scale);
+                            
+                            // Orbital speed for disk particles (slower than planets)
+                            const r = dummy.position.length();
+                            const orbitalSpeed = (1 / Math.sqrt(r)) * SIM_PARAMS.G_CONSTANT * 0.001; // Slower rotation
+                            dummy.rotation.y += orbitalSpeed * deltaTime; // Rotate around Y axis
+                            
+                            dummy.updateMatrix();
+                            diskParticlesMesh.setMatrixAt(i, dummy.matrix);
+                        }
+                        diskParticlesMesh.instanceMatrix.needsUpdate = true;
+                    }
+                }
+
+                // 2. N-body Physics Calculations and Planet Growth
+                formedPlanetsCount = 0; // Reset count for this frame, re-calculate each frame
+
+                // Temporary array to hold planets that survive this frame's collisions
+                const survivingPlanets = [];
+
+                // Calculate forces and update velocities for all planets
+                // This step is separated to ensure all forces are calculated based on positions at the start of the frame
+                const accelerations = new Map();
+                protoPlanets.forEach(p1 => {
+                    let totalForce = new THREE.Vector3(0, 0, 0);
+
+                    // Force from the central star
+                    const rSqStar = p1.userData.position.distanceToSquared(starMesh.position);
+                    if (rSqStar > 0.1) { // Avoid division by zero if planet is at star's center
+                        const forceMagnitudeStar = (SIM_PARAMS.G_CONSTANT * SIM_PARAMS.STAR_MASS * p1.userData.mass) / rSqStar;
+                        const forceDirectionStar = new THREE.Vector3().subVectors(starMesh.position, p1.userData.position).normalize();
+                        totalForce.add(forceDirectionStar.multiplyScalar(forceMagnitudeStar));
+                    }
+
+                    // Forces from other planets (N-body interaction)
+                    protoPlanets.forEach(p2 => {
+                        if (p1 !== p2) {
+                            const rSqPlanet = p1.userData.position.distanceToSquared(p2.userData.position);
+                            // Only apply force if planets are not too close to avoid extreme forces and NaN
+                            if (rSqPlanet > 0.1) { 
+                                const forceMagnitudePlanet = (SIM_PARAMS.G_CONSTANT * p2.userData.mass * p1.userData.mass) / rSqPlanet;
+                                const forceDirectionPlanet = new THREE.Vector3().subVectors(p2.userData.position, p1.userData.position).normalize();
+                                totalForce.add(forceDirectionPlanet.multiplyScalar(forceMagnitudePlanet));
+                            }
+                        }
+                    });
+
+                    // Calculate acceleration (a = F/m)
+                    // Ensure mass is not zero to prevent division by zero
+                    const acceleration = totalForce.divideScalar(p1.userData.mass > 0 ? p1.userData.mass : 1);
+                    accelerations.set(p1, acceleration);
+                });
+
+                // Update positions and handle growth/formation
+                protoPlanets.forEach(p1 => {
+                    // Update velocity (v_new = v_old + a * dt)
+                    p1.userData.velocity.add(accelerations.get(p1).multiplyScalar(simDt));
+
+                    // Update position (pos_new = pos_old + v_new * dt)
+                    p1.userData.position.add(p1.userData.velocity.clone().multiplyScalar(simDt));
+
+                    // Update Three.js mesh positions
+                    p1.coreMesh.position.copy(p1.userData.position);
+                    if (p1.envelopeMesh) {
+                        p1.envelopeMesh.position.copy(p1.userData.position);
+                    }
+
+                    // Planet Growth Logic
+                    if (p1.userData.currentCoreSize < p1.userData.maxCoreSize) {
+                        let coreGrowthRate = SIM_PARAMS.BASE_GROWTH_RATE * SIM_PARAMS.SIM_SPEED;
+                        if (p1.userData.isGiantCandidate) {
+                            coreGrowthRate *= SIM_PARAMS.GIANT_CORE_GROWTH_MULTIPLIER;
+                        } else {
+                            coreGrowthRate *= SIM_PARAMS.TERRESTRIAL_GROWTH_MULTIPLIER;
+                        }
+                        p1.userData.currentCoreSize = Math.min(p1.userData.maxCoreSize, p1.userData.currentCoreSize + coreGrowthRate * deltaTime);
+                        p1.coreMesh.scale.setScalar(p1.userData.currentCoreSize / SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE);
+                        
+                        // Update mass based on new size (mass scales with volume, i.e., radius cubed)
+                        p1.userData.mass = SIM_PARAMS.PLANET_INITIAL_MASS * Math.pow(p1.userData.currentCoreSize / SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE, 3);
+                    }
+
+                    // Update envelope for giant candidates
+                    if (p1.userData.isGiantCandidate && p1.envelopeMesh) {
+                        if (p1.userData.currentCoreSize >= SIM_PARAMS.GIANT_MAX_CORE_SIZE && !p1.userData.isGasGiantAccreting) {
+                            // Trigger rapid gas accretion once core is large enough
+                            p1.userData.isGasGiantAccreting = true;
+                            p1.envelopeMesh.visible = true; // Make envelope visible
+                        }
+
+                        if (p1.userData.isGasGiantAccreting && p1.userData.currentEnvelopeSize < p1.userData.maxEnvelopeSize) {
+                            let envelopeGrowthRate = SIM_PARAMS.BASE_GROWTH_RATE * SIM_PARAMS.SIM_SPEED * SIM_PARAMS.GAS_ACCRETION_MULTIPLIER;
+                            p1.userData.currentEnvelopeSize = Math.min(p1.userData.maxEnvelopeSize, p1.userData.currentEnvelopeSize + envelopeGrowthRate * deltaTime);
+                            p1.envelopeMesh.scale.setScalar(p1.userData.currentEnvelopeSize / (SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE * 1.1)); // Scale relative to initial envelope size
+                            
+                            // Smoothly transition envelope opacity and color
+                            const envelopeProgress = p1.userData.currentEnvelopeSize / p1.userData.maxEnvelopeSize;
+                            p1.envelopeMesh.material.opacity = SIM_PARAMS.GAS_ENVELOPE_OPACITY * envelopeProgress; // Fade in
+                            p1.envelopeMesh.material.color.lerpColors(
+                                new THREE.Color(SIM_PARAMS.GAS_ENVELOPE_COLOR_START),
+                                new THREE.Color(SIM_PARAMS.GAS_ENVELOPE_COLOR_END),
+                                envelopeProgress
+                            );
+                        }
+                    }
+
+                    // Check if planet is "formed"
+                    if (!p1.userData.isFormed) {
+                        if ((p1.userData.isGiantCandidate && p1.userData.currentEnvelopeSize >= p1.userData.maxEnvelopeSize) ||
+                            (!p1.userData.isGiantCandidate && p1.userData.currentCoreSize >= p1.userData.maxCoreSize)) {
+                            p1.userData.isFormed = true;
+                        }
+                    }
+                    if (p1.userData.isFormed) {
+                        formedPlanetsCount++; // Count formed planets
+                    }
+                });
+
+                // 3. Collision Detection and Resolution (Planet-Planet)
+                // Iterate backwards to safely remove elements during iteration
+                for (let i = protoPlanets.length - 1; i >= 0; i--) {
+                    const p1 = protoPlanets[i];
+                    let p1Survived = true; // Flag to check if p1 is removed in this loop
+
+                    // Check for collision with star
+                    const distToStar = p1.userData.position.distanceTo(starMesh.position);
+                    if (distToStar < p1.userData.currentCoreSize + SIM_PARAMS.STAR_RADIUS_VISUAL * 0.8) { // 0.8 buffer for visual collision
+                        // Planet hit the star, remove it
+                        scene.remove(p1.coreMesh);
+                        p1.coreMesh.geometry.dispose();
+                        p1.coreMesh.material.dispose();
+                        if (p1.envelopeMesh) {
+                            scene.remove(p1.envelopeMesh);
+                            p1.envelopeMesh.geometry.dispose();
+                            p1.envelopeMesh.material.dispose();
+                        }
+                        if (p1.orbitLine) {
+                            scene.remove(p1.orbitLine);
+                            p1.orbitLine.geometry.dispose();
+                            p1.orbitLine.material.dispose();
+                        }
+                        protoPlanets.splice(i, 1); // Remove from array
+                        p1Survived = false;
+                        if (p1.userData.isFormed) formedPlanetsCount--; // Decrement if it was formed
+                        continue; // Move to the next planet if p1 is removed
+                    }
+
+                    // Check for planet-planet collisions
+                    for (let j = i - 1; j >= 0; j--) {
+                        const p2 = protoPlanets[j];
+
+                        const distance = p1.userData.position.distanceTo(p2.userData.position);
+                        const combinedRadius = p1.userData.currentCoreSize + p2.userData.currentCoreSize;
+
+                        if (distance < combinedRadius * 0.9) { // Collision detected, 0.9 buffer for merging
+                            let p_larger, p_smaller;
+                            if (p1.userData.mass >= p2.userData.mass) {
+                                p_larger = p1;
+                                p_smaller = p2;
+                            } else {
+                                p_larger = p2;
+                                p_smaller = p1;
+                            }
+
+                            // Merge smaller into larger
+                            const newMass = p_larger.userData.mass + p_smaller.userData.mass;
+                            
+                            // Calculate new core size based on volume conservation (radius cubed)
+                            const newCoreSize = Math.pow(
+                                Math.pow(p_larger.userData.currentCoreSize, 3) + Math.pow(p_smaller.userData.currentCoreSize, 3),
+                                1/3
+                            );
+
+                            // Calculate new velocity based on momentum conservation
+                            const newVelocity = p_larger.userData.velocity.clone().multiplyScalar(p_larger.userData.mass)
+                                .add(p_smaller.userData.velocity.clone().multiplyScalar(p_smaller.userData.mass))
+                                .divideScalar(newMass);
+
+                            p_larger.userData.mass = newMass;
+                            p_larger.userData.velocity = newVelocity;
+                            p_larger.userData.currentCoreSize = newCoreSize;
+                            p_larger.coreMesh.scale.setScalar(newCoreSize / SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE);
+
+                            // If larger planet was already formed, it's now growing again, so reset formed status
+                            if (p_larger.userData.isFormed) {
+                                p_larger.userData.isFormed = false;
+                                formedPlanetsCount--;
+                            }
+
+                            // If the larger planet is a giant candidate, and the smaller one was too, contribute to envelope
+                            if (p_larger.userData.isGiantCandidate && p_smaller.userData.isGiantCandidate) {
+                                const newEnvelopeSize = Math.pow(
+                                    Math.pow(p_larger.userData.currentEnvelopeSize, 3) + Math.pow(p_smaller.userData.currentEnvelopeSize, 3),
+                                    1/3
+                                );
+                                p_larger.userData.currentEnvelopeSize = newEnvelopeSize;
+                                if (p_larger.envelopeMesh) {
+                                    p_larger.envelopeMesh.scale.setScalar(newEnvelopeSize / (SIM_PARAMS.PROTO_PLANET_INITIAL_SIZE * 1.1));
+                                }
+                            }
+
+                            // Remove smaller planet from scene and array
+                            scene.remove(p_smaller.coreMesh);
+                            p_smaller.coreMesh.geometry.dispose();
+                            p_smaller.coreMesh.material.dispose();
+                            if (p_smaller.envelopeMesh) {
+                                scene.remove(p_smaller.envelopeMesh);
+                                p_smaller.envelopeMesh.geometry.dispose();
+                                p_smaller.envelopeMesh.material.dispose();
+                            }
+                            if (p_smaller.orbitLine) {
+                                scene.remove(p_smaller.orbitLine);
+                                p_smaller.orbitLine.geometry.dispose();
+                                p_smaller.orbitLine.material.dispose();
+                            }
+                            
+                            // Remove p_smaller from the array.
+                            // If p_smaller was p1, then p1 is removed, and we need to adjust the outer loop index.
+                            // If p_smaller was p2, then p2 is removed, and the inner loop continues.
+                            const removedIndex = protoPlanets.indexOf(p_smaller);
+                            if (removedIndex > -1) {
+                                protoPlanets.splice(removedIndex, 1);
+                                if (p_smaller.userData.isFormed) formedPlanetsCount--; // Decrement if it was formed
+                                if (removedIndex < i) { // If the removed planet was before p1 in the array, p1's index shifts
+                                    i--; // Adjust outer loop index
+                                }
+                            }
+                            
+                            // Reset orbit line for the merged planet as its velocity has changed
+                            resetOrbitLine(p_larger);
+
+                            // If p1 was the smaller planet and got removed, break inner loop and mark p1 as not survived
+                            if (p_smaller === p1) {
+                                p1Survived = false;
+                                break; // Break inner loop, p1 is gone
+                            }
+                        }
+                    }
+                }
+                
+                // 4. Update Orbit Lines for surviving planets
+                protoPlanets.forEach(pp => {
+                    pp.userData.framesSinceLastOrbitUpdate++;
+                    if (pp.userData.framesSinceLastOrbitUpdate >= SIM_PARAMS.ORBIT_LINE_UPDATE_INTERVAL) {
+                        pp.userData.framesSinceLastOrbitUpdate = 0;
+
+                        const index = pp.userData.orbitPointIndex * 3;
+                        pp.userData.orbitPoints[index] = pp.userData.position.x;
+                        pp.userData.orbitPoints[index + 1] = pp.userData.position.y;
+                        pp.userData.orbitPoints[index + 2] = pp.userData.position.z;
+
+                        pp.userData.orbitPointIndex = (pp.userData.orbitPointIndex + 1) % SIM_PARAMS.ORBIT_LINE_MAX_POINTS;
+
+                        // Set draw range to show only filled part of the buffer
+                        const drawCount = Math.min(pp.userData.orbitPointIndex + 1, SIM_PARAMS.ORBIT_LINE_MAX_POINTS);
+                        pp.orbitLine.geometry.setDrawRange(0, drawCount);
+                        pp.orbitLine.geometry.attributes.position.needsUpdate = true;
+                    }
+                });
+
+                simStatusDisplay.textContent = '运行中';
+                updateInfoPanel(); // Update info panel
+            } else {
+                simStatusDisplay.textContent = '暂停';
+            }
+
+            controls.update(); // Update OrbitControls
+            renderer.render(scene, camera); // Render the scene
+        };
+
+        // --- Update Info Panel Display ---
+        const updateInfoPanel = () => {
+            simTimeDisplay.textContent = currentSimTimeYears.toFixed(2);
+            // formedPlanetsCount is now updated directly in the animation loop
+            formedPlanetsCountDisplay.textContent = formedPlanetsCount;
+
+            // Update current stage text based on simulation time
+            if (currentSimTimeYears < SIM_PARAMS.DISK_FADE_START_TIME + 100) {
+                currentStageDisplay.textContent = '原行星盘形成';
+            } else if (currentSimTimeYears < SIM_PARAMS.DISK_FADE_END_TIME - 200) {
+                currentStageDisplay.textContent = '尘埃凝聚与微行星生长';
+            } else if (currentSimTimeYears < SIM_PARAMS.PLANET_FORMATION_END_TIME - 300) {
+                currentStageDisplay.textContent = '巨行星快速吸积与类地行星成长';
+            } else if (currentSimTimeYears < SIM_PARAMS.PLANET_FORMATION_END_TIME) {
+                currentStageDisplay.textContent = '行星系统趋于成熟';
+            } else {
+                currentStageDisplay.textContent = '稳定的行星系统';
+                if (simulationRunning) { // If simulation ends, pause it
+                    pauseSimulation();
+                }
+            }
+        };
+
+        // --- Play/Pause Simulation ---
+        const playSimulation = () => {
+            if (!simulationRunning) {
+                simulationRunning = true;
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                playPauseBtn.classList.replace('bg-blue-600', 'bg-yellow-600');
+                playPauseBtn.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+                lastFrameTime = performance.now(); // Restart timer
+            }
+        };
+
+        const pauseSimulation = () => {
+            if (simulationRunning) {
+                simulationRunning = false;
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> 播放';
+                playPauseBtn.classList.replace('bg-yellow-600', 'bg-blue-600');
+                playPauseBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
+            }
+        };
+
+        // --- Reset Simulation ---
+        const resetSimulation = () => {
+            pauseSimulation(); // Pause first
+
+            currentSimTimeYears = 0; // Reset simulation time
+            formedPlanetsCount = 0; // Reset formed planet count
+
+            clearDynamicSceneObjects(); // Clear all dynamic objects
+            setupDiskParticles(); // Re-initialize dust disk
+            setupProtoPlanets(); // Re-initialize protoplanets
+
+            // Reset camera position and controls
+            camera.position.set(0, 120, 150);
+            camera.lookAt(0, 0, 0);
+            controls.update();
+
+            updateInfoPanel(); // Update UI display
+        };
+
+        // --- Bind UI Events ---
+        const setupUIEvents = () => {
+            playPauseBtn.addEventListener('click', () => {
+                if (simulationRunning) {
+                    pauseSimulation();
+                } else {
+                    playSimulation();
+                }
+            });
+
+            resetBtn.addEventListener('click', resetSimulation);
+
+            // Simulation speed slider event
+            simSpeedSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.SIM_SPEED = parseFloat(event.target.value);
+                simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+            });
+
+            // Disk density slider event
+            diskDensitySlider.addEventListener('input', (event) => {
+                SIM_PARAMS.DISK_DENSITY_FACTOR = parseFloat(event.target.value);
+                diskDensityValueDisplay.textContent = SIM_PARAMS.DISK_DENSITY_FACTOR.toFixed(1);
+                // Re-setup disk to reflect density change immediately
+                setupDiskParticles();
+            });
+
+            // Terrestrial planet growth rate slider event
+            terrestrialGrowthRateSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.TERRESTRIAL_GROWTH_MULTIPLIER = parseFloat(event.target.value);
+                terrestrialGrowthRateValueDisplay.textContent = SIM_PARAMS.TERRESTRIAL_GROWTH_MULTIPLIER.toFixed(1);
+            });
+
+            // Giant planet growth rate slider event
+            giantGrowthRateSlider.addEventListener('input', (event) => {
+                SIM_PARAMS.GIANT_CORE_GROWTH_MULTIPLIER = parseFloat(event.target.value); // This controls core growth
+                SIM_PARAMS.GAS_ACCRETION_MULTIPLIER = parseFloat(event.target.value) * 15; // Gas accretion also scales
+                giantGrowthRateValueDisplay.textContent = SIM_PARAMS.GIANT_CORE_GROWTH_MULTIPLIER.toFixed(1);
+            });
+
+            // Planet count slider event
+            planetCountSlider.addEventListener('input', (event) => {
+                const newCount = parseInt(event.target.value);
+                if (newCount !== SIM_PARAMS.NUM_PROTO_PLANETS) {
+                    SIM_PARAMS.NUM_PROTO_PLANETS = newCount;
+                    planetCountValueDisplay.textContent = SIM_PARAMS.NUM_PROTO_PLANETS;
+                    // Reset simulation to apply new planet count
+                    resetSimulation();
+                }
+            });
+        };
+
+        // --- Execute after page loads ---
+        window.onload = () => {
+            // 1. Get DOM element references
+            playPauseBtn = document.getElementById('playPauseBtn');
+            resetBtn = document.getElementById('resetBtn');
+            simSpeedSlider = document.getElementById('simSpeedSlider');
+            simSpeedValueDisplay = document.getElementById('simSpeedValue');
+            diskDensitySlider = document.getElementById('diskDensitySlider');
+            diskDensityValueDisplay = document.getElementById('diskDensityValue');
+            terrestrialGrowthRateSlider = document.getElementById('terrestrialGrowthRateSlider');
+            terrestrialGrowthRateValueDisplay = document.getElementById('terrestrialGrowthRateValue');
+            giantGrowthRateSlider = document.getElementById('giantGrowthRateSlider');
+            giantGrowthRateValueDisplay = document.getElementById('giantGrowthRateValue');
+            planetCountSlider = document.getElementById('planetCountSlider');
+            planetCountValueDisplay = document.getElementById('planetCountValue');
+            simStatusDisplay = document.getElementById('simStatus');
+            currentStageDisplay = document.getElementById('currentStage');
+            simTimeDisplay = document.getElementById('simTime');
+            formedPlanetsCountDisplay = document.getElementById('formedPlanetsCount');
+
+            // Initialize slider display values
+            simSpeedSlider.value = SIM_PARAMS.SIM_SPEED;
+            simSpeedValueDisplay.textContent = SIM_PARAMS.SIM_SPEED.toFixed(1);
+            diskDensitySlider.value = SIM_PARAMS.DISK_DENSITY_FACTOR;
+            diskDensityValueDisplay.textContent = SIM_PARAMS.DISK_DENSITY_FACTOR.toFixed(1);
+            terrestrialGrowthRateSlider.value = SIM_PARAMS.TERRESTRIAL_GROWTH_MULTIPLIER;
+            terrestrialGrowthRateValueDisplay.textContent = SIM_PARAMS.TERRESTRIAL_GROWTH_MULTIPLIER.toFixed(1);
+            giantGrowthRateSlider.value = SIM_PARAMS.GIANT_CORE_GROWTH_MULTIPLIER;
+            giantGrowthRateValueDisplay.textContent = SIM_PARAMS.GIANT_CORE_GROWTH_MULTIPLIER.toFixed(1);
+            planetCountSlider.value = SIM_PARAMS.NUM_PROTO_PLANETS;
+            planetCountValueDisplay.textContent = SIM_PARAMS.NUM_PROTO_PLANETS;
+
+            // 2. Initialize Three.js scene and objects
+            initThreeJS();
+            setupStar();
+            setupDiskParticles();
+            setupProtoPlanets();
+
+            // 3. Bind UI events
+            setupUIEvents();
+
+            // 4. Start animation loop (initially paused)
+            animateSimulation(0);
+            updateInfoPanel(); // Initial UI update
+        };
+    </script>
+</body>
+</html>
