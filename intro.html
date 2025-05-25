@@ -89,6 +89,29 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        /* 跳过按钮样式 */
+        #skip-button {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: rgba(255, 255, 255, 0.2); /* 半透明背景 */
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 2001; /* 确保在最上层 */
+            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+            -webkit-backdrop-filter: blur(5px);
+            transition: background-color 0.3s ease;
+        }
+
+        #skip-button:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -99,10 +122,13 @@
 
     <div id="threejs-solar-system-container"></div>
 
+    <button id="skip-button">跳过</button>
+
     <script>
         // 获取 DOM 元素
         const loadingScreen = document.getElementById('loading-screen');
         const solarSystemContainer = document.getElementById('threejs-solar-system-container');
+        const skipButton = document.getElementById('skip-button');
 
         // Three.js 场景设置
         let scene, camera, renderer;
@@ -113,23 +139,23 @@
         // 纹理加载器
         const textureLoader = new THREE.TextureLoader();
 
+        // GSAP 时间线实例，用于控制动画
+        let cameraAnimationTimeline;
+
         // 行星数据（半径、距离太阳、公转速度、自转速度、纹理）
         // 这里的数值是简化和调整过的，以便在动画中看起来效果良好，并非真实比例
-        // IMPORTANT: 这些是临时的占位符图片链接。如果遇到 CORS 错误，
-        // 请将 solarsystemscope.com 的高质量纹理图片下载到你的 GitHub 仓库中，
-        // 然后将这里的链接替换为你的本地路径（例如：'./textures/8k_sun.jpg'）。
         const PLANETS_DATA = [
-    { name: 'sun', radius: 10, distance: 0, orbitSpeed: 0, rotationSpeed: 0.002, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_sun.jpg' },
-    { name: 'mercury', radius: 0.8, distance: 20, orbitSpeed: 0.04, rotationSpeed: 0.01, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mercury.jpg' },
-    { name: 'venus', radius: 2.0, distance: 35, orbitSpeed: 0.025, rotationSpeed: 0.005, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_venus_surface.jpg' },
-    { name: 'earth', radius: 2.2, distance: 50, orbitSpeed: 0.015, rotationSpeed: 0.02, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_earth_daymap.jpg', cloudsTexture: 'https://placehold.co/100x100/FFFFFF/000000?text=Clouds' },
-    { name: 'moon', radius: 0.6, distance: 5, orbitSpeed: 0.05, rotationSpeed: 0.03, texture: 'https://placehold.co/1000x1000/C0C0C0/000000?text=Moon+Surface', parent: 'earth' },
-    { name: 'mars', radius: 1.5, distance: 70, orbitSpeed: 0.012, rotationSpeed: 0.018, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mars.jpg' },
-    { name: 'jupiter', radius: 7.0, distance: 120, orbitSpeed: 0.005, rotationSpeed: 0.03, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_jupiter.jpg' },
-    { name: 'saturn', radius: 6.0, distance: 170, orbitSpeed: 0.003, rotationSpeed: 0.028, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_saturn.jpg' },
-    { name: 'uranus', radius: 4.0, distance: 210, orbitSpeed: 0.002, rotationSpeed: 0.01, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_uranus.jpg' },
-    { name: 'neptune', radius: 3.8, distance: 250, orbitSpeed: 0.0015, rotationSpeed: 0.008, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_neptune.jpg' },
-];
+            { name: 'sun', radius: 10, distance: 0, orbitSpeed: 0, rotationSpeed: 0.002, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_sun.jpg' },
+            { name: 'mercury', radius: 0.8, distance: 20, orbitSpeed: 0.04, rotationSpeed: 0.01, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mercury.jpg' },
+            { name: 'venus', radius: 2.0, distance: 35, orbitSpeed: 0.025, rotationSpeed: 0.005, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_venus_surface.jpg' },
+            { name: 'earth', radius: 2.2, distance: 50, orbitSpeed: 0.015, rotationSpeed: 0.02, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_earth_daymap.jpg', cloudsTexture: 'https://placehold.co/100x100/FFFFFF/000000?text=Clouds' },
+            { name: 'moon', radius: 0.6, distance: 5, orbitSpeed: 0.05, rotationSpeed: 0.03, texture: 'https://placehold.co/1000x1000/C0C0C0/000000?text=Moon+Surface', parent: 'earth' },
+            { name: 'mars', radius: 1.5, distance: 70, orbitSpeed: 0.012, rotationSpeed: 0.018, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_mars.jpg' },
+            { name: 'jupiter', radius: 7.0, distance: 120, orbitSpeed: 0.005, rotationSpeed: 0.03, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_jupiter.jpg' },
+            { name: 'saturn', radius: 6.0, distance: 170, orbitSpeed: 0.003, rotationSpeed: 0.028, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/8k_saturn.jpg' },
+            { name: 'uranus', radius: 4.0, distance: 210, orbitSpeed: 0.002, rotationSpeed: 0.01, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_uranus.jpg' },
+            { name: 'neptune', radius: 3.8, distance: 250, orbitSpeed: 0.0015, rotationSpeed: 0.008, texture: 'https://raw.githubusercontent.com/cooperhuang1/cooperhuang1.github.io/main/textures/2k_neptune.jpg' },
+        ];
 
 
         // 存储行星对象，方便动画中引用
@@ -299,26 +325,13 @@
                 0
             );
 
-            // 创建 GSAP 时间线
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    // 动画完成后，隐藏3D容器并重定向到主网站内容
-                    solarSystemContainer.classList.add('hidden');
-                    loadingScreen.classList.add('hidden'); // 确保加载屏幕也隐藏
-
-                    // 动态构建完整的URL，以确保在GitHub Pages上正确解析
-                    const currentPath = window.location.pathname;
-                    const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
-                    // *** 修改这里：跳转到 earth_page.html ***
-                    const fullUrl = window.location.origin + currentDir + "personal-homepage.html"; 
-
-                    // 重定向到主页面
-                    window.location.href = fullUrl;
-                }
+            // 创建 GSAP 时间线并存储到 cameraAnimationTimeline 变量
+            cameraAnimationTimeline = gsap.timeline({
+                onComplete: redirectToHomepage
             });
 
             // 摄像机位置和看向目标的动画
-            tl.to({}, { // 使用一个空对象作为目标，因为我们将在 onUpdate 中手动控制 camera.position 和 camera.lookAt
+            cameraAnimationTimeline.to({}, { // 使用一个空对象作为目标，因为我们将在 onUpdate 中手动控制 camera.position 和 camera.lookAt
                 duration: totalDuration,
                 ease: "power3.inOut", // 平滑的缓动函数
                 onUpdate: function() {
@@ -357,6 +370,28 @@
                 }
             });
         }
+
+        // 重定向到主页面的函数
+        function redirectToHomepage() {
+            // 动画完成后，隐藏3D容器并重定向到主网站内容
+            solarSystemContainer.classList.add('hidden');
+            loadingScreen.classList.add('hidden'); // 确保加载屏幕也隐藏
+
+            const currentPath = window.location.pathname;
+            const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+            const fullUrl = window.location.origin + currentDir + "personal-homepage.html";
+
+            window.location.href = fullUrl;
+        }
+
+        // 跳过按钮点击事件
+        skipButton.addEventListener('click', () => {
+            if (cameraAnimationTimeline) {
+                cameraAnimationTimeline.kill(); // 停止所有 GSAP 动画
+            }
+            redirectToHomepage(); // 直接跳转
+        });
+
 
         // 页面加载完成后执行
         window.onload = function() {
