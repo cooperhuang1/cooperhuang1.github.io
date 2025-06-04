@@ -3162,7 +3162,7 @@
                 endSimulation("探测器严重受损，无法继续任务！", 'game-over');
                 return true;
             }
-            if (currentSimState.distance >= 1000 && currentSimState.eventsCompleted >= simulationEvents.length) { // Reached Oort Cloud and completed events
+            if (currentSimState.distance >= 600 && currentSimState.eventsCompleted >= simulationEvents.length) { // Reached Oort Cloud and completed events
                 endSimulation("恭喜！您已成功完成星际之旅，抵达太阳系最远边界！", 'win');
                 return true;
             }
