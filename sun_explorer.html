@@ -705,10 +705,13 @@
         body.fullscreen-active .slide {
             padding: 2rem 4rem; /* 保持幻灯片内边距 */
         }
-        body.fullscreen-active header.presentation-header,
-        body.fullscreen-active .slide-navigation {
-            display: none; /* 在真正的全屏模式下隐藏页眉和页脚导航 */
+        body.fullscreen-active header.presentation-header {
+            display: none; /* 在真正的全屏模式下隐藏页眉 */
         }
+        /* 移除或注释掉隐藏 .slide-navigation 的规则，使其在全屏时可见 */
+        /* body.fullscreen-active .slide-navigation {
+            display: none;
+        } */
         /* 如果不支持真正的全屏API，仅扩展以填充窗口 */
         .presentation-container.expanded {
             width: 100vw;
@@ -2783,6 +2786,327 @@
                     { text: "迅速撤离 (消耗能量，避免风险)", outcome: { power: -10, health: 0, data: 0, log: "迅速撤离辐射区域，避免了潜在风险。" } }
                 ]
             }
+			{
+                name: "微流星体撞击",
+                description: "探测器被一颗微流星体擦过，造成轻微损伤。",
+                choices: [
+                    { text: "自动修复 (消耗能量，恢复健康)", outcome: { power: -10, health: +5, data: 0, log: "自动修复系统启动，轻微损伤已修复。" } },
+                    { text: "暂时忽略 (无消耗，但损伤可能扩大)", outcome: { power: 0, health: -15, data: 0, log: "忽略损伤，探测器健康状况下降。" } }
+                ]
+            },
+            {
+                name: "发现奇异粒子流",
+                description: "探测器进入一片充满未知奇异粒子的区域，是研究的好机会。",
+                choices: [
+                    { text: "启动粒子捕获器 (消耗能量，高数据)", outcome: { power: -15, health: 0, data: 25, log: "成功捕获奇异粒子，获得高价值科学数据！" } },
+                    { text: "绕行规避 (无消耗，无风险)", outcome: { power: 0, health: 0, data: 0, log: "绕过奇异粒子流，避免了潜在风险。" } }
+                ]
+            },
+            {
+                name: "内部系统过载",
+                description: "探测器某核心系统因长时间运行出现过载迹象。",
+                choices: [
+                    { text: "进行紧急重启 (少量能量消耗，短暂离线)", outcome: { power: -10, health: 0, data: -5, log: "系统紧急重启，恢复正常，但丢失了少量实时数据。" } },
+                    { text: "降低系统负荷 (无消耗，但速度下降)", outcome: { power: 0, health: 0, data: 0, log: "降低系统负荷，避免了过载，但飞行效率降低。" } }
+                ]
+            },
+            {
+                name: "远程指令延迟",
+                description: "与地球的通信信号出现严重延迟，指令响应变慢。",
+                choices: [
+                    { text: "加强信号传输 (消耗能量，减少延迟)", outcome: { power: -10, health: 0, data: 0, log: "加强信号传输，通信延迟问题得到缓解。" } },
+                    { text: "依靠自主导航 (无消耗，但可能偏离航线)", outcome: { power: 0, health: -5, data: 0, log: "依靠自主导航，略有偏离航线，但节省了能量。" } }
+                ]
+            },
+            {
+                name: "能源板污染",
+                description: "探测器太阳能电池板被未知尘埃污染，能量收集效率下降。",
+                choices: [
+                    { text: "启动自清洁系统 (消耗能量，恢复效率)", outcome: { power: -15, health: 0, data: 0, log: "自清洁系统启动，能源板恢复清洁，效率提升。" } },
+                    { text: "等待自然净化 (无消耗，长期能量不足)", outcome: { power: 0, health: 0, data: 0, log: "等待自然净化，长期能量不足，健康受损。" } } // 健康受损，但这里没体现，如果需要请手动加上 -10 或 -15
+                ]
+            },
+            {
+                name: "发现星际遗迹信号",
+                description: "探测器接收到一段规律的、非自然来源的无线电信号。",
+                choices: [
+                    { text: "尝试解码信号 (消耗能量，高风险高收益)", outcome: { power: -20, health: -10, data: 50, log: "尝试解码信号，获得突破性星际文明线索！" } },
+                    { text: "记录并继续 (无消耗，一般收益)", outcome: { power: 0, health: 0, data: 10, log: "记录信号数据，继续飞行，避免风险。" } }
+                ]
+            },
+            {
+                name: "推进器故障",
+                description: "探测器的一个次级推进器发生故障，影响机动性。",
+                choices: [
+                    { text: "切换备用推进器 (消耗能量，恢复正常)", outcome: { power: -10, health: 0, data: 0, log: "切换至备用推进器，飞行恢复正常。" } },
+                    { text: "部分功能丧失 (无消耗，但机动性受限)", outcome: { power: 0, health: -5, data: 0, log: "部分推进功能丧失，机动性受到影响。" } }
+                ]
+            },
+            {
+                name: "意外发现生命迹象",
+                description: "传感器探测到微弱的生物信号，可能来自未知的微生物生命形式。",
+                choices: [
+                    { text: "近距离采样 (高能量消耗，极高数据)", outcome: { power: -30, health: -5, data: 60, log: "成功近距离采样，发现地外微生物生命，这是里程碑式发现！" } },
+                    { text: "远程分析 (少量能量消耗，中等数据)", outcome: { power: -5, health: 0, data: 20, log: "进行远程分析，获得宝贵的生命起源数据。" } }
+                ]
+            },
+            {
+                name: "系统校准需求",
+                description: "导航系统出现轻微偏差，需要进行校准。",
+                choices: [
+                    { text: "立即校准 (少量能量消耗，确保精度)", outcome: { power: -5, health: 0, data: 0, log: "导航系统校准完成，精度恢复正常。" } },
+                    { text: "推迟校准 (无消耗，但可能偏离航线)", outcome: { power: 0, health: -10, data: 0, log: "推迟校准，导致航线出现偏差，可能浪费更多时间和燃料。" } }
+                ]
+            },
+            {
+                name: "遭遇引力异常",
+                description: "探测器进入一片引力异常区域，飞行轨迹受到干扰。",
+                choices: [
+                    { text: "启动姿态控制 (消耗能量，稳定飞行)", outcome: { power: -15, health: 0, data: 0, log: "启动姿态控制，成功稳定探测器，克服引力异常。" } },
+                    { text: "随波逐流 (无消耗，但可能被甩出航线)", outcome: { power: 0, health: -15, data: 0, log: "探测器随引力异常波动，导致路径大幅偏离，健康受损。" } }
+                ]
+            },
+            {
+                name: "传感器阵列故障",
+                description: "部分科学传感器阵列出现间歇性故障，影响数据收集。",
+                choices: [
+                    { text: "执行诊断修复 (消耗能量，恢复功能)", outcome: { power: -10, health: 0, data: 0, log: "传感器阵列诊断修复完成，恢复正常工作。" } },
+                    { text: "使用备用传感器 (无消耗，但数据精度下降)", outcome: { power: 0, health: 0, data: -5, log: "切换至备用传感器，数据精度略有下降。" } }
+                ]
+            },
+            {
+                name: "空间碎片碰撞警报",
+                description: "探测器路径上出现高速空间碎片，可能发生碰撞。",
+                choices: [
+                    { text: "紧急变轨 (高能量消耗，完全规避)", outcome: { power: -25, health: 0, data: 0, log: "紧急变轨成功，完全规避了空间碎片。" } },
+                    { text: "维持航向 (无消耗，高风险)", outcome: { power: 0, health: -25, data: 0, log: "维持航向，探测器受到碎片撞击，严重受损！" } }
+                ]
+            },
+            {
+                name: "发现磁场异常",
+                description: "探测器进入一片磁场强度异常波动的区域。",
+                choices: [
+                    { text: "进行磁场分析 (消耗能量，获得数据)", outcome: { power: -10, health: 0, data: 15, log: "成功分析磁场异常，获得新的物理学数据。" } },
+                    { text: "迅速脱离 (无消耗，避免干扰)", outcome: { power: 0, health: 0, data: 0, log: "迅速脱离磁场异常区域，避免了干扰。" } }
+                ]
+            },
+            {
+                name: "推进剂泄漏警报",
+                description: "微量推进剂从燃料罐中泄漏，燃料储备正在减少。",
+                choices: [
+                    { text: "封堵泄漏 (消耗能量，止损)", outcome: { power: -15, health: 0, data: 0, log: "成功封堵泄漏点，避免了更多燃料损失。" } },
+                    { text: "调整飞行策略 (无消耗，加速燃料消耗)", outcome: { power: 0, health: 0, data: 0, log: "调整飞行策略以适应泄漏，燃料消耗略有加速。" } }
+                ]
+            },
+            {
+                name: "星际介质密度变化",
+                description: "探测器进入了密度更高的星际介质区域，可能影响飞行效率。",
+                choices: [
+                    { text: "提升推力 (消耗能量，维持速度)", outcome: { power: -10, health: 0, data: 0, log: "提升推力以应对介质密度增加，保持了预定速度。" } },
+                    { text: "允许速度下降 (无消耗，但飞行时间延长)", outcome: { power: 0, health: 0, data: 0, log: "探测器速度略有下降，但节省了能量。" } }
+                ]
+            },
+            {
+                name: "发现临时虫洞",
+                description: "前方出现一个不稳定的临时虫洞，穿过可能大幅缩短行程或带来风险。",
+                choices: [
+                    { text: "尝试穿越 (高风险，可能跳跃)", outcome: { power: -20, health: Math.random() > 0.5 ? 0 : -30, data: Math.random() > 0.5 ? 50 : -20, log: Math.random() > 0.5 ? "成功穿越虫洞，节省大量时间并获得未知数据！" : "穿越失败，探测器受到严重损伤并丢失数据！" } },
+                    { text: "绕行 (无风险，无捷径)", outcome: { power: 0, health: 0, data: 0, log: "绕过虫洞，继续按原计划飞行。" } }
+                ]
+            },
+            {
+                name: "主计算机系统过热",
+                description: "探测器的主计算机系统温度过高，可能导致宕机。",
+                choices: [
+                    { text: "启动冷却程序 (消耗能量，解决过热)", outcome: { power: -10, health: 0, data: 0, log: "冷却程序启动，主计算机温度恢复正常。" } },
+                    { text: "限制计算任务 (无消耗，但数据处理受影响)", outcome: { power: 0, health: 0, data: -10, log: "限制计算任务，系统温度下降，但数据分析效率降低。" } }
+                ]
+            },
+            {
+                name: "探测器表面结冰",
+                description: "在低温区域，探测器外部传感器和机构出现结冰。",
+                choices: [
+                    { text: "启动除冰器 (消耗能量，恢复功能)", outcome: { power: -15, health: 0, data: 0, log: "除冰器启动，表面结冰清除，功能恢复。" } },
+                    { text: "等待自然融化 (无消耗，功能受限)", outcome: { power: 0, health: -5, data: -5, log: "等待自然融化，期间传感器数据失真，部分机械臂受阻。" } }
+                ]
+            },
+            {
+                name: "遭遇反物质云",
+                description: "探测器接近一片微弱的反物质云，可能造成湮灭风险。",
+                choices: [
+                    { text: "激活力场 (高能量消耗，完全防护)", outcome: { power: -30, health: 0, data: 0, log: "力场激活，成功抵御反物质威胁。" } },
+                    { text: "快速通过 (中等风险，速度提升)", outcome: { power: -5, health: -15, data: 0, log: "快速通过反物质云，受到轻微湮灭损伤。" } }
+                ]
+            },
+            {
+                name: "发现引力透镜效应",
+                description: "探测器路径上出现一个明显的引力透镜效应，是观测遥远宇宙的机会。",
+                choices: [
+                    { text: "进行深度观测 (消耗能量，获得大量数据)", outcome: { power: -20, health: 0, data: 35, log: "深度观测完成，获得了宝贵的宇宙结构数据！" } },
+                    { text: "继续前进 (无消耗，错过观测)", outcome: { power: 0, health: 0, data: 0, log: "继续前进，错过了引力透镜的观测机会。" } }
+                ]
+            },
+            {
+                name: "意外能量增益",
+                description: "探测器路过一个能量充裕的区域，可以补充能量。",
+                choices: [
+                    { text: "收集能量 (无消耗，额外能量)", outcome: { power: +25, health: 0, data: 0, log: "成功收集能量，探测器能量储备增加！" } },
+                    { text: "快速通过 (无消耗，节省时间)", outcome: { power: 0, health: 0, data: 0, log: "快速通过，节省了时间，但错过了补充能量的机会。" } }
+                ]
+            },
+            {
+                name: "数据存储空间不足",
+                description: "探测器的数据存储空间即将耗尽，无法存储更多新数据。",
+                choices: [
+                    { text: "压缩旧数据 (消耗能量，腾出空间)", outcome: { power: -10, health: 0, data: 0, log: "旧数据压缩完成，腾出更多存储空间。" } },
+                    { text: "丢弃低价值数据 (无消耗，损失数据)", outcome: { power: 0, health: 0, data: -15, log: "丢弃了部分低价值数据，清空了存储空间。" } }
+                ]
+            },
+            {
+                name: "辅助系统自检失败",
+                description: "探测器一项辅助系统在自检时报告失败，可能影响长期运行。",
+                choices: [
+                    { text: "手动介入修复 (消耗能量，耗时)", outcome: { power: -15, health: 0, data: 0, log: "手动修复辅助系统，恢复正常。" } },
+                    { text: "隔离该系统 (无消耗，但失去功能)", outcome: { power: 0, health: -5, data: 0, log: "隔离故障辅助系统，确保主系统运行，但损失了部分功能。" } }
+                ]
+            },
+            {
+                name: "发现脉冲星信号",
+                description: "探测器接收到来自遥远脉冲星的周期性信号，是天文学研究的宝藏。",
+                choices: [
+                    { text: "精确测量 (消耗能量，高数据收益)", outcome: { power: -20, health: 0, data: 30, log: "成功精确测量脉冲星信号，获得重要天文数据！" } },
+                    { text: "记录粗略数据 (少量能量，一般收益)", outcome: { power: -5, health: 0, data: 10, log: "记录了粗略的脉冲星数据，继续前进。" } }
+                ]
+            },
+            {
+                name: "导航星追踪异常",
+                description: "导航系统在追踪恒星时出现偏差，可能导致路径错误。",
+                choices: [
+                    { text: "重新校准惯性单元 (消耗能量，恢复精度)", outcome: { power: -10, health: 0, data: 0, log: "惯性单元重新校准，导航精度恢复。" } },
+                    { text: "使用备用光学导航 (无消耗，但易受干扰)", outcome: { power: 0, health: -5, data: 0, log: "切换至光学导航，但在复杂环境下容易受到干扰。" } }
+                ]
+            },
+            {
+                name: "宇宙射线骤增",
+                description: "探测器遭遇一股高能宇宙射线流，对设备有潜在损害。",
+                choices: [
+                    { text: "启动增强防护 (消耗能量，保护健康)", outcome: { power: -15, health: -5, data: 0, log: "启动增强防护，成功抵御宇宙射线，但能量消耗较大。" } },
+                    { text: "硬抗通过 (无消耗，健康受损)", outcome: { power: 0, health: -20, data: 0, log: "硬抗宇宙射线，探测器健康状况明显下降。" } }
+                ]
+            },
+            {
+                name: "发现暗物质团块",
+                description: "仪器探测到一片大质量、不发光的物质团块，怀疑是暗物质。",
+                choices: [
+                    { text: "近距离探测 (高能量消耗，极高数据)", outcome: { power: -25, health: -5, data: 50, log: "成功近距离探测暗物质团块，获得开创性数据！" } },
+                    { text: "远程扫描 (少量能量，中等数据)", outcome: { power: -5, health: 0, data: 15, log: "进行远程扫描，收集到初步暗物质数据。" } }
+                ]
+            },
+            {
+                name: "时间校准漂移",
+                description: "探测器内部时钟与地球时间出现微小漂移，影响数据同步。",
+                choices: [
+                    { text: "立即同步 (消耗能量，纠正误差)", outcome: { power: -5, health: 0, data: 0, log: "时钟立即同步，数据传输恢复精确。" } },
+                    { text: "允许漂移 (无消耗，数据同步误差增大)", outcome: { power: 0, health: 0, data: -10, log: "允许时钟漂移，部分数据同步可能出现误差。" } }
+                ]
+            },
+            {
+                name: "机械臂卡滞",
+                description: "探测器外置机械臂因微粒卡滞，无法正常展开或收回。",
+                choices: [
+                    { text: "强行操作 (高风险，可能损坏)", outcome: { power: -10, health: Math.random() > 0.7 ? -20 : 0, data: 0, log: Math.random() > 0.7 ? "强行操作导致机械臂损坏！" : "强行操作成功，机械臂恢复正常！" } },
+                    { text: "等待自愈 (无消耗，功能受限)", outcome: { power: 0, health: -5, data: -5, log: "等待机械臂自愈，期间无法进行外部操作，数据收集受影响。" } }
+                ]
+            },
+            {
+                name: "发现星际离子流",
+                description: "探测器穿越一片高能星际离子流，可以研究其性质。",
+                choices: [
+                    { text: "部署离子分析仪 (消耗能量，高数据)", outcome: { power: -10, health: -5, data: 20, log: "部署离子分析仪，获得关于星际离子流的宝贵数据。" } },
+                    { text: "加速通过 (无消耗，避免干扰)", outcome: { power: 0, health: 0, data: 0, log: "加速通过离子流区域，避免了设备干扰。" } }
+                ]
+            },
+            {
+                name: "远程软件更新通知",
+                description: "收到地球控制中心的紧急软件更新通知，旨在提升系统性能。",
+                choices: [
+                    { text: "立即安装 (少量能量消耗，系统升级)", outcome: { power: -5, health: 0, data: 0, log: "软件更新成功安装，系统性能得到提升。" } },
+                    { text: "稍后安装 (无消耗，但性能未优化)", outcome: { power: 0, health: 0, data: 0, log: "推迟安装软件更新，系统保持当前性能。" } }
+                ]
+            },
+            {
+                name: "外部温度骤降",
+                description: "探测器进入极端低温区域，设备面临严峻考验。",
+                choices: [
+                    { text: "启动加热器 (消耗大量能量，保护设备)", outcome: { power: -20, health: 0, data: 0, log: "启动加热器，成功应对低温环境，设备安全。" } },
+                    { text: "依靠被动保温 (无消耗，可能造成损伤)", outcome: { power: 0, health: -15, data: 0, log: "依靠被动保温，部分设备因低温出现性能下降甚至损伤。" } }
+                ]
+            },
+            {
+                name: "发现微型黑洞（瞬时）",
+                description: "探测器路径上短暂出现一个微型黑洞，引力扭曲了周围空间。",
+                choices: [
+                    { text: "进行瞬时观测 (高风险，极高数据)", outcome: { power: -25, health: Math.random() > 0.8 ? -30 : 0, data: Math.random() > 0.8 ? 0 : 70, log: Math.random() > 0.8 ? "观测失败，探测器受损！" : "成功瞬时观测微型黑洞，获得超高价值数据！" } },
+                    { text: "迅速脱离引力场 (无消耗，规避风险)", outcome: { power: 0, health: 0, data: 0, log: "迅速脱离引力场，避免了潜在危险。" } }
+                ]
+            },
+            {
+                name: "动力系统效率下降",
+                description: "探测器动力系统因长时间运行，效率有所下降。",
+                choices: [
+                    { text: "进行系统优化 (消耗能量，恢复效率)", outcome: { power: -10, health: 0, data: 0, log: "动力系统优化完成，效率恢复。" } },
+                    { text: "维持现状 (无消耗，但燃料消耗增加)", outcome: { power: 0, health: 0, data: 0, log: "维持现状，燃料消耗速度略有增加。" } }
+                ]
+            },
+            {
+                name: "外部摄像头模糊",
+                description: "探测器外部摄像头由于结霜或尘埃导致视野模糊。",
+                choices: [
+                    { text: "启动加热/清洁 (消耗能量，恢复清晰)", outcome: { power: -5, health: 0, data: 0, log: "摄像头加热/清洁完成，视野恢复清晰。" } },
+                    { text: "依靠其他传感器 (无消耗，但图像数据缺失)", outcome: { power: 0, health: 0, data: -5, log: "依靠其他传感器继续，但图像数据质量下降。" } }
+                ]
+            },
+            {
+                name: "远距离通信中继站信号",
+                description: "探测器意外接收到来自一个废弃的远距离通信中继站的微弱信号。",
+                choices: [
+                    { text: "尝试连接并下载数据 (消耗能量，可能获得旧数据)", outcome: { power: -10, health: 0, data: 10, log: "连接中继站成功，下载了少量历史数据。" } },
+                    { text: "忽略信号 (无消耗，继续前进)", outcome: { power: 0, health: 0, data: 0, log: "忽略中继站信号，继续前进。" } }
+                ]
+            },
+            {
+                name: "核心冷却剂异常",
+                description: "探测器核心冷却剂循环出现异常，可能导致过热。",
+                choices: [
+                    { text: "紧急修复冷却系统 (消耗能量，高健康风险)", outcome: { power: -20, health: Math.random() > 0.6 ? -15 : 0, data: 0, log: Math.random() > 0.6 ? "冷却系统修复失败，健康受损！" : "冷却系统紧急修复成功，恢复正常。" } },
+                    { text: "降低核心负荷 (无消耗，但任务效率降低)", outcome: { power: 0, health: 0, data: -10, log: "降低核心负荷以控制温度，但任务效率下降。" } }
+                ]
+            },
+            {
+                name: "导航数据损坏",
+                description: "部分导航数据文件出现损坏，可能导致精确度下降。",
+                choices: [
+                    { text: "从备份恢复 (消耗能量，恢复精度)", outcome: { power: -10, health: 0, data: 0, log: "导航数据从备份恢复，精度正常。" } },
+                    { text: "继续使用损坏数据 (无消耗，精度受影响)", outcome: { power: 0, health: -5, data: 0, log: "继续使用损坏数据，导航精度有所下降。" } }
+                ]
+            },
+            {
+                name: "未知能量波动",
+                description: "探测器传感器检测到一阵微弱但异常的能量波动。",
+                choices: [
+                    { text: "深入探测源头 (高风险，高数据收益)", outcome: { power: -20, health: Math.random() > 0.7 ? -20 : 0, data: Math.random() > 0.7 ? 0 : 40, log: Math.random() > 0.7 ? "深入探测失败，探测器受损！" : "成功探测能量波动源头，获得突破性数据！" } },
+                    { text: "忽略并规避 (无消耗，无风险)", outcome: { power: 0, health: 0, data: 0, log: "忽略能量波动，继续前进。" } }
+                ]
+            },
+            {
+                name: "发现彗星群",
+                description: "探测器接近一片巨大的彗星群，是研究冰态天体的好机会。",
+                choices: [
+                    { text: "穿越并收集样本 (高能量消耗，高数据)", outcome: { power: -25, health: -5, data: 30, log: "成功穿越彗星群并收集样本，获得宝贵冰态天体数据！" } },
+                    { text: "远程观测 (少量能量，一般数据)", outcome: { power: -5, health: 0, data: 10, log: "进行远程观测，获得了彗星群的一般数据。" } }
+                ]
+            }
+			
         ];
 
         function initializeSimulation() {
@@ -2838,7 +3162,7 @@
                 endSimulation("探测器严重受损，无法继续任务！", 'game-over');
                 return true;
             }
-            if (currentSimState.distance >= 100000 && currentSimState.eventsCompleted >= simulationEvents.length) { // Reached Oort Cloud and completed events
+            if (currentSimState.distance >= 1000 && currentSimState.eventsCompleted >= simulationEvents.length) { // Reached Oort Cloud and completed events
                 endSimulation("恭喜！您已成功完成星际之旅，抵达太阳系最远边界！", 'win');
                 return true;
             }
