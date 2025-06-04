@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小型核燃料电池理论流程演示文稿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Deep Space Harmony (Inspired by sun_explorer.html) -->
+    <!-- Application Structure Plan: The SPA is now structured as a multi-slide presentation, mirroring the "sun_explorer.html" design. Each major stage of the MMR and RTG theoretical processes is presented on its own dedicated slide. This linear, progressive disclosure via slides enhances focus and prevents information overload. Navigation is handled by "Previous" and "Next" buttons, providing a clear user flow. The initial comparison chart remains the first slide, serving as an overview. The detailed steps within each stage are now presented as distinct, visually appealing cards within their respective slides, making the information more digestible and visually engaging, suitable for a presentation format. -->
+    <!-- Visualization & Content Choices: Report Info: Overall difficulty of MMR vs. RTG. -> Goal: Provide a quick, high-level comparison. -> Viz/Presentation Method: Horizontal Bar Chart using Chart.js. -> Interaction: Static, for immediate orientation. -> Justification: The chart visually synthesizes the core challenge of the entire report, allowing users to immediately grasp the relative complexity of each path before diving into details. Report Info: Each process step and its challenges. -> Goal: Clearly separate the "how-to" from the "why it's hard". -> Viz/Presentation Method: Styled HTML cards with distinct sections. The "Challenge" part is highlighted with a different background color and a warning icon. -> Interaction: Revealed on-demand by clicking a parent stage. -> Justification: This card layout breaks down complex steps into understandable pairs of action and consequence, greatly improving readability and retention. All diagrams are built with HTML/CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: #0f172a; /* 深空背景色 */
+            color: #e2e8f0; /* 浅色文本 */
+            line-height: 1.6;
+            overflow: hidden; /* 隐藏滚动条，用于演示模式 */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* 全视口高度 */
+        }
+        .section-title {
+            color: #818cf8; /* 标题的亮紫色 */
+            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5); /* 标题发光效果 */
+        }
+        .slide-card { /* Renamed from .card-style to avoid conflict and be specific to slides */
+            background-color: #1a202c; /* 卡片深色背景 */
+            border-radius: 0.75rem; /* 圆角 */
+            padding: 2.5rem; /* Increased padding for presentation */
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1); /* 阴影 */
+            border: 1px solid rgba(129, 140, 248, 0.2); /* 边框发光 */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            width: 100%; /* Ensure card takes full width of its container */
+            max-width: 1200px; /* Limit card width for readability */
+            height: auto;
+            max-height: 90%; /* Ensure card fits within slide height */
+            overflow-y: auto; /* Allow scrolling within card if content overflows */
+        }
+        .slide-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.3), 0 6px 10px -3px rgba(0, 0, 0, 0.15);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 350px; /* Increased height for presentation */
+            width: 100%;
+            max-width: 900px; /* Increased max-width for presentation */
+            background-color: #000; /* Black background for charts */
+            border-radius: 0.75rem;
+            border: 1px solid rgba(129, 140, 248, 0.2);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+        }
+        .stage-connector { /* Not used in this slide-based structure, but kept for consistency */
+            flex-grow: 1;
+            height: 2px;
+            background-color: #475569; /* slate-600 for connector */
+        }
+        .stage-item .stage-connector:last-child {
+            display: none;
+        }
+        .tab-button { /* Only for the initial MMR/RTG selection tabs */
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.3s;
+            background-color: #334155; /* 深灰色 */
+            color: #cbd5e1; /* 浅灰色文本 */
+            font-weight: 600;
+            border: 1px solid #475569;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .tab-button:hover {
+            background-color: #475569;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .tab-button.active {
+            background-color: #818cf8; /* 亮紫色 */
+            color: #ffffff;
+            border-color: #a78bfa;
+            box-shadow: 0 4px 10px rgba(129, 140, 248, 0.4);
+            transform: translateY(0);
+        }
+        .llm-button {
+            background: linear-gradient(45deg, #6366f1, #818cf8); /* 渐变按钮 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
+            border: none;
+        }
+        .llm-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #4f46e5, #6d28d9); /* 悬停时深色渐变 */
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.6);
+            transform: translateY(-2px);
+        }
+        .llm-button:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .llm-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #2d3748; /* 深色输入框 */
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            resize: vertical;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            font-size: 1.1rem; /* Larger font for input */
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .challenge-box {
+            background-color: rgba(251, 191, 36, 0.05); /* amber-100/60 equivalent with opacity */
+            border: 1px solid rgba(251, 191, 36, 0.2); /* amber-400 with opacity */
+            color: #fcd34d; /* amber-300 for text */
+            padding: 1rem; /* Increased padding */
+        }
+        .stage-title-mmr {
+            color: #60a5fa; /* Light blue for MMR titles */
+        }
+        .stage-title-rtg {
+            color: #34d399; /* Green for RTG titles */
+        }
+        .step-card { /* Style for individual step cards */
+            background-color: #1f2937; /* Slightly lighter dark background */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #475569; /* Darker border */
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .step-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .step-card h4 {
+            font-size: 1.3rem; /* Larger step title */
+            color: #a78bfa; /* Purple for step titles */
+        }
+        .step-card p {
+            font-size: 1.05rem; /* Larger text for paths/challenges */
+            color: #cbd5e1;
+        }
+        .step-card strong {
+            color: #e2e8f0; /* Lighter strong text */
+        }
+
+        /* Presentation Mode Specific Styles */
+        .presentation-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: calc(100vh - 80px); /* Adjust height for header/footer */
+            overflow: hidden; /* Hide internal scrollbars */
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none; /* Default hidden */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem; /* More padding for presentation */
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow-y: auto; /* Allow internal scrolling for content overflow */
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .slide-navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #1a202c; /* Navigation bar dark background */
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .slide-button {
+            background-color: #6366f1;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            border: none;
+        }
+        .slide-button:hover:not(:disabled) {
+            background-color: #4f46e5;
+            transform: translateY(-2px);
+        }
+        .slide-button:disabled {
+            background-color: #334155;
+            cursor: not-allowed;
+        }
+        .slide-indicator {
+            color: #cbd5e1;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        header.presentation-header {
+            background-color: #0f172a;
+            padding: 1rem 2rem;
+            text-align: center;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .presentation-header .title {
+            color: #818cf8;
+            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
+            flex-grow: 1;
+        }
+        .fullscreen-button {
+            background-color: #6366f1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .fullscreen-button:hover {
+            background-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        /* Fullscreen specific styles */
+        body.fullscreen-active {
+            overflow: hidden;
+        }
+        body.fullscreen-active .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            padding: 0;
+        }
+        body.fullscreen-active .slide {
+            padding: 2rem 4rem;
+        }
+        body.fullscreen-active header.presentation-header {
+            display: none;
+        }
+        .presentation-container.expanded {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="presentation-header">
+        <div class="title">小型核燃料电池理论流程演示文稿</div>
+        <button id="fullscreenToggleBtn" class="fullscreen-button">进入全屏</button>
+    </header>
+
+    <div class="presentation-container" id="presentationContainer">
+        <!-- Slide 1: Introduction & Comparison -->
+        <div class="slide active" id="slide-intro-comparison">
+            <div class="slide-card text-center">
+                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">小型核燃料电池理论制造流程</h2>
+                <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">
+                    一个为卓越科学家打造的交互式探索仪表盘，深入解析微型模块化反应堆（MMR）与放射性同位素热电发生器（RTG）的理论路径。
+                </p>
+                <div class="mb-10 p-6 rounded-xl">
+                    <h3 class="text-2xl font-bold text-center mb-4 text-slate-200">路径难度对比</h3>
+                    <p class="text-center text-slate-400 mb-6 text-lg">在深入探索之前，首先直观了解两种技术路径在技术难度、资源需求和安全风险上的宏观差异。这有助于您理解每一步挑战背后的根本原因。</p>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Slides for MMR and RTG Stages will be injected here by JS -->
+    </div>
+
+    <div class="slide-navigation">
+        <button id="prevSlideBtn" class="slide-button" disabled>上一页</button>
+        <span id="slideIndicator" class="slide-indicator">1 / 11</span>
+        <button id="nextSlideBtn" class="slide-button">下一页</button>
+    </div>
+
+    <script>
+        const reportData = {
+            mmr: {
+                title: '微型模块化反应堆 (MMR) 理论制造流程',
+                colorClass: 'stage-title-mmr',
+                stages: [
+                    { 
+                        title: '阶段一：核燃料获取与制备',
+                        intro: '此阶段是MMR构建的基础，涉及核燃料的合法获取、复杂提纯与富集，以及将高放射性材料制备成燃料棒/球。每一步都伴随极高风险和严格管制。',
+                        steps: [
+                            { title: '1.1 核燃料获取', path: '理论途径：获得国家级授权，采购或生产高浓缩铀（HEU，铀-235浓度>20%）或武器级钚-239。', challenges: '法律限制（核不扩散条约）、国际条约、国家安全级别管控。非法获取几乎不可能，且风险极大（如面临核恐怖主义指控）。' },
+                            { title: '1.2 铀矿处理与转化', path: '将粗铀矿石进行研磨、浸出、沉淀、过滤等湿法冶金工艺，转化为黄色饼块（八氧化三铀U3O8），再通过氢氟酸和氟气转化为六氟化铀气体（UF6）。', challenges: '涉及复杂化学过程、产生有毒化学废料、需专业化学处理设备、放射性粉尘和气体防护。' },
+                            { title: '1.3 铀同位素分离与富集', path: '利用气体离心机（高速旋转产生离心力分离不同质量的同位素）或激光同位素分离技术（利用激光选择性激发铀-235）将铀-235从铀-238中分离出来，达到所需浓缩度（如高丰度低浓铀HALEU，铀-235浓度5%~20%）。', challenges: '需要大量能量、高度精确的离心机或激光设备、严密的环境控制（防泄漏、防震动）、防止放射性泄漏和临界事故。' },
+                            { title: '1.4 钚的提取与纯化', path: '如果选择钚作为燃料，需将天然铀或贫铀在核反应堆中辐照，产生钚-239，然后通过后处理技术（如PUREX法）从乏燃料中溶解、分离并纯化钚。', challenges: '高度危险且复杂的放射化学过程，产生大量高放射性废料（需深埋），需热室远程操作、防止临界事故和钚中毒。' },
+                            { title: '1.5 燃料棒/球制造', path: '将提纯后的核燃料（如二氧化铀或二氧化钚）压制成高密度燃料丸，在惰性气体保护下烧结，然后封装入耐高温、耐辐射的燃料棒包壳（如锆合金）或燃料球（如TRISO燃料颗粒）中。', challenges: '材料科学（烧结工艺、晶粒控制）、精密加工（尺寸公差微米级）、热室远程操作、严格的尺寸、密度和完整性控制、防止燃料氧化和裂变气体泄漏。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段二：反应堆核心设计与材料选择',
+                        intro: '本阶段是MMR的心脏，要求顶级的核物理和材料科学知识，以设计出能在极端条件下稳定运行的超小型裂变核心，并选择合适的耐辐射材料。',
+                        steps: [
+                            { title: '2.1 超小型裂变核心几何设计', path: '精确计算中子通量分布、临界质量、有效增殖系数（k_eff）、功率密度、散热效率，设计燃料棒/球的排列方式、间距、慢化剂与燃料比，以及整体几何结构，确保在极小体积内实现稳定链式反应。', challenges: '复杂中子物理学（中子输运方程求解）、高级中子学和热工水力学模拟软件（如MCNP, RELAP5）、精确的工程计算、多物理场耦合分析（中子、热、力学）。' },
+                            { title: '2.2 慢化剂与反射层选择与加工', path: '选择并加工高纯度、高密度的中子慢化剂（如石墨、重水、轻水、铍、碳化锆）和中子反射层（如铍、碳化钨、氧化锆），以优化中子经济性，提高燃料利用率。', challenges: '材料纯度控制（杂质会吸收中子）、加工精度（影响中子路径）、中子相互作用特性（散射截面、吸收截面）、辐照稳定性（防止材料膨胀、蠕变）。' },
+                            { title: '2.3 控制棒系统设计与制造', path: '使用中子吸收材料（如镉、硼、铪、钆、富含硼的碳化硅）制造微型控制棒，并设计精确、可靠的驱动机制（如步进电机驱动），用于精确调节功率输出和紧急停堆（SCRAM）。', challenges: '机械精度（控制棒位置精度）、材料耐辐射性（防止辐照肿胀、蠕变）、快速响应能力（SCRAM时间毫秒级）、长期可靠性、抗震设计。' },
+                            { title: '2.4 极端耐辐射/高温材料选择', path: '选择并获取能承受极端温度（>1000°C甚至更高）、高压和强中子辐射的特殊合金（如氧化物弥散强化合金ODS、镍基超合金、碳化硅复合材料SiC/SiC、先进锆合金），用于反应堆容器、燃料包壳、内部结构件。', challenges: '材料科学前沿、获取难度（稀有金属）、加工难度（硬度高、脆性大）、辐照脆化、蠕变、腐蚀、氢脆等复杂失效机制。' },
+                            { title: '2.5 反应堆容器与内部结构设计', path: '设计紧凑、高强度、耐压的反应堆容器和内部支撑结构，确保各部件在极端工况下（高温、高压、高辐射）稳定，并能承受地震等外部冲击。', challenges: '结构力学、焊接技术（异种材料焊接）、无损检测（超声波、X射线）、抗震设计、疲劳寿命评估。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段三：集成化系统构建',
+                        intro: '此阶段将MMR的各个复杂子系统整合为一体，包括高效冷却、热能转换和多重安全壳，旨在实现紧凑、高效且安全的能量输出。',
+                        steps: [
+                            { title: '3.1 紧凑冷却系统设计与集成', path: '设计并集成高效、被动安全的冷却回路（如氦气、液态金属钠/铅铋、熔盐），采用自然循环或微型泵强制循环，确保反应堆核心产生的巨大热量能被有效导出。', challenges: '流体力学（微通道流、两相流）、热力学（高效传热）、材料兼容性（冷却剂与结构材料）、一体化设计（减少外部管道）、自然循环冷却优化。' },
+                            { title: '3.2 热交换器与动力转换模块集成', path: '将反应堆热量通过紧凑型、高效热交换器（如板式、管壳式）传递给动力转换系统。动力转换系统可选用微型蒸汽轮机（朗肯循环）、闭式布雷顿循环涡轮机（利用热气驱动）、或先进热电转换器。', challenges: '机械工程（微型涡轮机制造）、热力循环效率（提高能量转换率）、系统集成（空间限制）、尺寸限制、振动控制。' },
+                            { title: '3.3 微型化安全壳与屏蔽层构建', path: '构建多层、轻质但高效的辐射屏蔽（如铅、硼化聚乙烯、钢、水）和坚固的安全壳，采用多重屏障设计，防止放射性物质在任何事故中泄漏到环境中。', challenges: '结构工程（抗压、抗冲击）、材料科学（轻质高强度屏蔽材料）、辐射防护计算（蒙特卡洛模拟）、抗冲击设计、密封技术。' },
+                            { title: '3.4 燃料装载与密封', path: '在高度受控的洁净环境中，通过远程机械臂或自动化系统，将燃料棒/球精确装载到反应堆核心的指定位置，并进行严格的密封检测。', challenges: '热室远程操作、精密机械臂控制、密封完整性检测（氦质谱检漏）、防止燃料污染。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段四：安全与控制系统',
+                        intro: '此阶段是MMR可靠运行的保障，涉及复杂传感器网络、自动化控制、远程监控和核废料管理，确保反应堆在任何情况下都能安全可控。',
+                        steps: [
+                            { title: '4.1 精密传感器网络部署', path: '安装大量高精度、耐辐射的传感器（如热电偶、压力传感器、流量计、中子探测器、伽马探测器），实时监测反应堆内部温度、压力、冷却剂流量、中子通量、辐射水平等关键参数。', challenges: '传感器耐辐射性（在高辐射下长期工作）、数据采集与传输（抗干扰）、信号处理、传感器校准与维护。' },
+                            { title: '4.2 自动化控制与紧急停堆系统开发', path: '开发一套高度可靠、容错性强的自动化控制系统（DCS/PLC），能根据传感器数据精确调节控制棒位置，并在异常情况下（如过热、中子通量异常、冷却剂丧失）自动触发紧急停堆（SCRAM），确保反应堆安全。', challenges: '软件工程（实时操作系统、控制算法）、控制理论（PID控制、模糊控制）、故障安全设计（冗余系统、多样性设计）、网络安全。' },
+                            { title: '4.3 远程监控与诊断系统', path: '建立远程监控和诊断平台，通过数据可视化界面，允许操作人员在安全距离外实时了解反应堆状态、历史趋势，并进行故障排查和预测性维护。', challenges: '网络安全（防止黑客入侵）、数据可视化（清晰直观）、远程操作界面设计（人机工程学）。' },
+                            { title: '4.4 核废料处理与长期储存方案', path: '设计并实施安全的乏燃料和放射性废料短期储存方案（如干式储存容器），并规划长期处置（如深地质处置库）。这包括废料的固化、封装和运输。', challenges: '放射化学（废料固化）、地质学（选址）、长期安全性评估（万年尺度）、巨额成本、公众接受度、国际合作。' },
+                            { title: '4.5 应急响应与事故缓解预案', path: '制定详细的应急响应计划，包括事故缓解措施（如应急冷却、放射性物质捕获）、人员疏散路线、环境监测方案、以及与地方和国家机构的协调机制。', challenges: '危机管理、跨部门协调、专业培训、公众沟通。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段五：理论测试与运行',
+                        intro: '这是MMR投入实际运行前的关键阶段，通过一系列严苛的测试验证其性能和安全性，并规划长期运行和退役，确保全生命周期的可控性。',
+                        steps: [
+                            { title: '5.1 零功率临界测试', path: '在装填燃料后，逐步提升中子源强度，进行一系列低功率测试，精确测量临界质量、中子增殖因子（k_eff）、控制棒价值、温度系数等关键核参数，验证设计的临界参数。', challenges: '精确测量（中子计数）、严格安全规程（防止超临界）、潜在的临界事故风险、专业人员操作、数据分析。' },
+                            { title: '5.2 功率升高与参数验证', path: '逐步提升反应堆功率至额定值，同时持续监测所有运行参数（温度、压力、流量、辐射、功率），确保其在设计范围内安全运行，并进行稳态和瞬态响应测试（如负载变化、停堆测试）。', challenges: '热力学、流体力学、辐射监测、事故预防、动态控制算法验证、数据记录与分析。' },
+                            { title: '5.3 持续监测与维护', path: '反应堆运行期间需要24/7的持续监测、定期检查、预防性维护和故障排除，以确保安全、稳定和高效运行。这包括燃料更换、部件检修等。', challenges: '人力资源（高素质人才）、远程操作（减少人员暴露）、设备老化、部件更换（热室操作）、安全文化建设。' },
+                            { title: '5.4 燃料循环管理', path: '规划和执行燃料的定期更换（根据燃耗）、乏燃料的移除和安全储存。这需要精确的燃料管理计划，以优化燃料利用率并最小化废料产生。', challenges: '放射性物质运输（严格法规）、乏燃料管理（长期安全）、核材料衡算与实物保护。' },
+                            { title: '5.5 退役规划', path: '从设计之初就考虑反应堆的最终退役方案，包括去污、拆除、废料处置和场地恢复。', challenges: '长期规划、巨额成本、放射性物质处理、环境影响评估。' }
+                        ]
+                    }
+                ]
+            },
+            rtg: {
+                title: '放射性同位素热电发生器 (RTG) 理论制造流程',
+                colorClass: 'stage-title-rtg',
+                stages: [
+                    { 
+                        title: '阶段一：放射性同位素源获取与封装',
+                        intro: 'RTG的核心在于高纯度放射性同位素的获取和极其坚固的封装，以确保衰变热的稳定释放和放射性物质的绝对安全。',
+                        steps: [
+                             { title: '1.1 放射性同位素源获取', path: '理论途径：获得国家级授权，采购或通过核反应堆辐照（如中子轰击靶材）并分离高纯度的钚-238（最常用，半衰期87.7年，α衰变）、锶-90（半衰期28.8年，β衰变）、钴-60（半衰期5.27年，β衰变并伴随高能伽马）等同位素。', challenges: '极度稀有（全球产量低）、严格管制（核不扩散）、高放射性（需重型屏蔽）、特殊生产设施（如核反应堆、同位素分离厂）。' },
+                             { title: '1.2 同位素热源化学提纯与制备', path: '对获取的同位素进行复杂的化学提纯（如离子交换、溶剂萃取），去除所有杂质，并将其制备成适合封装的化合物形式（如二氧化钚PuO2，或钛酸锶SrTiO3），确保高纯度和热稳定性。', challenges: '高放射性化学操作、热室远程操作、化学分离效率、产品纯度控制、防止交叉污染。' },
+                             { title: '1.3 热源封装与保护', path: '将高纯度同位素化合物封装在多层、耐高温（>1000°C）、耐腐蚀且结构极其坚固的容器中（如铱合金、碳-碳复合材料、铂铑合金），形成热源单元。封装需确保在极端条件下（如发射事故、重返大气层）不泄漏。', challenges: '材料科学（极端环境材料）、精密焊接（高完整性）、极端环境下的封装技术、抗冲击、抗烧蚀、抗腐蚀设计、热膨胀匹配。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段二：温差电转换系统构建',
+                        intro: '此阶段聚焦于将同位素衰变热高效转化为电能。这需要顶尖的半导体材料科学和微纳制造技术，以构建高效率的温差电偶阵列。',
+                        steps: [
+                            { title: '2.1 半导体温差电材料选择与制备', path: '选择并制备高纯度、高热电优值（ZT值，衡量热电转换效率的关键指标）的半导体温差电材料（如碲化铅PbTe、硅锗合金SiGe、方钴矿Skutterudites、半赫斯勒合金Half-Heuslers），并进行精确掺杂以优化电导率和塞贝克系数。', challenges: '材料科学（晶体生长、缺陷控制）、掺杂工艺（精确控制载流子浓度）、热电性能优化（ZT值最大化）、材料长期稳定性（防止性能衰退）。' },
+                            { title: '2.2 P/N型温差电偶阵列设计与制造', path: '将P型和N型半导体材料制成大量微型温差电偶，通过串联/并联排列成紧密阵列。阵列的热端紧贴热源，冷端连接散热片，形成温差。', challenges: '微米级加工精度、热电偶连接技术（低电阻、耐高温、热机械应力匹配）、阵列优化（最大化功率输出）、热应力管理（防止热疲劳）。' },
+                            { title: '2.3 高效散热系统设计与集成', path: '设计并集成高效散热片（如辐射散热片，通过表面积向太空辐射热量）或与外部冷源（如探测器结构、行星大气）连接，确保热电偶冷端有足够大的温差，以最大化转换效率。', challenges: '热传导（高效导热材料）、辐射传热（表面涂层）、流体力学（如果是对流散热）、散热材料轻量化、空间限制下的散热优化。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段三：结构与屏蔽',
+                        intro: '此阶段确保RTG在极端环境下的物理完整性和辐射安全。坚固的外壳、高效的辐射屏蔽和内部环境维持是其长期可靠运行的关键。',
+                        steps: [
+                            { title: '3.1 坚固外壳与机械支撑构建', path: '构建坚固的RTG外壳，通常采用轻质高强度合金（如铝合金、钛合金），保护内部组件免受外部环境影响（如振动、冲击、辐射），并提供必要的机械支撑和抗震能力。', challenges: '结构工程（轻量化、高强度）、材料强度、抗冲击、抗振动设计、真空密封。' },
+                            { title: '3.2 辐射屏蔽层设计与安装', path: '安装适当厚度、重量和几何形状的辐射屏蔽层（如铅、钨、贫铀、复合材料），以有效阻挡同位素衰变产生的伽马射线和中子，保护外部环境、航天器电子设备和人员。', challenges: '辐射防护计算（蒙特卡洛模拟）、屏蔽材料加工与安装（复杂形状）、重量与体积限制（航天器载荷）。' },
+                            { title: '3.3 真空/惰性气体环境维持', path: '在温差电偶阵列内部维持高真空或充入惰性气体（如氩气），以减少热损失（对流和传导）和材料氧化，延长RTG寿命和性能。', challenges: '真空技术（超高真空）、密封完整性（长期可靠）、气体纯度控制、防止气体泄漏。' }
+                        ]
+                    },
+                    {
+                        title: '阶段四：电能输出管理',
+                        intro: '此阶段负责将RTG产生的电能转化为可用形式，并确保其稳定输出。高效的电源管理和远程诊断系统是实现长期自主运行的保障。',
+                        steps: [
+                            { title: '4.1 电源管理单元集成', path: '集成稳压、升压、滤波和过载保护电路，将温差电偶产生的低压直流电转换为稳定、可用的电压和电流输出，满足航天器或探测器对电力的需求。', challenges: '电子电路设计（高效率、低损耗）、电源效率、长期稳定性（数十年）、耐辐射电子元件（在辐射环境下工作）。' },
+                            { title: '4.2 诊断与遥测系统', path: '集成传感器和电子元件，监测RTG的运行状态（如热端/冷端温度、输出电压、输出电流），并将数据通过遥测系统传输到外部监控系统。', challenges: '数据采集（高精度）、信号传输（抗干扰）、低功耗设计（不消耗过多自身电力）。' }
+                        ]
+                    },
+                    {
+                        title: '阶段五：理论测试与运行',
+                        intro: '这是RTG投入实际应用前的最后验证阶段，通过一系列严苛的测试确保其性能、可靠性和安全性，并为长期任务提供数据支持。',
+                        steps: [
+                            { title: '5.1 热电转换效率测试', path: '在受控环境中，通过精确控制热端和冷端温度，测试RTG在不同温差下的电能输出效率、功率曲线和热损失。', challenges: '精密温度控制、电能测量（高精度）、热管理、模拟太空环境。' },
+                            { title: '5.2 长期稳定性与功率输出监测', path: '监测RTG在长期运行中的功率输出衰减情况（受同位素半衰期和温差电材料老化影响），并评估其预期寿命和可靠性。', challenges: '数据采集（长期数据）、衰变曲线预测、材料退化模型、加速老化测试。' },
+                            { title: '5.3 振动与冲击测试', path: '对RTG进行振动和冲击测试，模拟其在火箭发射、着陆或部署过程中可能遇到的机械应力，确保结构完整性。', challenges: '结构强度测试、模拟环境（振动台、冲击台）、疲劳寿命评估。' },
+                            { title: '5.4 辐射安全评估与认证', path: '进行全面的辐射安全评估，包括正常运行、事故（如发射失败、重返大气层）和退役阶段的辐射剂量计算，确保RTG在所有生命周期阶段都符合辐射安全标准，并获得相关国际和国家机构的认证。', challenges: '辐射剂量计算（蒙特卡洛模拟）、安全法规遵守、独立验证、公众沟通。' },
+                            { title: '5.5 环境适应性测试', path: '在模拟极端环境（如真空、高低温、辐射）下对RTG进行测试，确保其在实际部署环境中能够可靠运行。', challenges: '环境模拟设备、长期测试、故障模式分析。' }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Flatten reportData into a single array of slides
+        const allSlidesData = [];
+
+        // Add the intro/comparison slide first
+        allSlidesData.push({
+            id: 'slide-intro-comparison',
+            title: '小型核燃料电池理论制造流程',
+            subtitle: '一个为卓越科学家打造的交互式探索仪表盘',
+            type: 'intro-comparison'
+        });
+
+        // Add MMR slides
+        reportData.mmr.stages.forEach((stage, index) => {
+            allSlidesData.push({
+                id: `mmr-stage-${index + 1}`,
+                title: `微型模块化反应堆 (MMR) ${stage.title}`,
+                intro: stage.intro,
+                steps: stage.steps,
+                type: 'mmr-stage',
+                colorClass: reportData.mmr.colorClass
+            });
+        });
+
+        // Add RTG slides
+        reportData.rtg.stages.forEach((stage, index) => {
+            allSlidesData.push({
+                id: `rtg-stage-${index + 1}`,
+                title: `放射性同位素热电发生器 (RTG) ${stage.title}`,
+                intro: stage.intro,
+                steps: stage.steps,
+                type: 'rtg-stage',
+                colorClass: reportData.rtg.colorClass
+            });
+        });
+
+        var slides = allSlidesData.map(s => s.id); // Array of slide IDs for navigation
+        var currentSlideIndex = 0;
+        var prevSlideBtn = document.getElementById('prevSlideBtn');
+        var nextSlideBtn = document.getElementById('nextSlideBtn');
+        var slideIndicator = document.getElementById('slideIndicator');
+        var presentationContainer = document.getElementById('presentationContainer');
+        var fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+
+        function renderSlides() {
+            // Clear existing dynamic slides
+            document.querySelectorAll('.dynamic-slide').forEach(el => el.remove());
+
+            allSlidesData.forEach((slideData, index) => {
+                if (slideData.type === 'intro-comparison') {
+                    // Intro slide is already in HTML, no need to re-render
+                    return;
+                }
+
+                const slideElement = document.createElement('div');
+                slideElement.id = slideData.id;
+                slideElement.classList.add('slide', 'dynamic-slide'); // Add dynamic-slide for easy removal
+
+                let contentHTML = `
+                    <div class="slide-card text-center">
+                        <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 ${slideData.colorClass}">${slideData.title}</h2>
+                        <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">${slideData.intro}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                `;
+
+                slideData.steps.forEach(step => {
+                    contentHTML += `
+                        <div class="step-card p-5">
+                            <h4 class="font-bold mb-3">${step.title}</h4>
+                            <p class="mb-4"><strong class="font-semibold">理论途径：</strong>${step.path}</p>
+                            <div class="p-3 rounded-md challenge-box">
+                                <p><strong class="font-semibold">⚠️ 挑战：</strong>${step.challenges}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                contentHTML += `
+                        </div>
+                    </div>
+                `;
+                slideElement.innerHTML = contentHTML;
+                presentationContainer.appendChild(slideElement);
+            });
+        }
+
+        function showSlide(index) {
+            const currentSlideElement = document.querySelector('.slide.active');
+            if (currentSlideElement) {
+                currentSlideElement.classList.remove('active');
+            }
+
+            const nextSlideElement = document.getElementById(allSlidesData[index].id);
+            if (nextSlideElement) {
+                nextSlideElement.classList.add('active');
+            }
+            
+            currentSlideIndex = index;
+            updateSlideNavigation();
+        }
+
+        function updateSlideNavigation() {
+            slideIndicator.textContent = `${currentSlideIndex + 1} / ${allSlidesData.length}`;
+            prevSlideBtn.disabled = currentSlideIndex === 0;
+            nextSlideBtn.disabled = currentSlideIndex === allSlidesData.length - 1;
+        }
+
+        prevSlideBtn.addEventListener('click', () => {
+            if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+            }
+        });
+
+        nextSlideBtn.addEventListener('click', () => {
+            if (currentSlideIndex < allSlidesData.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        });
+
+        // Fullscreen Toggle Logic
+        if (fullscreenToggleBtn) {
+            fullscreenToggleBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().then(() => {
+                        document.body.classList.add('fullscreen-active');
+                        fullscreenToggleBtn.textContent = '退出全屏';
+                    }).catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                        presentationContainer.classList.add('expanded');
+                        fullscreenToggleBtn.textContent = '退出全屏';
+                    });
+                } else {
+                    document.exitFullscreen().then(() => {
+                        document.body.classList.remove('fullscreen-active');
+                        presentationContainer.classList.remove('expanded');
+                        fullscreenToggleBtn.textContent = '进入全屏';
+                    }).catch(err => {
+                        console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+                        presentationContainer.classList.remove('expanded');
+                        fullscreenToggleBtn.textContent = '进入全屏';
+                    });
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('fullscreen-active');
+                presentationContainer.classList.remove('expanded');
+                fullscreenToggleBtn.textContent = '进入全屏';
+            }
+        });
+
+        // Chart.js implementation (remains largely the same, but ensure colors match new theme)
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSlides(); // Render all dynamic slides first
+            showSlide(0); // Show the first slide
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['技术难度', '资源需求', '安全风险'],
+                    datasets: [
+                        {
+                            label: 'MMR (微型模块化反应堆)',
+                            data: [95, 90, 85],
+                            backgroundColor: 'rgba(96, 165, 250, 0.7)', /* Light blue from sun_explorer */
+                            borderColor: '#60a5fa', /* Light blue from sun_explorer */
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'RTG (放射性同位素热电发生器)',
+                            data: [65, 80, 70],
+                            backgroundColor: 'rgba(52, 211, 153, 0.7)', /* Green from sun_explorer */
+                            borderColor: '#34d399', /* Green from sun_explorer */
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                             ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                },
+                                color: '#e2e8f0' /* Light text for ticks */
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.3)' /* Dark grid lines */
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#e2e8f0' /* Light text for ticks */
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.3)' /* Dark grid lines */
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: false,
+                        },
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0' /* Light text for legend */
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + ' (相对指数)';
+                                    }
+                                    return label;
+                                }
+                            },
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', /* Dark tooltip background */
+                            titleColor: '#e2e8f0', /* Light text for tooltip title */
+                            bodyColor: '#e2e8f0', /* Light text for tooltip body */
+                            borderColor: 'rgba(129, 140, 248, 0.3)', /* Border color for tooltip */
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            padding: 10
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
