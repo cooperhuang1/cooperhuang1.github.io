@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星际旅行计划演示文稿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons for presentation: Changed to UMD build for global access -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: #0f172a; /* Deep space background */
+            color: #e2e8f0; /* Light text */
+            line-height: 1.6;
+            overflow: hidden; /* Hide scrollbars for presentation mode */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full viewport height */
+        }
+        .section-title {
+            color: #818cf8; /* Bright purple for titles */
+            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5); /* Title glow effect */
+        }
+        .slide-card {
+            background-color: #1a202c; /* Dark card background */
+            border-radius: 0.75rem; /* Rounded corners */
+            padding: 2.5rem; /* Increased padding for presentation */
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1); /* Shadow */
+            border: 1px solid rgba(129, 140, 248, 0.2); /* Border glow */
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            width: 100%; /* Ensure card takes full width of its container */
+            max-width: 1200px; /* Limit card width for readability */
+            height: auto;
+            max-height: 90%; /* Ensure card fits within slide height */
+            overflow-y: auto; /* Allow scrolling within card if content overflows */
+        }
+        .slide-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.3), 0 6px 10px -3px rgba(0, 0, 0, 0.15);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 350px; /* Increased height for presentation */
+            width: 100%;
+            max-width: 900px; /* Increased max-width for presentation */
+            background-color: #000; /* Black background for charts */
+            border-radius: 0.75rem;
+            border: 1px solid rgba(129, 140, 248, 0.2);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+        }
+        .challenge-box {
+            background-color: rgba(251, 191, 36, 0.05); /* amber-100/60 equivalent with opacity */
+            border: 1px solid rgba(251, 191, 36, 0.2); /* amber-400 with opacity */
+            color: #fcd34d; /* amber-300 for text */
+            padding: 1rem; /* Increased padding */
+        }
+        .stage-title-daedalus {
+            color: #60a5fa; /* Light blue for Daedalus titles */
+        }
+        .stage-title-orion {
+            color: #ef4444; /* Red for Orion titles */
+        }
+        .step-card { /* Style for individual step cards */
+            background-color: #1f2937; /* Slightly lighter dark background */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #475569; /* Darker border */
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .step-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .step-card h4 {
+            font-size: 1.3rem; /* Larger step title */
+            color: #a78bfa; /* Purple for step titles */
+            margin-bottom: 0.75rem;
+        }
+        .step-card p {
+            font-size: 1.05rem; /* Larger text for paths/challenges */
+            color: #cbd5e1;
+            flex-grow: 1; /* Allows paragraph to take available space */
+        }
+        .step-card strong {
+            color: #e2e8f0; /* Lighter strong text */
+        }
+
+        /* Presentation Mode Specific Styles */
+        .presentation-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: calc(100vh - 80px); /* Adjust height for header/footer */
+            overflow: hidden; /* Hide internal scrollbars */
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none; /* Default hidden */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 4rem; /* More padding for presentation */
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow-y: auto; /* Allow internal scrolling for content overflow */
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .slide-navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #1a202c; /* Navigation bar dark background */
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .slide-button {
+            background-color: #6366f1;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            border: none;
+        }
+        .slide-button:hover:not(:disabled) {
+            background-color: #4f46e5;
+            transform: translateY(-2px);
+        }
+        .slide-button:disabled {
+            background-color: #334155;
+            cursor: not-allowed;
+        }
+        .slide-indicator {
+            color: #cbd5e1;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        header.presentation-header {
+            background-color: #0f172a;
+            padding: 1rem 2rem;
+            text-align: center;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .presentation-header .title {
+            color: #818cf8;
+            text-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
+            flex-grow: 1;
+        }
+        .fullscreen-button {
+            background-color: #6366f1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .fullscreen-button:hover {
+            background-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        /* Fullscreen specific styles */
+        body.fullscreen-active {
+            overflow: hidden;
+        }
+        body.fullscreen-active .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            padding: 0;
+        }
+        body.fullscreen-active .slide {
+            padding: 2rem 4rem;
+        }
+        body.fullscreen-active header.presentation-header {
+            display: none;
+        }
+        .presentation-container.expanded {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background-color: #0f172a;
+        }
+
+        /* Animation Styles (Copied and adapted from previous React component) */
+        .animation-container {
+            position: relative;
+            width: 100%;
+            height: 200px; /* Reduced height for better integration into slide cards */
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            background-color: #000;
+            border: 1px solid #334155;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Daedalus Animation */
+        .daedalus-ship-container {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            height: 160px;
+            animation: daedalus-ship-launch 15s infinite linear;
+        }
+        .daedalus-ship-body {
+            width: 80px;
+            height: 120px; /* Adjusted height */
+            background-color: #a78bfa; /* Lighter color for visibility */
+            border-radius: 40px 40px 10px 10px; /* More pointed top, flatter bottom */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+        .daedalus-exhaust-nozzle {
+            width: 60px;
+            height: 30px; /* Adjusted height */
+            background-color: #475569;
+            border-radius: 0 0 10px 10px;
+            margin-top: -10px; /* Overlap with body */
+            z-index: 9;
+        }
+
+        .daedalus-pellet {
+            position: absolute;
+            width: 6px; /* Smaller pellet */
+            height: 6px;
+            background-color: #fff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: daedalus-pellet 7.5s infinite ease-out;
+            bottom: calc(100% - 130px); /* Position above nozzle opening in ship container */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 12;
+        }
+        .daedalus-explosion {
+            position: absolute;
+            width: 40px; /* Smaller explosion */
+            height: 40px;
+            background-color: #3b82f6; /* Blue */
+            border-radius: 50%;
+            opacity: 0;
+            animation: daedalus-explosion 7.5s infinite ease-out;
+            bottom: 0px; /* Relative to animation container bottom */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px 5px rgba(59, 130, 246, 0.7);
+            z-index: 8;
+        }
+        .daedalus-exhaust {
+            position: absolute;
+            width: 30px; /* Smaller exhaust plume */
+            height: 100px;
+            background: linear-gradient(to top, #3b82f6, transparent);
+            opacity: 0;
+            animation: daedalus-exhaust 7.5s infinite ease-out;
+            bottom: 0px; /* Relative to animation container bottom */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 7;
+        }
+
+        @keyframes daedalus-ship-launch {
+            0% { transform: translateY(200px); } /* Start below bottom of container */
+            100% { transform: translateY(-350px); } /* End above top of container */
+        }
+        @keyframes daedalus-pellet {
+            0% { transform: translate(-50%, -20px); opacity: 0; }
+            10% { transform: translate(-50%, 0px); opacity: 1; }
+            30% { transform: translate(-50%, 60px); opacity: 1; }
+            40% { transform: translate(-50%, 70px); opacity: 0; }
+            100% { transform: translate(-50%, 70px); opacity: 0; }
+        }
+        @keyframes daedalus-explosion {
+            0% { transform: translate(-50%, 0) scale(0.2); opacity: 0; }
+            5% { transform: translate(-50%, 0) scale(1); opacity: 1; box-shadow: 0 0 20px 10px rgba(59, 130, 246, 0.8); }
+            10% { transform: translate(-50%, 10px) scale(1.5); opacity: 0.8; box-shadow: 0 0 30px 15px rgba(59, 130, 246, 0.5); }
+            20% { transform: translate(-50%, 30px) scale(2); opacity: 0; }
+            100% { transform: translate(-50%, 30px) scale(2); opacity: 0; }
+        }
+        @keyframes daedalus-exhaust {
+            0% { transform: translate(-50%, 0); opacity: 0; }
+            10% { transform: translate(-50%, 0); opacity: 0.8; }
+            50% { transform: translate(-50%, 100px); opacity: 0; }
+            100% { transform: translate(-50%, 100px); opacity: 0; }
+        }
+
+        /* Orion Animation */
+        .orion-ship-container {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 200px;
+            height: 200px;
+            animation: orion-ship-launch 20s infinite linear;
+        }
+        .orion-ship-body {
+            width: 150px;
+            height: 100px;
+            background-color: #e2e8f0; /* Lighter for contrast */
+            border-radius: 75px 75px 10px 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+        .orion-pusher-plate {
+            width: 180px;
+            height: 15px; /* Thinner pusher */
+            background-color: #cbd5e1;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            margin-top: -5px; /* Overlap with body */
+            position: relative;
+            z-index: 11;
+            animation: orion-pusher-bounce 6s infinite ease-out; /* Adjusted timing */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+
+        .orion-flash {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #fde047; /* Yellow */
+            border-radius: 50%;
+            opacity: 0;
+            animation: orion-flash 6s infinite ease-out;
+            bottom: -5px; /* Position below pusher */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 30px 15px rgba(253, 224, 71, 0.9);
+            z-index: 7;
+        }
+        .orion-shockwave {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #ef4444; /* Red */
+            border-radius: 50%;
+            opacity: 0;
+            animation: orion-shockwave 6s infinite ease-out;
+            bottom: 5px; /* Slightly above flash origin */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 20px 10px rgba(239, 68, 68, 0.7);
+            z-index: 6;
+        }
+
+        @keyframes orion-ship-launch {
+            0% { transform: translateY(200px); }
+            100% { transform: translateY(-350px); }
+        }
+        @keyframes orion-flash {
+            0% { transform: translate(-50%, 0) scale(0.1); opacity: 0; }
+            1% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+            5% { transform: translate(-50%, 0) scale(1.5); opacity: 0; }
+            100% { transform: translate(-50%, 0) scale(1.5); opacity: 0; }
+        }
+        @keyframes orion-shockwave {
+            0% { transform: translate(-50%, 0) scale(0.1); opacity: 0; }
+            1% { opacity: 0; }
+            5% { transform: translate(-50%, 0) scale(0.5); opacity: 0.8; }
+            10% { transform: translate(-50%, 0) scale(1.5); opacity: 0.5; }
+            20% { transform: translate(-50%, 0) scale(3); opacity: 0; }
+            100% { transform: translate(-50%, 0) scale(3); opacity: 0; }
+        }
+        @keyframes orion-pusher-bounce {
+            0%, 100% { transform: translateY(0); }
+            2% { transform: translateY(-10px); }
+            8% { transform: translateY(0); }
+            15% { transform: translateY(-3px); }
+            20% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="presentation-header">
+        <div class="title">星际旅行计划：代达罗斯与猎户座</div>
+        <button id="fullscreenToggleBtn" class="fullscreen-button">进入全屏</button>
+    </header>
+
+    <div class="presentation-container" id="presentationContainer">
+        <!-- Slide 1: Introduction & Comparison -->
+        <div class="slide active" id="slide-intro-comparison">
+            <div class="slide-card text-center">
+                <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8">星际旅行计划：代达罗斯与猎户座</h2>
+                <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">
+                    深入探索两个宏伟的星际旅行概念：代达罗斯计划（核聚变脉冲推进）与猎户座计划（核脉冲推进）。
+                </p>
+                <div class="mb-10 p-6 rounded-xl">
+                    <h3 class="text-2xl font-bold text-center mb-4 text-slate-200">计划对比：宏观视角</h3>
+                    <p class="text-center text-slate-400 mb-6 text-lg">在深入探索技术细节之前，首先直观了解两种技术路径在技术难度、资源需求和安全风险上的宏观差异。</p>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Slides for Daedalus and Orion Stages will be injected here by JS -->
+    </div>
+
+    <div class="slide-navigation">
+        <button id="prevSlideBtn" class="slide-button" disabled>上一页</button>
+        <span id="slideIndicator" class="slide-indicator">1 / 1</span>
+        <button id="nextSlideBtn" class="slide-button">下一页</button>
+    </div>
+
+    <script>
+        const projectData = {
+            daedalus: {
+                title: '代达罗斯计划 (Daedalus)',
+                colorClass: 'stage-title-daedalus',
+                intro: '代达罗斯计划是英国星际学会于1970年代进行的一项研究，旨在设计一艘无人星际探测器，能在人类寿命期内（约50年）到达最近的恒星系统——巴纳德星。该计划是一个宏伟的工程，探索了利用先进推进技术进行深空旅行的可能性。',
+                animation: `
+                    <div class="animation-container">
+                        <div class="daedalus-ship-container">
+                            <div class="daedalus-ship-body"></div>
+                            <div class="daedalus-exhaust-nozzle"></div>
+                            <!-- Fusion Pellets & Pulses -->
+                            ${[...Array(5)].map((_, i) => `
+                                <div class="daedalus-pellet" style="animation-delay: ${i * 1.5}s;"></div>
+                                <div class="daedalus-explosion" style="animation-delay: ${i * 1.5 + 0.5}s;"></div>
+                                <div class="daedalus-exhaust" style="animation-delay: ${i * 1.5 + 0.7}s;"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-base text-slate-400 mb-2">观看更多视频了解代达罗斯计划：</p>
+                        <a href="https://www.bilibili.com/video/BV1ZU411d7Bd/" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                            <span class="inline-block align-middle" data-lucide="external-link"></span>
+                            <span class="ml-1 inline-block align-middle">核聚变飞船：代达罗斯计划</span>
+                        </a>
+                    </div>
+                `,
+                stages: [
+                    { 
+                        title: '阶段一：目标与推进原理',
+                        intro: '了解代达罗斯计划的核心目标以及其创新的核聚变脉冲推进原理。',
+                        steps: [
+                            { icon: 'Compass', title: '目标：巴纳德星', path: '在50年内到达巴纳德星，以相对论速度（约光速的12%）飞行，进行科学探测。', challenges: '巨大的时间尺度和技术跨度。' },
+                            { icon: 'Atom', title: '推进方式：核聚变脉冲', path: '通过高能电子束引爆由氘（Deuterium）和氦-3（Helium-3）组成的燃料丸，产生微型核聚变爆炸。爆炸产生的等离子体通过磁性喷嘴导向，提供推力。每秒引爆约250个燃料丸。', challenges: '燃料丸精确引爆和磁性约束等离子体的技术难度极高。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段二：燃料与飞船结构',
+                        intro: '深入探讨计划对燃料的需求以及独特的飞船设计。',
+                        steps: [
+                            { icon: 'Zap', title: '燃料需求', path: '需要约5万吨氘/氦-3燃料。氦-3地球储量极少，需从月球或其他天体获取。', challenges: '氦-3的稀缺性、获取难度和成本是主要瓶颈。' },
+                            { icon: 'Rocket', title: '飞船结构', path: '设计为两级，第一级用于加速，第二级用于巡航和减速。总质量高达54,000吨，大部分是燃料。', challenges: '制造如此巨大且复杂的星际飞船面临工程和材料的极限挑战。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段三：技术挑战与可行性',
+                        intro: '剖析代达罗斯计划面临的主要技术挑战和当前的理论可行性。',
+                        steps: [
+                            { icon: 'Lightbulb', title: '主要挑战', path: '巨大的规模、对氦-3资源的需求、以及对先进工程技术和材料的严苛要求，成本极高。', challenges: '目前人类的技术水平和经济能力尚无法支撑如此宏伟的计划。' },
+                            { icon: 'CheckCircle', title: '可行性现状', path: '理论上可行，但所需技术远超当前能力，短期内无法实现。它更多地是作为星际旅行潜力的一种概念验证。', challenges: '作为一项概念研究，其价值在于指引未来技术发展方向，而非立即实施。' }
+                        ]
+                    }
+                ]
+            },
+            orion: {
+                title: '猎户座计划 (Orion)',
+                colorClass: 'stage-title-orion',
+                intro: '猎户座计划是美国在1950年代至1960年代进行的一项研究，旨在设计一艘通过核脉冲推进（即在飞船后方引爆核弹）来驱动的巨型航天器。它设想了一种前所未有的强大推进方式，其理论潜力甚至可以实现星际旅行。',
+                animation: `
+                    <div class="animation-container">
+                        <div class="orion-ship-container">
+                            <div class="orion-ship-body"></div>
+                            <div class="orion-pusher-plate">Pusher Plate</div>
+                            <!-- Nuclear Explosions -->
+                            ${[...Array(3)].map((_, i) => `
+                                <div class="orion-flash" style="animation-delay: ${i * 2}s;"></div>
+                                <div class="orion-shockwave" style="animation-delay: ${i * 2 + 0.2}s;"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-base text-slate-400 mb-2">观看更多视频了解猎户座计划：</p>
+                        <a href="https://www.bilibili.com/video/BV1Ya411A7bt/" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                            <span class="inline-block align-middle" data-lucide="external-link"></span>
+                            <span class="ml-1 inline-block align-middle">猎户座计划：核弹飞船</span>
+                        </a>
+                    </div>
+                `,
+                stages: [
+                    { 
+                        title: '阶段一：目标与推进原理',
+                        intro: '了解猎户座计划的宏伟目标及其独特的核脉冲推进方式。',
+                        steps: [
+                            { icon: 'Compass', title: '目标：快速星际旅行', path: '快速实现太阳系内行星际旅行，甚至有望在数十年内抵达最近的恒星。理论上可携带大量载荷。', challenges: '面临核武器使用的国际政治敏感性。' },
+                            { icon: 'Atom', title: '推进方式：核脉冲推进', path: '通过在飞船后方的一个大型“推进板”（Pusher Plate）下方周期性地引爆小型核弹。爆炸产生的X射线和等离子体撞击推进板，通过巨大的冲击力推动飞船前进。', challenges: '每次爆炸产生的高强度冲击力对推进板的材料和结构提出巨大挑战。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段二：结构与防护',
+                        intro: '探讨猎户座飞船的独特结构设计及其辐射防护措施。',
+                        steps: [
+                            { icon: 'Shield', title: '推进板与减震器', path: '核心是一个巨大的推进板，通过液压或气动减震器连接到飞船主体，以吸收核爆炸的冲击力。', challenges: '减震系统必须能够承受并平滑每秒多次核爆炸的巨大瞬时冲击。' },
+                            { icon: 'Radiation', title: '辐射防护', path: '飞船需有强大的辐射防护层，以保护宇航员和敏感设备免受核爆炸产生的致命辐射。', challenges: '在保持飞船轻量化的前提下，实现足够的辐射防护是工程难题。' }
+                        ]
+                    },
+                    { 
+                        title: '阶段三：挑战与现状',
+                        intro: '分析猎户座计划面临的严峻挑战及其当前状态。',
+                        steps: [
+                            { icon: 'Waves', title: '核辐射与环境影响', path: '核爆炸会产生大量放射性物质和辐射，对环境和宇航员构成严重威胁。', challenges: '地球轨道或近地空间进行核爆炸，会产生长期存在的放射性污染。' },
+                            { icon: 'Ban', title: '国际条约限制', path: '受到《部分禁止核试验条约》等国际公约的严格限制，该条约禁止在大气层和外层空间进行核试验。', challenges: '国际政治和法律障碍使其在可预见的未来几乎不可能实施。' },
+                            { icon: 'XCircle', title: '可行性现状', path: '因核辐射问题和国际条约限制，该计划已中止，仅停留在理论研究和少量实验阶段。', challenges: '尽管理论推力与比冲效率极高，但其负面影响使其不具备实际操作性。' }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        const allSlidesData = [];
+
+        // Add the intro/comparison slide first
+        allSlidesData.push({
+            id: 'slide-intro-comparison',
+            title: '星际旅行计划：代达罗斯与猎户座',
+            subtitle: '深入探索两个宏伟的星际旅行概念',
+            type: 'intro-comparison'
+        });
+
+        // Add Daedalus animation slide
+        allSlidesData.push({
+            id: 'daedalus-animation-slide',
+            title: '代达罗斯计划：推进动画演示',
+            type: 'animation-slide',
+            animationHtml: projectData.daedalus.animation,
+            planName: projectData.daedalus.title,
+            colorClass: projectData.daedalus.colorClass,
+            intro: projectData.daedalus.intro
+        });
+
+        // Add Daedalus detail slides
+        projectData.daedalus.stages.forEach((stage, index) => {
+            allSlidesData.push({
+                id: `daedalus-stage-${index + 1}`,
+                title: `${projectData.daedalus.title} - ${stage.title}`,
+                intro: stage.intro,
+                steps: stage.steps,
+                type: 'detail-stage',
+                colorClass: projectData.daedalus.colorClass
+            });
+        });
+
+        // Add Orion animation slide
+        allSlidesData.push({
+            id: 'orion-animation-slide',
+            title: '猎户座计划：推进动画演示',
+            type: 'animation-slide',
+            animationHtml: projectData.orion.animation,
+            planName: projectData.orion.title,
+            colorClass: projectData.orion.colorClass,
+            intro: projectData.orion.intro
+        });
+
+        // Add Orion detail slides
+        projectData.orion.stages.forEach((stage, index) => {
+            allSlidesData.push({
+                id: `orion-stage-${index + 1}`,
+                title: `${projectData.orion.title} - ${stage.title}`,
+                intro: stage.intro,
+                steps: stage.steps,
+                type: 'detail-stage',
+                colorClass: projectData.orion.colorClass
+            });
+        });
+
+        var slides = allSlidesData.map(s => s.id); // Array of slide IDs for navigation
+        var currentSlideIndex = 0;
+        var prevSlideBtn = document.getElementById('prevSlideBtn');
+        var nextSlideBtn = document.getElementById('nextSlideBtn');
+        var slideIndicator = document.getElementById('slideIndicator');
+        var presentationContainer = document.getElementById('presentationContainer');
+        var fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+
+        function renderSlides() {
+            // Clear existing dynamic slides (excluding the initial intro slide)
+            document.querySelectorAll('.dynamic-slide').forEach(el => el.remove());
+
+            allSlidesData.forEach((slideData, index) => {
+                if (slideData.type === 'intro-comparison') {
+                    // Intro slide is already in HTML, just ensure its ID is correct for selection
+                    document.getElementById('slide-intro-comparison').id = slideData.id;
+                    return;
+                }
+
+                const slideElement = document.createElement('div');
+                slideElement.id = slideData.id;
+                slideElement.classList.add('slide', 'dynamic-slide'); // Add dynamic-slide for easy removal
+
+                let contentHTML = '';
+
+                if (slideData.type === 'animation-slide') {
+                    contentHTML = `
+                        <div class="slide-card text-center">
+                            <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 ${slideData.colorClass}">${slideData.title}</h2>
+                            <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">${slideData.intro}</p>
+                            ${slideData.animationHtml}
+                        </div>
+                    `;
+                } else if (slideData.type === 'detail-stage') {
+                    contentHTML = `
+                        <div class="slide-card text-center">
+                            <h2 class="text-4xl md:text-5xl font-extrabold section-title mb-8 ${slideData.colorClass}">${slideData.title}</h2>
+                            <p class="text-xl text-slate-300 mb-10 max-w-4xl mx-auto">${slideData.intro}</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    `;
+
+                    slideData.steps.forEach(step => {
+                        contentHTML += `
+                            <div class="step-card p-5">
+                                <h4 class="font-bold mb-3 flex items-center justify-center">
+                                    <i data-lucide="${step.icon}" class="w-6 h-6 mr-2 text-purple-400"></i>
+                                    ${step.title}
+                                </h4>
+                                <p class="mb-4"><strong class="font-semibold">描述：</strong>${step.path}</p>
+                                <div class="p-3 rounded-md challenge-box">
+                                    <p><strong class="font-semibold">⚠️ 挑战：</strong>${step.challenges}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    contentHTML += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                slideElement.innerHTML = contentHTML;
+                presentationContainer.appendChild(slideElement);
+            });
+            // Ensure lucide.createIcons() is called after the DOM is fully updated
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons(); 
+            } else {
+                console.error("Lucide is not defined or createIcons function is missing.");
+            }
+        }
+
+        function showSlide(index) {
+            const currentSlideElement = document.querySelector('.slide.active');
+            if (currentSlideElement) {
+                currentSlideElement.classList.remove('active');
+            }
+
+            const nextSlideElement = document.getElementById(allSlidesData[index].id);
+            if (nextSlideElement) {
+                nextSlideElement.classList.add('active');
+            }
+            
+            currentSlideIndex = index;
+            updateSlideNavigation();
+        }
+
+        function updateSlideNavigation() {
+            slideIndicator.textContent = `${currentSlideIndex + 1} / ${allSlidesData.length}`;
+            prevSlideBtn.disabled = currentSlideIndex === 0;
+            nextSlideBtn.disabled = currentSlideIndex === allSlidesData.length - 1;
+        }
+
+        prevSlideBtn.addEventListener('click', () => {
+            if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+            }
+        });
+
+        nextSlideBtn.addEventListener('click', () => {
+            if (currentSlideIndex < allSlidesData.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        });
+
+        // Fullscreen Toggle Logic
+        if (fullscreenToggleBtn) {
+            fullscreenToggleBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().then(() => {
+                        document.body.classList.add('fullscreen-active');
+                        fullscreenToggleBtn.textContent = '退出全屏';
+                    }).catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                        // Fallback for browsers that don't support native fullscreen or if user denies
+                        presentationContainer.classList.add('expanded');
+                        fullscreenToggleBtn.textContent = '退出全屏';
+                    });
+                } else {
+                    document.exitFullscreen().then(() => {
+                        document.body.classList.remove('fullscreen-active');
+                        presentationContainer.classList.remove('expanded');
+                        fullscreenToggleBtn.textContent = '进入全屏';
+                    }).catch(err => {
+                        console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
+                        presentationContainer.classList.remove('expanded');
+                        fullscreenToggleBtn.textContent = '进入全屏';
+                    });
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('fullscreen-active');
+                presentationContainer.classList.remove('expanded');
+                fullscreenToggleBtn.textContent = '进入全屏';
+            }
+        });
+
+        // Chart.js implementation
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSlides(); // Render all dynamic slides first
+            showSlide(0); // Show the first slide (intro/comparison)
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['技术难度', '资源需求', '安全风险'],
+                    datasets: [
+                        {
+                            label: '代达罗斯计划 (Daedalus)',
+                            data: [95, 90, 85],
+                            backgroundColor: 'rgba(96, 165, 250, 0.7)', /* Light blue */
+                            borderColor: '#60a5fa', /* Light blue */
+                            borderWidth: 1
+                        },
+                        {
+                            label: '猎户座计划 (Orion)',
+                            data: [65, 80, 70],
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)', /* Red */
+                            borderColor: '#ef4444', /* Red */
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                             ticks: {
+                                callback: function(value) {
+                                    return value + '%'
+                                },
+                                color: '#e2e8f0' /* Light text for ticks */
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.3)' /* Dark grid lines */
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#e2e8f0' /* Light text for ticks */
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.3)' /* Dark grid lines */
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: false,
+                        },
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0' /* Light text for legend */
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + ' (相对指数)';
+                                    }
+                                    return label;
+                                }
+                            },
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)', /* Dark tooltip background */
+                            titleColor: '#e2e8f0', /* Light text for tooltip title */
+                            bodyColor: '#e2e8f0', /* Light text for tooltip body */
+                            borderColor: 'rgba(129, 140, 248, 0.3)', /* Border color for tooltip */
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            padding: 10
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
