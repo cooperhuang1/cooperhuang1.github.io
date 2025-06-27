@@ -412,14 +412,22 @@
 
     <script type="module">
         // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; // Updated SDK version
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js"; // Updated SDK version
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js"; // Updated SDK version
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // Get Firebase config and App ID from global variables (or default)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}'); // Use global config
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Your web app's Firebase configuration - provided by user
+        const firebaseConfig = {
+            apiKey: "AIzaSyBRFqy3WX8mP0hhzQnfNRSlhQplsfF03Cg",
+            authDomain: "pingkewangzhan.firebaseapp.com",
+            projectId: "pingkewangzhan",
+            storageBucket: "pingkewangzhan.firebasestorage.app",
+            messagingSenderId: "1073124133516",
+            appId: "1:1073124133516:web:bfc958012e1929850409a9",
+            measurementId: "G-24QJF7FPWL"
+        };
+        // Use the projectId from your provided firebaseConfig for the Firestore path
+        const appId = firebaseConfig.projectId;
 
 
         let app;
@@ -588,25 +596,12 @@
                     console.log("Firebase initialized and user authenticated:", userId);
                     showPage('submit'); // Set initial page to Submit
                 } else {
-                    if (initialAuthToken) {
-                        try {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } catch (customTokenError) {
-                            console.warn("Custom token sign-in failed, attempting anonymous sign-in:", customTokenError);
-                            try {
-                                await signInAnonymously(auth);
-                            } catch (anonymousError) {
-                                console.error("Anonymous sign-in also failed:", anonymousError);
-                                showModal("认证失败，请刷新页面重试。");
-                            }
-                        }
-                    } else {
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (anonymousError) {
-                            console.error("Anonymous sign-in failed:", anonymousError);
-                            showModal("认证失败，请刷新页面重试。");
-                        }
+                    // Try anonymous sign-in if no user is found.
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (anonymousError) {
+                        console.error("Anonymous sign-in failed:", anonymousError);
+                        showModal("认证失败，请刷新页面重试。");
                     }
                 }
             });
