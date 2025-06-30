@@ -93,6 +93,14 @@
             background-color: #e2e8f0;
             font-weight: 600;
         }
+        textarea:disabled, input[type="text"]:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         textarea, input[type="text"], input[type="email"], input[type="password"] {
             width: 100%;
             padding: 0.75rem;
@@ -397,8 +405,12 @@
         <main class="main-content">
             <!-- Sidebar for writing list -->
             <aside class="sidebar">
-                <h2 class="text-xl font-semibold mb-4 text-blue-600">我的作品</h2>
-                <button id="newWritingBtn" class="action-button mb-4 w-full">新建作品</button>
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">笔记导航</h2>
+                <div class="flex flex-col gap-2 mb-4">
+                    <button id="publicNotesBtn" class="action-button bg-blue-600 hover:bg-blue-700">开放内容空间</button>
+                    <button id="privateNotesBtn" class="action-button bg-gray-500 hover:bg-gray-600">我的私人笔记</button>
+                </div>
+                <button id="newWritingBtn" class="action-button mb-4 w-full">新建笔记</button>
                 <div id="writingsList" class="flex-grow overflow-y-auto">
                     <p id="loadingWritings" class="text-gray-500 text-sm text-center">加载中...</p>
                     <!-- Writing items will be loaded here -->
@@ -407,11 +419,12 @@
 
             <!-- Editor Area -->
             <section class="editor-area">
-                <input type="text" id="writingTitle" placeholder="作品标题" class="text-2xl font-semibold mb-4">
+                <input type="text" id="writingTitle" placeholder="笔记标题" class="text-2xl font-semibold mb-4">
                 <div class="editor-container">
                     <div class="markdown-input-area">
                         <textarea id="writingContent" placeholder="开始你的创作..."></textarea>
                         <div class="flex p-2 justify-end gap-2 border-t border-gray-200">
+                            <input type="file" id="imageUploadInput" accept="image/*" class="hidden">
                             <button id="insertImageBtn" class="action-button bg-gray-600 hover:bg-gray-700 text-sm">插入图片</button>
                             <button id="insertMathBtn" class="action-button bg-gray-600 hover:bg-gray-700 text-sm">插入公式</button>
                             <button id="openAIAssistantBtn" class="action-button bg-green-600 hover:bg-green-700 text-sm">AI 助手</button>
@@ -424,7 +437,8 @@
                 </div>
                 <div class="flex justify-between items-center mt-2">
                     <div class="counter" id="wordCharCount">字数: 0 | 字符数: 0</div>
-                    <button id="saveWritingBtn" class="action-button">保存作品</button>
+                    <button id="saveWritingBtn" class="action-button">保存笔记</button>
+                    <button id="deleteWritingBtn" class="delete-button hidden">删除笔记</button>
                 </div>
             </section>
         </main>
@@ -501,12 +515,35 @@
         service cloud.firestore {
           match /databases/{database}/documents {
             // Private data for authenticated users
-            match /artifacts/{appId}/users/{userId}/{collectionId}/{document=**} {
+            match /artifacts/{appId}/users/{userId}/writings/{document=**} {
+              allow read, write: if request.auth != null && request.auth.uid == userId;
+            }
+            // Public data for all authenticated users to read, only author to write/delete
+            match /artifacts/{appId}/public/writings/{document=**} {
+              allow read: if request.auth != null;
+              allow write: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+              allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+            }
+          }
+        }
+        */
+
+        // Firebase Storage Security Rules:
+        // You also need to set these rules in your Firebase Console -> Storage -> Rules tab.
+        // This allows authenticated users to read and write their own private images.
+        /*
+        rules_version = '2';
+        service firebase.storage {
+          match /b/{bucket}/o {
+            match /artifacts/{appId}/users/{userId}/images/{allPaths=**} {
               allow read, write: if request.auth != null && request.auth.uid == userId;
             }
           }
         }
         */
+        // IMPORTANT: For this application to work correctly, ensure you have enabled
+        // 'Email/Password' and 'Google' sign-in methods in your Firebase project's
+        // Authentication settings. Navigate to Firebase Console -> Authentication -> Sign-in method.
 
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -520,14 +557,16 @@
             signInWithPopup,
             signOut
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-        // Firebase Configuration (Replace with your actual config if needed, otherwise Canvas provides it)
+
+        // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBRFqy3WX8mP0hhzQnfNRSlhQplsfF03Cg",
+            apiKey: "AIzaSyBkArPi6CQT-36efUH--IhG0rnnCzqqZf0", // Your API Key
             authDomain: "pingkewangzhan.firebaseapp.com",
             projectId: "pingkewangzhan",
-            storageBucket: "pingkewangzhan.firebasestorage.app",
+            storageBucket: "pingkewangzhan.appspot.com", // Make sure this is your project's storage bucket
             messagingSenderId: "1073124133516",
             appId: "1:1073124133516:web:bfc958012e1929850409a9",
             measurementId: "G-24QJF7FPWL"
@@ -537,6 +576,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const storage = getStorage(app); // Initialize Firebase Storage
         const googleProvider = new GoogleAuthProvider();
 
         let currentUserId = null; // User ID will be null if not logged in, or the actual UID
@@ -554,6 +594,8 @@
         const emailRegisterBtn = document.getElementById('emailRegisterBtn');
         const googleSignInBtn = document.getElementById('googleSignInBtn');
 
+        const publicNotesBtn = document.getElementById('publicNotesBtn');
+        const privateNotesBtn = document.getElementById('privateNotesBtn');
         const newWritingBtn = document.getElementById('newWritingBtn');
         const writingsListDiv = document.getElementById('writingsList');
         const loadingWritingsMessage = document.getElementById('loadingWritings');
@@ -562,6 +604,8 @@
         const writingPreviewDiv = document.getElementById('writingPreview'); // New: for preview
         const wordCharCountDiv = document.getElementById('wordCharCount');
         const saveWritingBtn = document.getElementById('saveWritingBtn');
+        const deleteWritingBtn = document.getElementById('deleteWritingBtn'); // New delete button
+        const imageUploadInput = document.getElementById('imageUploadInput'); // Hidden file input
         const insertImageBtn = document.getElementById('insertImageBtn'); // New: Image button
         const insertMathBtn = document.getElementById('insertMathBtn');   // New: Math button
         const openAIAssistantBtn = document.getElementById('openAIAssistantBtn'); // New: AI Assistant button
@@ -593,8 +637,10 @@
         const aiLoadingSpinner = document.getElementById('aiLoadingSpinner');
         const insertAITextBtn = document.getElementById('insertAITextBtn');
 
-        let allWritings = []; // Array to store all writing documents
+        let allWritings = []; // Array to store all writing documents (could be private or public based on view)
         let currentWritingId = null; // ID of the currently loaded writing
+        let currentWritingAuthorId = null; // Author ID of the currently loaded writing
+        let currentView = 'public'; // 'public' or 'private' - default to public notes view after login
         let unsubscribeFromWritings = null; // To store the Firestore unsubscribe function
 
         // Configure Marked.js for basic HTML rendering.
@@ -669,15 +715,39 @@
 
         // --- Core Writing Functions ---
 
+        // Function to set editor read-only state
+        function setEditorReadOnly(readOnly) {
+            writingTitleInput.disabled = readOnly;
+            writingContentTextarea.disabled = readOnly;
+            saveWritingBtn.disabled = readOnly;
+            insertImageBtn.disabled = readOnly;
+            insertMathBtn.disabled = readOnly;
+            openAIAssistantBtn.disabled = readOnly;
+
+            // Hide/show delete button based on ownership and view
+            if (currentWritingId && currentWritingAuthorId === currentUserId) {
+                deleteWritingBtn.classList.remove('hidden');
+            } else {
+                deleteWritingBtn.classList.add('hidden');
+            }
+        }
+
         // Load a writing into the editor
-        function loadWriting(writingId) {
+        function loadWriting(writingId, isPublic, authorId) {
             currentWritingId = writingId;
+            currentWritingAuthorId = authorId; // Store the author ID
+
             const writing = allWritings.find(w => w.id === writingId);
             if (writing) {
                 writingTitleInput.value = writing.title || '';
                 writingContentTextarea.value = writing.content || '';
                 updatePreview(); // Update preview when loading content
                 updateWordCharCount();
+
+                // Set editor read-only if it's a public note and not the author
+                const readOnly = isPublic && (authorId !== currentUserId);
+                setEditorReadOnly(readOnly);
+
                 // Highlight the active writing item in the sidebar
                 document.querySelectorAll('.writing-item').forEach(item => {
                     item.classList.remove('active');
@@ -694,10 +764,12 @@
         // Clear the editor
         function clearEditor() {
             currentWritingId = null;
+            currentWritingAuthorId = null;
             writingTitleInput.value = '';
             writingContentTextarea.value = '';
             updatePreview(); // Clear preview as well
             updateWordCharCount();
+            setEditorReadOnly(false); // Ensure editor is editable when creating new or viewing own private
             document.querySelectorAll('.writing-item').forEach(item => item.classList.remove('active'));
         }
 
@@ -737,30 +809,95 @@
             updateWordCharCount(); // Update counts
         }
 
-        // --- Image Paste Handling ---
-        writingContentTextarea.addEventListener('paste', function(event) {
+        // --- Image Upload Handling with Firebase Storage ---
+
+        // Function to upload file to Firebase Storage
+        async function uploadFileToFirebaseStorage(file) {
+            if (!currentUserId) {
+                showAlert('请先登录才能上传图片！');
+                return null;
+            }
+
+            const fileName = `${Date.now()}_${file.name}`;
+            // Storage path: artifacts/{appId}/users/{userId}/images/{fileName}
+            const storageRef = ref(storage, `artifacts/${appId}/users/${currentUserId}/images/${fileName}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Observe state change events such as progress, pause, and resume
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log('Upload is ' + progress + '% done');
+                        showAlert(`图片上传中: ${progress.toFixed(0)}%...`); // Show progress to user
+                    },
+                    (error) => {
+                        // Handle unsuccessful uploads
+                        console.error("Image upload failed:", error);
+                        showAlert(`图片上传失败: ${error.message}`);
+                        reject(error);
+                    },
+                    () => {
+                        // Handle successful uploads on complete
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            console.log('File available at', downloadURL);
+                            showAlert('图片上传成功！');
+                            resolve(downloadURL);
+                        }).catch(error => {
+                            console.error("Error getting download URL:", error);
+                            showAlert(`获取图片URL失败: ${error.message}`);
+                            reject(error);
+                        });
+                    }
+                );
+            });
+        }
+
+        // Trigger file input when "插入图片" button is clicked
+        insertImageBtn.onclick = function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能插入图片！');
+                return;
+            }
+            imageUploadInput.click(); // Programmatically click the hidden file input
+        };
+
+        // Handle file selection from the input
+        imageUploadInput.addEventListener('change', async function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const downloadURL = await uploadFileToFirebaseStorage(file);
+                if (downloadURL) {
+                    insertAtCaret('writingContent', `![图片描述](${downloadURL})\n`);
+                }
+            }
+            imageUploadInput.value = ''; // Clear the input so same file can be selected again
+        });
+
+        // Handle image paste directly into the textarea
+        writingContentTextarea.addEventListener('paste', async function(event) {
             const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            let imagePasted = false;
             for (const item of items) {
                 if (item.type.startsWith('image/')) {
+                    event.preventDefault(); // Prevent default paste behavior
+                    imagePasted = true;
                     const blob = item.getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const base64Image = e.target.result;
-                        insertAtCaret('writingContent', `![粘贴图片](` + base64Image + `)\n`);
-                        showAlert('图片已粘贴。请注意：直接粘贴图片为Base64格式可能导致文档过大，影响性能和存储（Firestore文档限制1MB）。建议使用Firebase Storage等云存储服务上传图片，然后在此引用图片URL。');
-                    };
-                    reader.readAsDataURL(blob);
-                    event.preventDefault(); // Prevent default paste behavior (e.g., pasting raw binary)
-                    return;
+                    if (blob) {
+                        const downloadURL = await uploadFileToFirebaseStorage(blob);
+                        if (downloadURL) {
+                            insertAtCaret('writingContent', `![粘贴图片](${downloadURL})\n`);
+                        }
+                    }
+                    break; // Only process one image from paste
                 }
+            }
+            // If no image was pasted, let default paste behavior handle text
+            if (!imagePasted) {
+                // For text paste, allow default behavior
             }
         });
 
-        // Event for inserting image Markdown
-        insertImageBtn.onclick = function() {
-            insertAtCaret('writingContent', '![图片描述](https://placehold.co/400x200/000000/FFFFFF?text=在此插入图片URL)', 35); // 35 is offset to put cursor inside URL part
-            showAlert('已插入图片占位符。请将括号中的URL替换为您的图片链接，并将方括号中的文本替换为图片描述。');
-        };
 
         // --- Math Editor Modal Logic ---
         mathEditorModal.querySelector('.close-button').onclick = function() {
@@ -769,6 +906,10 @@
         };
 
         insertMathBtn.onclick = function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能插入公式！');
+                return;
+            }
             mathEditorModal.style.display = 'flex';
             mathInputSection.classList.add('hidden'); // Hide inputs initially
         };
@@ -1010,7 +1151,7 @@
         };
 
 
-        // --- Save, New, Delete Writing Functions (largely unchanged) ---
+        // --- Save, New, Delete Writing Functions ---
         saveWritingBtn.onclick = async function() {
             if (!currentUserId) {
                 showAlert('请先登录才能保存作品！');
@@ -1021,68 +1162,96 @@
             const content = writingContentTextarea.value.trim();
 
             if (!title) {
-                showAlert('作品标题不能为空！');
+                showAlert('笔记标题不能为空！');
                 return;
             }
 
             try {
-                if (currentWritingId) {
-                    // Update existing document
-                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/writings`, currentWritingId);
+                // If currentView is 'public' and we are the author, update the public note
+                // For now, this version only supports saving to private.
+                // Public saving/toggle will be implemented in the next step.
+                // If it's a new note or we are in private view, save to private.
+                const collectionPath = `artifacts/${appId}/users/${currentUserId}/writings`;
+                if (currentWritingId && currentWritingAuthorId === currentUserId && currentView === 'private') {
+                    // Update existing private document
+                    const docRef = doc(db, collectionPath, currentWritingId);
                     await updateDoc(docRef, {
                         title: title,
                         content: content,
-                        updatedAt: serverTimestamp() // Use server timestamp for update time
+                        updatedAt: serverTimestamp(),
+                        authorId: currentUserId // Ensure authorId is present on updates too
                     });
-                    showAlert('作品已更新！');
-                } else {
-                    // Create new document
-                    const newDocRef = await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/writings`), {
+                    showAlert('私人笔记已更新！');
+                } else if (currentWritingId && currentWritingAuthorId === currentUserId && currentView === 'public') {
+                    // Update existing public document (if user is author and in public view)
+                    const docRef = doc(db, `artifacts/${appId}/public/writings`, currentWritingId);
+                    await updateDoc(docRef, {
                         title: title,
                         content: content,
-                        createdAt: serverTimestamp(), // Use server timestamp for creation time
-                        updatedAt: serverTimestamp()
+                        updatedAt: serverTimestamp(),
+                        authorId: currentUserId // Ensure authorId is present on updates too
+                    });
+                    showAlert('公开笔记已更新！');
+                } else {
+                    // Create new private document by default
+                    const newDocRef = await addDoc(collection(db, collectionPath), {
+                        title: title,
+                        content: content,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        authorId: currentUserId, // Always add authorId
+                        isPublic: false // New notes are private by default
                     });
                     currentWritingId = newDocRef.id; // Set the new ID as current
-                    showAlert('新作品已保存！');
+                    currentWritingAuthorId = currentUserId;
+                    showAlert('新私人笔记已保存！');
+                    // After saving new private, switch to private view to see it
+                    switchToPrivateNotes();
                 }
             } catch (e) {
                 console.error("Error saving writing: ", e);
-                showAlert('保存作品失败，请稍后再试。');
+                showAlert('保存笔记失败，请稍后再试。');
+            }
+        };
+
+        deleteWritingBtn.onclick = async function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能删除笔记！');
+                return;
+            }
+            if (!currentWritingId || currentWritingAuthorId !== currentUserId) {
+                showAlert('你无权删除这篇笔记。');
+                return;
+            }
+
+            const collectionPath = currentView === 'public' ? `artifacts/${appId}/public/writings` : `artifacts/${appId}/users/${currentUserId}/writings`;
+
+            const confirmation = await showConfirm('你确定要删除这篇笔记吗？');
+            if (confirmation) {
+                try {
+                    await deleteDoc(doc(db, collectionPath, currentWritingId));
+                    showAlert('笔记已删除！');
+                    clearEditor();
+                } catch (e) {
+                    console.error("Error deleting writing: ", e);
+                    showAlert('删除笔记失败，请稍后再试。');
+                }
             }
         };
 
         newWritingBtn.onclick = function() {
             if (!currentUserId) {
-                showAlert('请先登录才能新建作品！');
+                showAlert('请先登录才能新建笔记！');
                 return;
             }
             clearEditor();
+            setEditorReadOnly(false); // Ensure editor is writable for new notes
+            // Default new note to private context
+            switchToPrivateNotes(); // Ensure sidebar reflects private view for new note
             writingTitleInput.focus();
         };
 
-        async function deleteWriting(writingId) {
-            if (!currentUserId) {
-                showAlert('请先登录才能删除作品！');
-                return;
-            }
-
-            const confirmation = await showConfirm('你确定要删除这个作品吗？');
-            if (confirmation) {
-                try {
-                    await deleteDoc(doc(db, `artifacts/${appId}/users/${currentUserId}/writings`, writingId));
-                    showAlert('作品已删除！');
-                    if (currentWritingId === writingId) {
-                        clearEditor();
-                    }
-                } catch (e) {
-                    console.error("Error deleting writing: ", e);
-                    showAlert('删除作品失败，请稍后再试。');
-                }
-            }
-        };
-
-        // --- Firebase Authentication Functions (unchanged) ---
+        // --- Firebase Authentication Functions ---
 
         emailLoginBtn.onclick = async () => {
             const email = emailInput.value;
@@ -1135,7 +1304,33 @@
             }
         };
 
-        // --- Firebase Auth State Listener (unchanged) ---
+        // --- View Switching Logic ---
+        publicNotesBtn.onclick = () => switchToPublicNotes();
+        privateNotesBtn.onclick = () => switchToPrivateNotes();
+
+        function switchToPublicNotes() {
+            if (currentView === 'public') return; // Already in public view
+            currentView = 'public';
+            publicNotesBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            publicNotesBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            privateNotesBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            privateNotesBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            clearEditor(); // Clear editor when switching views
+            setupFirestoreListeners();
+        }
+
+        function switchToPrivateNotes() {
+            if (currentView === 'private') return; // Already in private view
+            currentView = 'private';
+            privateNotesBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            privateNotesBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            publicNotesBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            publicNotesBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            clearEditor(); // Clear editor when switching views
+            setupFirestoreListeners();
+        }
+
+        // --- Firebase Auth State Listener ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUserId = user.uid;
@@ -1144,7 +1339,8 @@
                 authSection.style.display = 'none';
                 mainContentWrapper.style.display = 'flex';
                 console.log("User logged in:", user.uid);
-                setupFirestoreListeners();
+                // Default to public notes view after login
+                switchToPublicNotes(); // Ensure the UI reflects public view immediately
             } else {
                 currentUserId = null;
                 userIdDisplay.textContent = '未登录';
@@ -1156,16 +1352,21 @@
                     unsubscribeFromWritings();
                     unsubscribeFromWritings = null;
                 }
-                writingsListDiv.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">请登录以查看您的作品。</p>';
+                writingsListDiv.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">请登录以查看您的笔记。</p>';
                 clearEditor();
             }
         });
 
-        // Setup Firestore Listeners for writings (unchanged)
+        // Setup Firestore Listeners for writings
         function setupFirestoreListeners() {
             loadingWritingsMessage.style.display = 'block';
-            const writingsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/writings`);
-            const q = query(writingsColRef, orderBy('updatedAt', 'desc'));
+            let collectionRef;
+            if (currentView === 'private') {
+                collectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/writings`);
+            } else { // currentView === 'public'
+                collectionRef = collection(db, `artifacts/${appId}/public/writings`);
+            }
+            const q = query(collectionRef, orderBy('updatedAt', 'desc'));
 
             if (unsubscribeFromWritings) {
                 unsubscribeFromWritings();
@@ -1179,25 +1380,27 @@
                 }));
                 renderWritingsList();
 
+                // If currently loaded note is no longer in the list (e.g., deleted by another client), clear editor
                 if (currentWritingId && !allWritings.some(w => w.id === currentWritingId)) {
                     clearEditor();
                 } else if (!currentWritingId && allWritings.length > 0) {
-                    loadWriting(allWritings[0].id);
+                    // If no note is loaded and there are notes, load the first one (for the current view)
+                    loadWriting(allWritings[0].id, currentView === 'public', allWritings[0].authorId);
                 } else if (allWritings.length === 0) {
                     clearEditor();
                 }
             }, (error) => {
                 console.error("Error fetching writings:", error);
-                showAlert("加载作品失败，请检查您的登录状态和网络连接。");
+                showAlert("加载笔记失败，请检查您的登录状态和网络连接。");
                 loadingWritingsMessage.textContent = '加载失败。';
             });
         }
 
-        // Render the list of writings in the sidebar (unchanged)
+        // Render the list of writings in the sidebar
         function renderWritingsList() {
             writingsListDiv.innerHTML = '';
             if (allWritings.length === 0) {
-                writingsListDiv.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">暂无作品，点击“新建作品”开始创作！</p>';
+                writingsListDiv.innerHTML = `<p class="text-center text-gray-500 text-sm mt-4">暂无${currentView === 'public' ? '公开' : '私人'}笔记，点击“新建笔记”开始创作！</p>`;
                 return;
             }
             allWritings.forEach(writing => {
@@ -1206,21 +1409,30 @@
                 itemDiv.dataset.id = writing.id;
 
                 const titleSpan = document.createElement('span');
-                titleSpan.textContent = writing.title || '无标题作品';
+                let displayTitle = writing.title || '无标题笔记';
+                if (currentView === 'public') {
+                    // Display author name or ID for public notes
+                    displayTitle += ` (${writing.authorEmail || writing.authorId.substring(0,4)}...)`; // Assuming authorEmail might be available
+                }
+                titleSpan.textContent = displayTitle;
                 titleSpan.classList.add('flex-grow', 'truncate');
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-button';
-                deleteBtn.textContent = '删除';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteWriting(writing.id);
-                };
-
                 itemDiv.appendChild(titleSpan);
-                itemDiv.appendChild(deleteBtn);
 
-                itemDiv.onclick = () => loadWriting(writing.id);
+                // Add delete button only if it's the author and current view is public or private
+                if (writing.authorId === currentUserId) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-button';
+                    deleteBtn.textContent = '删除';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteWriting(writing.id);
+                    };
+                    itemDiv.appendChild(deleteBtn);
+                }
+
+
+                itemDiv.onclick = () => loadWriting(writing.id, currentView === 'public', writing.authorId);
                 writingsListDiv.appendChild(itemDiv);
             });
         }
