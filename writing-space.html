@@ -1,774 +1,1240 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的二次元写作空间</title>
+    <title>个人写作空间</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
-    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
-
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MathJax for LaTeX rendering -->
+    <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
-        // MathJax 配置：定义行内和块级公式的分隔符
-        window.MathJax = {
+        // MathJax configuration to process LaTeX within the preview area
+        MathJax = {
             tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']], // 行内公式使用 $...$ 或 \(...\)
-                displayMath: [['$$', '$$'], ['\\[', '\\]']] // 块级公式使用 $$...$$ 或 \[...\]
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
             },
             svg: {
-                fontCache: 'global' // 优化字体加载，提高渲染速度
+                fontCache: 'global'
             }
         };
     </script>
-
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /*
-            -------------------------------------------------------------------
-            自定义 CSS 样式部分：
-            这里定义了写作页面的专属样式，与个人主页风格保持一致。
-            -------------------------------------------------------------------
-        */
-
-        /* 全局字体设置 */
         body {
-            font-family: 'Inter', sans-serif; /* 设置页面默认字体为 Inter 或其备用字体 */
-            background-color: #1a202c; /* 设置页面默认背景色为深色，与主页一致 */
-            color: #e2e8f0; /* 默认文本颜色改为浅色，适应深色背景 */
-            scroll-behavior: smooth; /* 启用平滑滚动效果 */
-            overflow-x: hidden; /* 防止水平滚动条 */
-        }
-
-        /* 导航栏滚动时的样式变化 */
-        #navbar {
-            transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        }
-
-        .navbar-scrolled {
-            background-color: rgba(26, 32, 44, 0.95); /* 滚动后背景更实心，深色 */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* 滚动后阴影更明显 */
-        }
-
-        /* 毛玻璃效果样式 (用于内容区域的卡片) */
-        .glass-morphism {
-            backdrop-filter: blur(10px) saturate(180%); /* 模糊背景并增加饱和度，创建毛玻璃效果 */
-            -webkit-backdrop-filter: blur(10px) saturate(180%); /* 兼容WebKit浏览器 */
-            background-color: rgba(255, 255, 255, 0.15); /* 更透明的白色背景，适应深色背景 */
-            border-radius: 12px; /* 圆角边框 */
-            border: 1px solid rgba(209, 213, 219, 0.1); /* 细边框，更透明 */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* 更明显的阴影效果 */
-        }
-
-        /* 写作区域和预览区域的通用样式 */
-        .content-area {
-            background-color: rgba(255, 255, 255, 0.08); /* 略微透明的背景，与毛玻璃效果配合 */
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            padding: 2rem;
-            margin-bottom: 2rem; /* 底部留白 */
-            border: 1px solid rgba(209, 213, 219, 0.05); /* 细边框 */
-        }
-
-        /* EasyMDE 编辑器容器样式 */
-        .CodeMirror, .CodeMirror-scroll {
-            min-height: 400px; /* 最小高度 */
-            border: 1px solid #4b5563; /* 深色边框 */
-            border-radius: 8px;
-            font-size: 1rem;
-            line-height: 1.6;
-            background-color: #374151; /* 深色背景 */
-            color: #e2e8f0; /* 浅色文本 */
-            flex-grow: 1; /* 让编辑器填充可用高度 */
-            height: auto; /* 允许 flexbox 控制高度 */
-        }
-        .CodeMirror-focused .CodeMirror-scroll {
-            border-color: #60a5fa; /* 聚焦时蓝色边框 */
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
-        }
-        .editor-toolbar {
-            background-color: #374151; /* 工具栏背景 */
-            border: 1px solid #4b5563; /* 工具栏边框 */
-            border-radius: 8px 8px 0 0;
-            padding: 0.5rem;
-        }
-        .editor-toolbar button {
-            color: #e2e8f0; /* 工具栏按钮颜色 */
-            transition: background-color 0.2s ease-in-out;
-            border-radius: 4px;
-        }
-        .editor-toolbar button.active, .editor-toolbar button:hover {
-            background-color: #4b5563; /* 按钮激活/悬停背景 */
-            color: #60a5fa; /* 按钮激活/悬停颜色 */
-        }
-        .editor-toolbar .separator {
-            border-left: 1px solid #4b5563; /* 分隔线颜色 */
-        }
-        .CodeMirror-fullscreen {
-            background-color: #1a202c !important; /* 全屏模式背景 */
-        }
-        .editor-preview-active, .editor-preview-active-side {
-            background-color: #374151; /* 预览区域背景 */
-            border: 1px solid #4b5563;
-            border-radius: 0 0 8px 8px;
-            padding: 1rem;
-            color: #e2e8f0;
-            flex-grow: 1; /* 让侧边预览填充可用高度 */
-            height: auto; /* 允许 flexbox 控制高度 */
-            overflow-y: auto; /* 允许滚动 */
-        }
-        .editor-preview-active-side {
-            border-left: 1px solid #4b5563;
-        }
-
-        /* 拖拽上传时的样式 */
-        .CodeMirror.drag-over {
-            border: 2px dashed #60a5fa; /* 拖拽时显示虚线边框 */
-            background-color: rgba(96, 165, 250, 0.1); /* 拖拽时背景变浅 */
-        }
-
-        /* 预览区域样式 (外部预览区域) */
-        #preview-area {
-            min-height: 200px;
-            border: 1px dashed #6b7280; /* 虚线边框，适应深色背景 */
-            padding: 1.5rem;
-            overflow-wrap: break-word; /* 确保长文本换行 */
-            color: #e2e8f0; /* 浅色文本 */
-            flex-grow: 1; /* 让预览区域填充可用高度 */
-            overflow-y: auto; /* 允许滚动 */
-        }
-
-        #preview-area img {
-            max-width: 100%; /* 图片自适应宽度 */
-            height: auto;
-            border-radius: 8px;
-            margin: 1rem 0; /* 图片上下间距 */
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* 更明显的阴影 */
-        }
-
-        /* MathJax 渲染的公式样式，确保在深色背景下可见 */
-        .mjx-chtml {
-            color: #e2e8f0 !important; /* 确保公式颜色在暗黑模式下是浅色 */
-        }
-        .mjx-chtml[data-display="true"] {
-            margin: 1em 0; /* 块级公式上下留白 */
-        }
-
-        /* 暗黑模式适配 */
-        .dark body {
-            background-color: #1a202c; /* 保持深色背景 */
-            color: #e2e8f0; /* 保持浅色文本 */
-        }
-
-        .dark #navbar {
-            background-color: rgba(31, 41, 55, 0.9); /* gray-800 */
-        }
-
-        .dark .content-area {
-            background-color: rgba(31, 41, 55, 0.5); /* 更深的透明背景 */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-            border-color: rgba(75, 85, 99, 0.1);
-        }
-
-        .dark .CodeMirror, .dark .CodeMirror-scroll {
-            background-color: #1f2937; /* gray-800 */
-            border-color: #374151; /* gray-700 */
-        }
-        .dark .editor-toolbar {
-            background-color: #1f2937; /* gray-800 */
-            border-color: #374151; /* gray-700 */
-        }
-        .dark .editor-toolbar button {
-            color: #e2e8f0;
-        }
-        .dark .editor-toolbar button.active, .dark .editor-toolbar button:hover {
-            background-color: #374151; /* gray-700 */
-            color: #60a5fa;
-        }
-        .dark .editor-toolbar .separator {
-            border-left-color: #374151;
-        }
-        .dark .editor-preview-active, .dark .editor-preview-active-side {
-            background-color: #1f2937; /* gray-800 */
-            border-color: #374151;
-        }
-
-        .dark #editor-textarea:focus,
-        .dark .image-input-group input:focus {
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
-        }
-
-        .dark #preview-area {
-            border-color: #6b7280; /* gray-500 */
-            color: #e2e8f0;
-        }
-
-        .dark .image-input-group button {
-            background-color: #60a5fa;
-        }
-
-        .dark .image-input-group button:hover {
-            background-color: #3b82f6;
-        }
-
-        .dark .text-gray-700 {
-            color: #d1d5db; /* gray-300 */
-        }
-
-        /* 移动端菜单 */
-        .mobile-menu {
-            display: none; /* 默认隐藏 */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(26, 32, 44, 0.95); /* 深色半透明背景 */
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            z-index: 100;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
             flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1rem;
+            display: flex;
             align-items: center;
-            justify-content: center;
-            transform: translateX(100%); /* 初始隐藏在右侧 */
-            transition: transform 0.3s ease-in-out;
+            justify-content: space-between;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
         }
-        .mobile-menu.open {
-            transform: translateX(0); /* 展开时滑入 */
+        .main-content-wrapper {
+            flex-grow: 1;
+            display: none; /* Hidden by default, shown after login */
         }
-        .mobile-menu a, .mobile-menu button {
-            color: #e2e8f0;
-            font-size: 1.5rem;
-            padding: 1rem 0;
-            width: 80%;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            padding: 1rem;
+            gap: 1rem;
         }
-        .mobile-menu a:last-child, .mobile-menu button:last-child {
+        .sidebar {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 300px;
+            padding: 1.5rem;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-area {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-grow: 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .writing-item {
+            cursor: pointer;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .writing-item:last-child {
             border-bottom: none;
         }
-        .mobile-menu .close-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 2rem;
-            color: #e2e8f0;
+        .writing-item:hover {
+            background-color: #f7fafc;
         }
-
-        /* 分屏布局样式 */
-        .split-view-container {
-            display: flex;
-            flex-direction: column; /* 默认在小屏幕上垂直堆叠 */
-            height: calc(100vh - 200px); /* 调整高度以适应导航栏和页脚 */
-            gap: 1rem; /* 垂直间距 */
+        .writing-item.active {
+            background-color: #e2e8f0;
+            font-weight: 600;
         }
-
-        @media (min-width: 1024px) { /* 在大屏幕上改为水平分屏 */
-            .split-view-container {
-                flex-direction: row;
-                gap: 0; /* 水平分屏时通过 resizer 控制间距 */
-            }
+        textarea, input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.4rem;
+            font-size: 1rem;
         }
-
-        .editor-pane, .preview-pane {
-            flex: 1; /* 初始时均分空间 */
+        textarea:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        textarea {
+            flex-grow: 1; /* Make textarea take available space */
+            resize: vertical; /* Allow vertical resizing */
+            min-height: 200px; /* Minimum height for readability */
+        }
+        .action-button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .action-button:hover {
+            background-color: #0056b3;
+        }
+        .delete-button {
+            background-color: #ef4444; /* Red for delete */
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .delete-button:hover {
+            background-color: #dc2626;
+        }
+        .counter {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+        .auth-section {
             display: flex;
             flex-direction: column;
-            height: 100%; /* 填充父容器高度 */
-            min-width: 300px; /* 最小宽度，防止挤压过小 */
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin: 2rem;
+            max-width: 500px;
+            width: 100%;
+        }
+        .auth-section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #2c5282;
+        }
+        .auth-section .input-group {
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        .auth-section button {
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+        .auth-section .separator {
+            margin: 1.5rem 0;
+            display: flex;
+            align-items: center;
+            color: #a0aec0;
+        }
+        .auth-section .separator::before, .auth-section .separator::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 0 1rem;
         }
 
-        .resizer {
-            width: 8px; /* 分隔条宽度 */
-            cursor: ew-resize; /* 东西方向调整大小的鼠标样式 */
-            background-color: #4a5568; /* 灰色 */
-            transition: background-color 0.2s ease-in-out;
-            border-radius: 9999px; /* 全圆角 */
-            margin: 0 0.5rem; /* 左右微小间距 */
-            flex-shrink: 0; /* 防止分隔条被挤压 */
-            display: none; /* 默认隐藏，在大屏幕上显示 */
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
         }
-        @media (min-width: 1024px) {
-            .resizer {
-                display: flex; /* 在大屏幕上显示 */
+        .modal-content {
+            background-color: #fefefe;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 500px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1;
+            margin-left: 1rem;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Editor layout for preview */
+        .editor-container {
+            display: flex;
+            gap: 1rem;
+            flex-grow: 1;
+            min-height: 400px; /* Ensure editor area has minimum height */
+        }
+        .markdown-input-area, .markdown-preview-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden; /* For preview scrollbar */
+        }
+        .markdown-input-area textarea {
+            border: none;
+            border-radius: 0;
+            margin: 0;
+            padding: 1rem;
+            flex-grow: 1;
+            font-family: monospace; /* Monospace for code/markdown input */
+        }
+        .markdown-preview-area {
+            padding: 1rem;
+            background-color: #fcfcfc;
+            overflow-y: auto; /* Enable scrolling for content */
+            line-height: 1.6;
+        }
+        /* Style images within preview */
+        .markdown-preview-area img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        /* Basic heading styles for preview */
+        .markdown-preview-area h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
+        .markdown-preview-area h2 { font-size: 1.5em; margin-bottom: 0.5em; font-weight: bold; }
+        .markdown-preview-area h3 { font-size: 1.25em; margin-bottom: 0.5em; font-weight: bold; }
+        .markdown-preview-area p { margin-bottom: 1em; }
+        .markdown-preview-area ul, .markdown-preview-area ol { margin-left: 1.5em; margin-bottom: 1em; list-style-type: disc; }
+        .markdown-preview-area ol { list-style-type: decimal; }
+        .markdown-preview-area pre {
+            background-color: #f7fafc;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1em;
+        }
+        .markdown-preview-area code {
+            font-family: monospace;
+            background-color: #edf2f7;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+        }
+        .markdown-preview-area blockquote {
+            border-left: 4px solid #cbd5e0;
+            padding-left: 1em;
+            margin: 1em 0;
+            color: #718096;
+        }
+        .math-input-group {
+            margin-bottom: 1rem;
+        }
+        .math-input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .math-input-group input {
+            margin-bottom: 0; /* Override default input margin */
+        }
+        .ai-assistant-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .ai-assistant-content textarea {
+            min-height: 150px;
+        }
+        .ai-loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+            margin: 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                padding: 0.5rem;
+                gap: 0.5rem;
             }
-        }
-        .resizer:hover {
-            background-color: #3b82f6; /* 悬停时蓝色 */
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+                margin: 0.5rem;
+            }
+            .header .title {
+                margin-bottom: 0.5rem;
+            }
+            .header .user-id {
+                width: 100%;
+                text-align: center;
+                margin-top: 0.5rem;
+            }
+            .header .auth-buttons {
+                width: 100%;
+                justify-content: space-around;
+                margin-top: 1rem;
+            }
+            .sidebar {
+                width: 100%;
+                padding: 1rem;
+            }
+            .editor-area {
+                padding: 1rem;
+            }
+            .modal-content {
+                padding: 1.5rem;
+            }
+            .auth-section {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            .editor-container {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
-<body class="text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-
-    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-70 backdrop-filter backdrop-blur-lg shadow-sm transition-all duration-300 ease-in-out">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-blue-400">黄俊鑫</a>
-            
-            <div class="hidden md:flex space-x-6">
-                <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
-                <a href="writing-space.html" class="text-blue-400 hover:text-blue-300 transition duration-300 flex items-center">
-                    <i class="fas fa-pen-nib mr-2"></i> 写作空间
-                </a>
-                <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center">
-                    <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
-                </a>
-            </div>
-
-            <div class="flex items-center space-x-4">
-                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
-                    <i class="fas fa-search"></i> </button>
-                <button class="text-gray-300 hover:text-blue-400 transition duration-300">
-                    <i class="fas fa-user"></i> </button>
-                <button id="theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
-                    <i class="fas fa-moon"></i> </button>
-                <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-blue-400 transition duration-300">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </div>
+<body class="bg-gray-100 flex flex-col items-center">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="title text-3xl font-extrabold text-blue-700">个人写作空间</h1>
+        <div id="authStatus" class="flex items-center space-x-4">
+            <div id="userIdDisplay" class="user-id text-gray-600 text-sm">未登录</div>
+            <button id="logoutBtn" class="action-button bg-red-500 hover:bg-red-600 hidden">退出登录</button>
         </div>
-    </nav>
+    </header>
 
-    <div id="mobile-menu" class="mobile-menu">
-        <button id="close-mobile-menu" class="close-btn"><i class="fas fa-times"></i></button>
-        <a href="my-bookshelf.html" class="text-gray-300 hover:text-blue-400 transition duration-300">我的书架</a>
-        <a href="writing-space.html" class="text-blue-400 hover:text-blue-300 transition duration-300 flex items-center justify-center">
-            <i class="fas fa-pen-nib mr-2"></i> 写作空间
-        </a>
-        <a href="solar_system_map.html" class="text-gray-300 hover:text-blue-400 transition duration-300 flex items-center justify-center">
-            <i class="fas fa-globe-americas mr-2"></i> 返回太阳系图
-        </a>
-        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
-            <i class="fas fa-search"></i> 搜索
-        </button>
-        <button class="text-gray-300 hover:text-blue-400 transition duration-300">
-            <i class="fas fa-user"></i> 登录
-        </button>
-        <button id="mobile-theme-toggle" class="text-gray-300 hover:text-blue-400 transition duration-300">
-            <i class="fas fa-moon"></i> 主题
-        </button>
+    <!-- Authentication Section -->
+    <div id="authSection" class="auth-section">
+        <h2 class="mb-6">登录或注册</h2>
+        <div class="input-group">
+            <input type="email" id="emailInput" placeholder="邮箱" class="mb-4">
+        </div>
+        <div class="input-group">
+            <input type="password" id="passwordInput" placeholder="密码" class="mb-4">
+        </div>
+        <button id="emailLoginBtn" class="action-button mb-2">邮箱登录</button>
+        <button id="emailRegisterBtn" class="action-button mb-4">邮箱注册</button>
+        <div class="separator">或</div>
+        <button id="googleSignInBtn" class="action-button bg-red-500 hover:bg-red-600">使用 Google 登录</button>
     </div>
 
-    <main class="container mx-auto px-4 py-12 pt-24 flex flex-col min-h-[calc(100vh - 180px)]">
-        <h1 class="text-4xl font-bold text-center mb-8">我的二次元写作空间</h1>
-        <p class="text-lg text-center mb-12">在这里记录你的灵感，用图片和公式丰富你的故事。</p>
-
-        <div class="split-view-container">
-            <div id="editor-pane" class="editor-pane content-area glass-morphism">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-100">编辑你的内容</h2>
-                <textarea id="editor-textarea" placeholder="开始写作... 支持 Markdown 语法和 LaTeX 公式 (行内: $...$, 块级: $$...$$)。
-拖拽或粘贴本地图片将弹出提示。请将图片上传到图床（如 Imgur, SM.MS），然后使用工具栏中的 '图片' 按钮粘贴 URL。"></textarea>
-
-                <div class="flex flex-wrap gap-4 mt-4">
-                    <button id="save-html-btn" class="flex-1 py-3 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition duration-300 btn-primary">
-                        <i class="fas fa-save mr-2"></i> 保存为 HTML
-                    </button>
-                    <button id="generate-pdf-btn" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition duration-300 btn-primary">
-                        <i class="fas fa-file-pdf mr-2"></i> 生成 PDF
-                    </button>
+    <!-- Main Content Area - Hidden until logged in -->
+    <div id="mainContentWrapper" class="main-content-wrapper flex flex-col w-full h-full">
+        <main class="main-content">
+            <!-- Sidebar for writing list -->
+            <aside class="sidebar">
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">我的作品</h2>
+                <button id="newWritingBtn" class="action-button mb-4 w-full">新建作品</button>
+                <div id="writingsList" class="flex-grow overflow-y-auto">
+                    <p id="loadingWritings" class="text-gray-500 text-sm text-center">加载中...</p>
+                    <!-- Writing items will be loaded here -->
                 </div>
-            </div>
+            </aside>
 
-            <div id="resizer" class="resizer"></div>
-
-            <div id="preview-pane" class="preview-pane content-area glass-morphism">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-100">内容预览</h2>
-                <div id="preview-area" class="text-gray-300">
-                    <p>开始写作，内容将在这里实时预览。</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-gray-900 text-white py-8 mt-12">
-        <div class="container mx-auto px-4 text-center">
-            <p class="mb-2">黄俊鑫的个人主页 © 2024</p>
-            <p class="mb-2">你的备案号 (如果需要)</p>
-            <p class="text-sm">Designed by <a href="#" class="text-blue-400 hover:underline">黄俊鑫</a></p>
-            <p class="text-sm">Powered by HTML/CSS</p>
-        </div>
-    </footer>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const editorTextarea = document.getElementById('editor-textarea');
-            const previewArea = document.getElementById('preview-area');
-            const saveHtmlBtn = document.getElementById('save-html-btn');
-            const generatePdfBtn = document.getElementById('generate-pdf-btn');
-            const editorPane = document.getElementById('editor-pane');
-            const previewPane = document.getElementById('preview-pane');
-            const resizer = document.getElementById('resizer');
-            const splitViewContainer = document.querySelector('.split-view-container');
-
-            let isResizing = false;
-
-            // --- 辅助函数：在 CodeMirror 光标位置插入文本 ---
-            function insertTextAtCursor(cm, textToInsert) {
-                if (cm) {
-                    const doc = cm.getDoc();
-                    const cursor = doc.getCursor();
-                    doc.replaceRange(textToInsert, cursor);
-                    cm.focus();
-                }
-            }
-
-            // --- MathJax 渲染函数 ---
-            function renderMathJax(element) {
-                // 确保 MathJax 已经加载并且 typesetPromise 方法存在
-                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-                    MathJax.typesetPromise([element]).catch(function (err) {
-                        console.error('MathJax 渲染失败:', err);
-                    });
-                } else {
-                    console.warn('MathJax 未加载，无法渲染公式。');
-                }
-            }
-
-            // --- 实时预览功能 (由 EasyMDE 控制，并集成 MathJax) ---
-            function updatePreview() {
-                // EasyMDE 的 previewRender 会在内容变化时自动调用
-                // 我们只需要确保外部的 previewArea 也被更新和渲染
-                // 直接使用 easyMDE.markdown 方法获取 HTML 内容
-                const renderedHtml = easyMDE.markdown(easyMDE.value());
-                previewArea.innerHTML = renderedHtml;
-                renderMathJax(previewArea); // 重新渲染 MathJax 公式
-
-                // 为预览区的所有图片添加错误处理
-                previewArea.querySelectorAll('img').forEach(img => {
-                    img.onerror = () => {
-                        // 图片加载失败时显示占位图
-                        img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=图片加载失败';
-                        img.alt = '图片加载失败';
-                    };
-                });
-            }
-
-            // --- 初始化 EasyMDE 编辑器 ---
-            const easyMDE = new EasyMDE({
-                element: editorTextarea,
-                spellChecker: false, // 禁用拼写检查
-                forceSync: true, // 确保 textarea 的值与编辑器同步
-                // 自定义工具栏
-                toolbar: [
-                    "bold", // 粗体
-                    "italic", // 斜体
-                    "heading", // 标题
-                    "|", // 分隔符
-                    "unordered-list", // 无序列表
-                    "ordered-list", // 有序列表
-                    "|", // 分隔符
-                    "link", // 插入链接
-                    "image", // 插入图片 (通过 URL) - EasyMDE 自带的图片按钮
-                    {
-                        name: "upload-to-image-host", // 自定义上传图片到图床按钮
-                        action: function uploadToImageHost(editor) {
-                            // 打开一个新标签页到 Imgur 上传页面
-                            window.open('https://imgur.com/upload', '_blank');
-                            // 弹出提示，引导用户操作
-                            alert('请将您的图片上传到新打开的图床网站，然后复制生成的图片链接（URL），再回到本页面使用工具栏中的 “图片” 按钮粘贴链接。');
-                        },
-                        className: "fas fa-cloud-upload-alt", // 云上传图标
-                        title: "上传图片到图床", // 按钮提示文本
-                    },
-                    "table", // 插入表格
-                    "code", // 插入代码块
-                    "|", // 分隔符
-                    "preview", // 切换预览模式 (EasyMDE 自带的实时预览)
-                    "side-by-side", // 切换侧边预览模式 (EasyMDE 自带)
-                    "fullscreen", // 切换全屏模式
-                    "|", // 分隔符
-                    {
-                        name: "math", // 插入块级 LaTeX 公式按钮
-                        action: function addMath(editor) {
-                            // 插入 LaTeX 块级公式模板
-                            const cm = editor.codemirror;
-                            const output = "$$\n\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$";
-                            cm.replaceSelection(output);
-                            cm.focus();
-                        },
-                        className: "fa fa-superscript", // 适合数学公式的图标
-                        title: "插入 LaTeX 公式 (块级)", // 按钮提示文本
-                    },
-                    {
-                        name: "inline-math", // 插入行内 LaTeX 公式按钮
-                        action: function addInlineMath(editor) {
-                            // 插入 LaTeX 行内公式模板
-                            const cm = editor.codemirror;
-                            const output = "$E=mc^2$";
-                            cm.replaceSelection(output);
-                            cm.focus();
-                        },
-                        className: "fa fa-calculator", // 适合行内公式的图标
-                        title: "插入行内 LaTeX 公式", // 按钮提示文本
-                    }
-                ],
-                // 自定义预览渲染器，将内容渲染到 EasyMDE 自身的预览区域并处理 MathJax
-                previewRender: function(plainText, preview) {
-                    const html = easyMDE.markdown(plainText); // 使用 EasyMDE 的内部 Markdown 解析器
-                    preview.innerHTML = html; // 更新 EasyMDE 自身的预览区域 (这里的 preview 是 EasyMDE 提供的 DOM 元素)
-                    renderMathJax(preview); // 渲染 MathJax 公式
-
-                    // 为预览区的所有图片添加错误处理
-                    preview.querySelectorAll('img').forEach(img => {
-                        img.onerror = () => {
-                            img.src = 'https://placehold.co/150x150/FF0000/FFFFFF?text=图片加载失败';
-                            img.alt = '图片加载失败';
-                        };
-                    });
-                    return preview.innerHTML; // 返回给 EasyMDE 自身的 side-by-side 预览
-                },
-            });
-
-            // --- 自动保存到本地存储 ---
-            const savedContent = localStorage.getItem('writingDraft');
-            if (savedContent) {
-                easyMDE.value(savedContent);
-            }
-            // 监听 EasyMDE 编辑器内容变化事件，实时保存并更新外部预览区
-            easyMDE.codemirror.on("change", () => {
-                localStorage.setItem('writingDraft', easyMDE.value());
-                updatePreview(); // 确保每次内容变化都更新外部预览区域
-            });
-
-            // --- 阻止本地图片复制粘贴和拖拽，引导用户使用 URL ---
-            easyMDE.codemirror.on('paste', (cm, e) => {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (const item of items) {
-                    if (item.type.startsWith('image/')) {
-                        e.preventDefault(); // 阻止默认粘贴行为
-                        alert('由于浏览器安全限制，无法直接粘贴本地图片。请将图片上传到第三方图床（如 Imgur, SM.MS），然后使用工具栏中的 “图片” 按钮粘贴图片 URL。');
-                        return;
-                    }
-                }
-            });
-
-            easyMDE.codemirror.on('dragover', (cm, e) => {
-                e.preventDefault(); // 阻止默认行为，允许放置
-                cm.getWrapperElement().classList.add('drag-over'); // 添加拖拽时的样式
-            });
-
-            easyMDE.codemirror.on('dragleave', (cm) => {
-                cm.getWrapperElement().classList.remove('drag-over'); // 移除拖拽时的样式
-            });
-
-            easyMDE.codemirror.on('drop', (cm, e) => {
-                e.preventDefault(); // 阻止默认行为
-                cm.getWrapperElement().classList.remove('drag-over'); // 移除拖拽时的样式
-
-                const files = e.dataTransfer.files;
-                for (const file of files) {
-                    if (file.type.startsWith('image/')) {
-                        alert('由于浏览器安全限制，无法直接拖拽本地图片。请将图片上传到第三方图床（如 Imgur, SM.MS），然后使用工具栏中的 “图片” 按钮粘贴图片 URL。');
-                        return;
-                    }
-                }
-            });
-
-            // --- 页面加载时初始化预览 ---
-            // 确保 MathJax 已经加载并准备好，然后才进行首次预览更新
-            // MathJax 脚本是异步加载的，所以需要等待它就绪
-            // 使用一个更健壮的检查来确保 MathJax.startup 存在
-            const checkMathJaxReady = setInterval(() => {
-                if (window.MathJax && window.MathJax.startup && typeof MathJax.typesetPromise === 'function') {
-                    clearInterval(checkMathJaxReady); // MathJax 已准备好，清除定时器
-                    MathJax.startup.promise.then(() => {
-                        updatePreview(); // 首次渲染外部预览区域
-                    }).catch(err => {
-                        console.error("MathJax 启动 promise 失败:", err);
-                        updatePreview(); // 即使 MathJax 启动失败，也尝试更新预览（不含公式渲染）
-                    });
-                } else if (Date.now() - startTime > 5000) { // 5秒超时
-                    clearInterval(checkMathJaxReady);
-                    console.warn('MathJax 在 5 秒内未加载。将不进行公式渲染。');
-                    updatePreview(); // 超时后也尝试更新预览
-                }
-            }, 100); // 每100毫秒检查一次
-            const startTime = Date.now();
-
-
-            // --- 保存为 HTML 文件功能 ---
-            saveHtmlBtn.addEventListener('click', () => {
-                // 获取 EasyMDE 渲染的 HTML 内容
-                const content = easyMDE.markdown(easyMDE.value()); // 直接使用 easyMDE.markdown
-                const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = '我的写作内容.html'; // 下载的文件名
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                alert('内容已保存为 HTML 文件！');
-            });
-
-            // --- 生成 PDF 文件功能 ---
-            generatePdfBtn.addEventListener('click', () => {
-                const element = previewArea; // 将预览区域的内容导出为 PDF
-
-                // 导出前确保所有公式已渲染
-                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-                    MathJax.typesetPromise([element]).then(() => {
-                        html2pdf(element, {
-                            margin: 10,
-                            filename: '我的写作内容.pdf',
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, logging: true, dpi: 192, letterRendering: true },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        }).then(() => {
-                            alert('内容已生成为 PDF 文件！');
-                        }).catch(err => {
-                            console.error('PDF 生成失败:', err);
-                            alert('PDF 生成失败，请检查控制台。');
-                        });
-                    }).catch(err => {
-                        console.error('PDF 渲染公式失败:', err);
-                        alert('公式渲染失败，无法生成PDF。');
-                    });
-                } else {
-                    // 如果 MathJax 未加载或未完全初始化，直接生成 PDF (不含渲染的公式)
-                    html2pdf(element, {
-                        margin: 10,
-                        filename: '我的写作内容.pdf',
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, logging: true, dpi: 192, letterRendering: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    }).then(() => {
-                        alert('内容已生成为 PDF 文件！');
-                    }).catch(err => {
-                        console.error('PDF 生成失败:', err);
-                        alert('PDF 生成失败，请检查控制台。');
-                    });
-                }
-            });
-
-            // --- 暗黑模式切换功能 (与主页保持一致) ---
-            const htmlElement = document.documentElement;
-            const themeToggle = document.getElementById('theme-toggle');
-            const mobileThemeToggle = document.getElementById('mobile-theme-toggle'); // 移动端主题切换按钮
-
-            function applyTheme(isDark) {
-                if (isDark) {
-                    htmlElement.classList.add('dark');
-                    if (themeToggle) themeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
-                    if (mobileThemeToggle) mobileThemeToggle.querySelector('i').classList.replace('fa-moon', 'fa-sun');
-                } else {
-                    htmlElement.classList.remove('dark');
-                    if (themeToggle) themeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
-                    if (mobileThemeToggle) mobileThemeToggle.querySelector('i').classList.replace('fa-sun', 'fa-moon');
-                }
-            }
-
-            // 根据本地存储设置初始主题
-            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                applyTheme(true);
-            } else {
-                applyTheme(false);
-            }
-
-            // 监听主题切换按钮
-            if (themeToggle) {
-                themeToggle.addEventListener('click', () => {
-                    applyTheme(!htmlElement.classList.contains('dark'));
-                    localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
-                });
-            }
-            if (mobileThemeToggle) {
-                mobileThemeToggle.addEventListener('click', () => {
-                    applyTheme(!htmlElement.classList.contains('dark'));
-                    localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
-                });
-            }
-
-            // --- 导航栏滚动效果 (与主页保持一致) ---
-            const navbar = document.getElementById('navbar');
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 50) {
-                    navbar.classList.add('navbar-scrolled');
-                } else {
-                    navbar.classList.remove('navbar-scrolled');
-                }
-            });
-
-            /*
-                移动端菜单切换功能
-            */
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            const closeMobileMenuButton = document.getElementById('close-mobile-menu');
-
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.add('open');
-            });
-
-            closeMobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.remove('open');
-            });
-
-            // 替代 alert() 的自定义模态框
-            function alert(message) {
-                const modalId = 'custom-alert-modal';
-                let modal = document.getElementById(modalId);
-                if (!modal) {
-                    modal = document.createElement('div');
-                    modal.id = modalId;
-                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
-                    modal.innerHTML = `
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                            <p class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">${message}</p>
-                            <button class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-200" onclick="document.getElementById('${modalId}').remove()">确定</button>
+            <!-- Editor Area -->
+            <section class="editor-area">
+                <input type="text" id="writingTitle" placeholder="作品标题" class="text-2xl font-semibold mb-4">
+                <div class="editor-container">
+                    <div class="markdown-input-area">
+                        <textarea id="writingContent" placeholder="开始你的创作..."></textarea>
+                        <div class="flex p-2 justify-end gap-2 border-t border-gray-200">
+                            <button id="insertImageBtn" class="action-button bg-gray-600 hover:bg-gray-700 text-sm">插入图片</button>
+                            <button id="insertMathBtn" class="action-button bg-gray-600 hover:bg-gray-700 text-sm">插入公式</button>
+                            <button id="openAIAssistantBtn" class="action-button bg-green-600 hover:bg-green-700 text-sm">AI 助手</button>
                         </div>
-                    `;
-                    document.body.appendChild(modal);
-                } else {
-                    modal.querySelector('p').textContent = message;
-                    modal.style.display = 'flex';
+                    </div>
+                    <div class="markdown-preview-area" id="writingPreview">
+                        <!-- Rendered Markdown content will appear here -->
+                        <p class="text-gray-500 text-center mt-8">实时预览区域</p>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <div class="counter" id="wordCharCount">字数: 0 | 字符数: 0</div>
+                    <button id="saveWritingBtn" class="action-button">保存作品</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertDialog" class="modal">
+        <div class="modal-content">
+            <p id="alertMessage" class="text-lg font-semibold mb-4"></p>
+            <button id="alertOkButton" class="action-button">确定</button>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmDialog" class="modal">
+        <div class="modal-content">
+            <p id="confirmMessage" class="text-lg font-semibold mb-4"></p>
+            <div class="flex justify-around">
+                <button id="confirmYesButton" class="action-button bg-red-500 hover:bg-red-600">是</button>
+                <button id="confirmNoButton" class="action-button bg-gray-300 text-gray-800 hover:bg-gray-400">否</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Math Editor Modal -->
+    <div id="mathEditorModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 class="text-xl font-bold mb-4">插入公式</h2>
+            <div class="flex flex-col gap-2 mb-4">
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="fraction">分数 $\frac{a}{b}$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="sqrt">平方根 $\sqrt{x}$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="superscript">上标 $x^n$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="subscript">下标 $x_n$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="sum">求和 $\sum$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="integral">积分 $\int$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="generic-inline">行内公式 $...$</button>
+                <button class="action-button bg-gray-600 hover:bg-gray-700 text-sm" data-math-type="generic-block">块级公式 $$...$$</button>
+            </div>
+            <div id="mathInputSection" class="hidden">
+                <h3 class="text-lg font-semibold mb-2" id="mathInputTitle"></h3>
+                <div id="mathSpecificInputs">
+                    <!-- Dynamic inputs based on math type -->
+                </div>
+                <button id="confirmInsertMathBtn" class="action-button w-full mt-4">插入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Writing Assistant Modal -->
+    <div id="aiWritingAssistantModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 class="text-xl font-bold mb-4">AI 助手 (公式生成)</h2>
+            <div class="ai-assistant-content">
+                <label for="aiInputText" class="block font-semibold">公式描述:</label>
+                <textarea id="aiInputText" placeholder="在此输入您想要的公式描述，例如：分母是x平方，分子是1的积分公式..." rows="6"></textarea>
+                <button id="generateFormulaBtn" class="action-button">生成公式</button>
+                <div class="ai-loading-spinner" id="aiLoadingSpinner"></div>
+                <label for="aiOutputText" class="block font-semibold mt-4">生成公式结果 (LaTeX):</label>
+                <textarea id="aiOutputText" readonly rows="8" placeholder="AI 生成的 LaTeX 公式将显示在此处..."></textarea>
+                <button id="insertAITextBtn" class="action-button bg-green-500 hover:bg-green-600">插入到作品</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Firebase Security Rules for this application:
+        // You need to set these rules in your Firebase Console -> Firestore Database -> Rules tab.
+        // This allows authenticated users to read and write their own private data under their userId.
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // Private data for authenticated users
+            match /artifacts/{appId}/users/{userId}/{collectionId}/{document=**} {
+              allow read, write: if request.auth != null && request.auth.uid == userId;
+            }
+          }
+        }
+        */
+
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration (Replace with your actual config if needed, otherwise Canvas provides it)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBRFqy3WX8mP0hhzQnfNRSlhQplsfF03Cg",
+            authDomain: "pingkewangzhan.firebaseapp.com",
+            projectId: "pingkewangzhan",
+            storageBucket: "pingkewangzhan.firebasestorage.app",
+            messagingSenderId: "1073124133516",
+            appId: "1:1073124133516:web:bfc958012e1929850409a9",
+            measurementId: "G-24QJF7FPWL"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        let currentUserId = null; // User ID will be null if not logged in, or the actual UID
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Get app ID from environment
+
+        // DOM Elements
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const authSection = document.getElementById('authSection');
+        const mainContentWrapper = document.getElementById('mainContentWrapper');
+
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const emailLoginBtn = document.getElementById('emailLoginBtn');
+        const emailRegisterBtn = document.getElementById('emailRegisterBtn');
+        const googleSignInBtn = document.getElementById('googleSignInBtn');
+
+        const newWritingBtn = document.getElementById('newWritingBtn');
+        const writingsListDiv = document.getElementById('writingsList');
+        const loadingWritingsMessage = document.getElementById('loadingWritings');
+        const writingTitleInput = document.getElementById('writingTitle');
+        const writingContentTextarea = document.getElementById('writingContent');
+        const writingPreviewDiv = document.getElementById('writingPreview'); // New: for preview
+        const wordCharCountDiv = document.getElementById('wordCharCount');
+        const saveWritingBtn = document.getElementById('saveWritingBtn');
+        const insertImageBtn = document.getElementById('insertImageBtn'); // New: Image button
+        const insertMathBtn = document.getElementById('insertMathBtn');   // New: Math button
+        const openAIAssistantBtn = document.getElementById('openAIAssistantBtn'); // New: AI Assistant button
+
+        // Custom Alert/Confirm Modals
+        const customAlertDialog = document.getElementById('customAlertDialog');
+        const alertMessage = document.getElementById('alertMessage');
+        const alertOkButton = document.getElementById('alertOkButton');
+
+        const customConfirmDialog = document.getElementById('customConfirmDialog');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmYesButton = document.getElementById('confirmYesButton');
+        const confirmNoButton = document.getElementById('confirmNoButton');
+
+        // Math Editor Modal Elements
+        const mathEditorModal = document.getElementById('mathEditorModal');
+        const mathTypeButtons = mathEditorModal.querySelectorAll('[data-math-type]');
+        const mathInputSection = document.getElementById('mathInputSection');
+        const mathInputTitle = document.getElementById('mathInputTitle');
+        const mathSpecificInputs = document.getElementById('mathSpecificInputs');
+        const confirmInsertMathBtn = document.getElementById('confirmInsertMathBtn');
+        let currentMathType = ''; // Stores the type of formula being built
+
+        // AI Writing Assistant Modal Elements
+        const aiWritingAssistantModal = document.getElementById('aiWritingAssistantModal');
+        const aiInputTextarea = document.getElementById('aiInputText');
+        const aiOutputTextarea = document.getElementById('aiOutputText');
+        const generateFormulaBtn = document.getElementById('generateFormulaBtn'); // Renamed from polishTextBtn
+        const aiLoadingSpinner = document.getElementById('aiLoadingSpinner');
+        const insertAITextBtn = document.getElementById('insertAITextBtn');
+
+        let allWritings = []; // Array to store all writing documents
+        let currentWritingId = null; // ID of the currently loaded writing
+        let unsubscribeFromWritings = null; // To store the Firestore unsubscribe function
+
+        // Configure Marked.js for basic HTML rendering.
+        // It's important to be cautious with user-generated HTML content
+        // For a production app, a dedicated sanitizer like DOMPurify would be highly recommended.
+        marked.setOptions({
+            breaks: true, // Render GFM-style line breaks (GitHub Flavored Markdown)
+            gfm: true,    // Use GitHub Flavored Markdown
+            // sanitize: true // Marked.js sanitize option is deprecated, use a dedicated sanitizer
+        });
+
+        // --- Custom Dialog Functions ---
+        function showAlert(message) {
+            alertMessage.textContent = message;
+            customAlertDialog.style.display = 'flex';
+        }
+
+        alertOkButton.onclick = function() {
+            customAlertDialog.style.display = 'none';
+        };
+
+        function showConfirm(message) {
+            confirmMessage.textContent = message;
+            customConfirmDialog.style.display = 'flex';
+            return new Promise((resolve) => {
+                confirmYesButton.onclick = () => {
+                    customConfirmDialog.style.display = 'none';
+                    resolve(true);
+                };
+                confirmNoButton.onclick = () => {
+                    customConfirmDialog.style.display = 'none';
+                    resolve(false);
+                };
+            });
+        }
+
+        // Close modals by clicking outside or on close button
+        document.querySelectorAll('.modal .close-button').forEach(button => {
+            button.onclick = function() {
+                this.closest('.modal').style.display = 'none';
+                if (this.closest('.modal').id === 'mathEditorModal') {
+                    mathInputSection.classList.add('hidden'); // Hide specific inputs when math modal closes
+                }
+                // Clear AI assistant inputs/outputs when it closes
+                if (this.closest('.modal').id === 'aiWritingAssistantModal') {
+                    aiInputTextarea.value = '';
+                    aiOutputTextarea.value = '';
+                    aiLoadingSpinner.style.display = 'none';
+                }
+            };
+        });
+
+        window.onclick = function(event) {
+            if (event.target == customAlertDialog) {
+                customAlertDialog.style.display = 'none';
+            }
+            if (event.target == customConfirmDialog) {
+                customConfirmDialog.style.display = 'none';
+            }
+            if (event.target == mathEditorModal) {
+                mathEditorModal.style.display = 'none';
+                mathInputSection.classList.add('hidden');
+            }
+            if (event.target == aiWritingAssistantModal) {
+                aiWritingAssistantModal.style.display = 'none';
+                aiInputTextarea.value = ''; // Clear AI assistant inputs/outputs
+                aiOutputTextarea.value = '';
+                aiLoadingSpinner.style.display = 'none';
+            }
+        };
+
+
+        // --- Core Writing Functions ---
+
+        // Load a writing into the editor
+        function loadWriting(writingId) {
+            currentWritingId = writingId;
+            const writing = allWritings.find(w => w.id === writingId);
+            if (writing) {
+                writingTitleInput.value = writing.title || '';
+                writingContentTextarea.value = writing.content || '';
+                updatePreview(); // Update preview when loading content
+                updateWordCharCount();
+                // Highlight the active writing item in the sidebar
+                document.querySelectorAll('.writing-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.id === writingId) {
+                        item.classList.add('active');
+                    }
+                });
+            } else {
+                // If not found (e.g., deleted by another client), clear editor
+                clearEditor();
+            }
+        }
+
+        // Clear the editor
+        function clearEditor() {
+            currentWritingId = null;
+            writingTitleInput.value = '';
+            writingContentTextarea.value = '';
+            updatePreview(); // Clear preview as well
+            updateWordCharCount();
+            document.querySelectorAll('.writing-item').forEach(item => item.classList.remove('active'));
+        }
+
+        // Update word and character count
+        function updateWordCharCount() {
+            const content = writingContentTextarea.value;
+            const words = content.trim().split(/\s+/).filter(word => word.length > 0).length;
+            const chars = content.length;
+            wordCharCountDiv.textContent = `字数: ${words} | 字符数: ${chars}`;
+        }
+
+        // Update the Markdown preview
+        function updatePreview() {
+            const markdownContent = writingContentTextarea.value;
+            writingPreviewDiv.innerHTML = marked.parse(markdownContent);
+            // Trigger MathJax typesetting after updating the DOM
+            if (window.MathJax) {
+                window.MathJax.typesetPromise([writingPreviewDiv]);
+            }
+        }
+
+        // Insert text at cursor position in textarea
+        function insertAtCaret(areaId, textToInsert, cursorOffset = 0) {
+            const textarea = document.getElementById(areaId);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+
+            textarea.value = value.substring(0, start) + textToInsert + value.substring(end);
+
+            // Set cursor position after insertion
+            const newCursorPos = start + textToInsert.length - cursorOffset;
+            textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+
+            textarea.focus();
+            updatePreview(); // Update preview after insertion
+            updateWordCharCount(); // Update counts
+        }
+
+        // --- Image Paste Handling ---
+        writingContentTextarea.addEventListener('paste', function(event) {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const base64Image = e.target.result;
+                        insertAtCaret('writingContent', `![粘贴图片](` + base64Image + `)\n`);
+                        showAlert('图片已粘贴。请注意：直接粘贴图片为Base64格式可能导致文档过大，影响性能和存储（Firestore文档限制1MB）。建议使用Firebase Storage等云存储服务上传图片，然后在此引用图片URL。');
+                    };
+                    reader.readAsDataURL(blob);
+                    event.preventDefault(); // Prevent default paste behavior (e.g., pasting raw binary)
+                    return;
                 }
             }
-            // 将全局的 alert 替换为自定义函数
-            window.alert = alert;
-
-            // --- 分屏拖动调整大小逻辑 ---
-            resizer.addEventListener('mousedown', (e) => {
-                isResizing = true;
-                document.body.style.cursor = 'ew-resize'; // 改变全局鼠标样式
-                document.body.style.userSelect = 'none'; // 防止拖动时文本被选中
-                document.body.style.webkitUserSelect = 'none'; // Safari 兼容
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isResizing) return;
-
-                const containerRect = splitViewContainer.getBoundingClientRect();
-                let newLeftWidth = e.clientX - containerRect.left;
-
-                // 转换为百分比
-                let newLeftWidthPercent = (newLeftWidth / containerRect.width) * 100;
-
-                // 限制最小宽度，防止面板过小
-                const minWidthPx = 300; // 每个面板的最小像素宽度
-                const minWidthPercent = (minWidthPx / containerRect.width) * 100;
-
-                if (newLeftWidthPercent < minWidthPercent) {
-                    newLeftWidthPercent = minWidthPercent;
-                } else if (newLeftWidthPercent > 100 - minWidthPercent) {
-                    newLeftWidthPercent = 100 - minWidthPercent;
-                }
-
-                editorPane.style.flexBasis = `${newLeftWidthPercent}%`;
-                previewPane.style.flexBasis = `${100 - newLeftWidthPercent}%`;
-
-                // 触发 EasyMDE 内部 CodeMirror 的刷新，以适应新的宽度
-                easyMDE.codemirror.refresh();
-            });
-
-            document.addEventListener('mouseup', () => {
-                isResizing = false;
-                document.body.style.cursor = 'default';
-                document.body.style.userSelect = 'auto';
-                document.body.style.webkitUserSelect = 'auto';
-            });
         });
+
+        // Event for inserting image Markdown
+        insertImageBtn.onclick = function() {
+            insertAtCaret('writingContent', '![图片描述](https://placehold.co/400x200/000000/FFFFFF?text=在此插入图片URL)', 35); // 35 is offset to put cursor inside URL part
+            showAlert('已插入图片占位符。请将括号中的URL替换为您的图片链接，并将方括号中的文本替换为图片描述。');
+        };
+
+        // --- Math Editor Modal Logic ---
+        mathEditorModal.querySelector('.close-button').onclick = function() {
+            mathEditorModal.style.display = 'none';
+            mathInputSection.classList.add('hidden'); // Ensure specific inputs are hidden
+        };
+
+        insertMathBtn.onclick = function() {
+            mathEditorModal.style.display = 'flex';
+            mathInputSection.classList.add('hidden'); // Hide inputs initially
+        };
+
+        mathTypeButtons.forEach(button => {
+            button.onclick = function() {
+                currentMathType = this.dataset.mathType;
+                mathInputSection.classList.remove('hidden');
+                mathSpecificInputs.innerHTML = ''; // Clear previous inputs
+
+                switch (currentMathType) {
+                    case 'fraction':
+                        mathInputTitle.textContent = '插入分数';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="numeratorInput">分子 (Numerator):</label>
+                                <input type="text" id="numeratorInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="denominatorInput">分母 (Denominator):</label>
+                                <input type="text" id="denominatorInput" class="w-full">
+                            </div>
+                        `;
+                        break;
+                    case 'sqrt':
+                        mathInputTitle.textContent = '插入平方根';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="sqrtContentInput">内容 (Content):</label>
+                                <input type="text" id="sqrtContentInput" class="w-full">
+                            </div>
+                        `;
+                        break;
+                    case 'superscript':
+                        mathInputTitle.textContent = '插入上标';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="baseInput">基数 (Base):</label>
+                                <input type="text" id="baseInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="exponentInput">指数 (Exponent):</label>
+                                <input type="text" id="exponentInput" class="w-full">
+                            </div>
+                        `;
+                        break;
+                    case 'subscript':
+                        mathInputTitle.textContent = '插入下标';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="baseInput">基数 (Base):</label>
+                                <input type="text" id="baseInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="subscriptInput">下标 (Subscript):</label>
+                                <input type="text" id="subscriptInput" class="w-full">
+                            </div>
+                        `;
+                        break;
+                    case 'sum':
+                        mathInputTitle.textContent = '插入求和符号';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="sumLowerLimitInput">下限 (Lower Limit):</label>
+                                <input type="text" id="sumLowerLimitInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="sumUpperLimitInput">上限 (Upper Limit):</label>
+                                <input type="text" id="sumUpperLimitInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="sumExpressionInput">表达式 (Expression):</label>
+                                <input type="text" id="sumExpressionInput" class="w-full" placeholder="例如: i^2">
+                            </div>
+                        `;
+                        break;
+                    case 'integral':
+                        mathInputTitle.textContent = '插入积分符号';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="integralLowerLimitInput">下限 (Lower Limit, 可选):</label>
+                                <input type="text" id="integralLowerLimitInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="integralUpperLimitInput">上限 (Upper Limit, 可选):</label>
+                                <input type="text" id="integralUpperLimitInput" class="w-full">
+                            </div>
+                            <div class="math-input-group">
+                                <label for="integralExpressionInput">表达式 (Expression):</label>
+                                <input type="text" id="integralExpressionInput" class="w-full" placeholder="例如: f(x) dx">
+                            </div>
+                        `;
+                        break;
+                    case 'generic-inline':
+                        mathInputTitle.textContent = '插入行内公式';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="genericInlineInput">公式内容 (LaTeX):</label>
+                                <input type="text" id="genericInlineInput" class="w-full" placeholder="例如: E=mc^2">
+                            </div>
+                        `;
+                        break;
+                    case 'generic-block':
+                        mathInputTitle.textContent = '插入块级公式';
+                        mathSpecificInputs.innerHTML = `
+                            <div class="math-input-group">
+                                <label for="genericBlockInput">公式内容 (LaTeX):</label>
+                                <textarea id="genericBlockInput" rows="3" class="w-full" placeholder="例如: \sum_{i=1}^n i^2 = \frac{n(n+1)(2n+1)}{6}"></textarea>
+                            </div>
+                        `;
+                        break;
+                }
+            };
+        });
+
+        confirmInsertMathBtn.onclick = function() {
+            let latexString = '';
+            switch (currentMathType) {
+                case 'fraction':
+                    const numerator = document.getElementById('numeratorInput').value;
+                    const denominator = document.getElementById('denominatorInput').value;
+                    latexString = `\\frac{${numerator || ''}}{${denominator || ''}}`;
+                    break;
+                case 'sqrt':
+                    const sqrtContent = document.getElementById('sqrtContentInput').value;
+                    latexString = `\\sqrt{${sqrtContent || ''}}`;
+                    break;
+                case 'superscript':
+                    const baseSup = document.getElementById('baseInput').value;
+                    const exponent = document.getElementById('exponentInput').value;
+                    latexString = `${baseSup || ''}^{${exponent || ''}}`;
+                    break;
+                case 'subscript':
+                    const baseSub = document.getElementById('baseInput').value;
+                    const subscript = document.getElementById('subscriptInput').value;
+                    latexString = `${baseSub || ''}_{${subscript || ''}}`;
+                    break;
+                case 'sum':
+                    const sumLower = document.getElementById('sumLowerLimitInput').value;
+                    const sumUpper = document.getElementById('sumUpperLimitInput').value;
+                    const sumExpression = document.getElementById('sumExpressionInput').value;
+                    latexString = `\\sum_{${sumLower || ''}}^{${sumUpper || ''}} ${sumExpression || ''}`;
+                    break;
+                case 'integral':
+                    const intLower = document.getElementById('integralLowerLimitInput').value;
+                    const intUpper = document.getElementById('integralUpperLimitInput').value;
+                    const intExpression = document.getElementById('integralExpressionInput').value;
+                    if (intLower || intUpper) {
+                        latexString = `\\int_{${intLower || ''}}^{${intUpper || ''}} ${intExpression || ''}`;
+                    } else {
+                        latexString = `\\int ${intExpression || ''}`;
+                    }
+                    break;
+                case 'generic-inline':
+                    const genericInlineContent = document.getElementById('genericInlineInput').value;
+                    latexString = `$${genericInlineContent || ''}$`;
+                    break;
+                case 'generic-block':
+                    const genericBlockContent = document.getElementById('genericBlockInput').value;
+                    latexString = `$$\n${genericBlockContent || ''}\n$$`;
+                    break;
+            }
+            if (latexString) {
+                insertAtCaret('writingContent', latexString + '\n\n'); // Add newlines for better spacing
+            }
+            mathEditorModal.style.display = 'none';
+            mathInputSection.classList.add('hidden'); // Hide specific inputs after insertion
+            showAlert('公式已插入。');
+        };
+
+        // --- AI Writing Assistant Logic ---
+        openAIAssistantBtn.onclick = function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能使用AI助手！');
+                return;
+            }
+            aiWritingAssistantModal.style.display = 'flex';
+            aiInputTextarea.value = ''; // Clear previous inputs/outputs
+            aiOutputTextarea.value = '';
+            aiLoadingSpinner.style.display = 'none';
+        };
+
+        generateFormulaBtn.onclick = async function() { // Renamed from polishTextBtn
+            const inputText = aiInputTextarea.value.trim();
+            if (!inputText) {
+                showAlert('请输入公式描述！');
+                return;
+            }
+
+            aiLoadingSpinner.style.display = 'block';
+            aiOutputTextarea.value = 'AI 正在努力生成公式中...';
+            generateFormulaBtn.disabled = true; // Disable button during AI call
+
+            try {
+                // Prepare prompt for Gemini API to get only LaTeX
+                const prompt = `请将以下物理或者数学描述转换为LaTeX数学公式代码。只输出LaTeX代码，不要任何额外解释、文字或 Markdown 语法，并且确保可以被 MathJax 正确渲染。如果无法转换为公式，请输出文本。\n\n公式描述：${inputText}`;
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = "AIzaSyBkArPi6CQT-36efUH--IhG0rnnCzqqZf0"; // Your API key
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    aiOutputTextarea.value = text.trim(); // Trim whitespace
+                } else {
+                    aiOutputTextarea.value = 'AI 生成公式失败，请重试或检查描述。';
+                    console.error("AI response structure unexpected:", result);
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                aiOutputTextarea.value = '与AI服务通信失败，请检查网络或稍后再试。';
+            } finally {
+                aiLoadingSpinner.style.display = 'none';
+                generateFormulaBtn.disabled = false; // Re-enable button
+            }
+        };
+
+        insertAITextBtn.onclick = function() {
+            const aiText = aiOutputTextarea.value.trim();
+            if (aiText && aiText !== 'AI 生成公式失败，请重试或检查描述。' && aiText !== '无法生成公式。') { // Prevent inserting error messages
+                insertAtCaret('writingContent', aiText + '\n\n');
+                aiWritingAssistantModal.style.display = 'none';
+                aiInputTextarea.value = '';
+                aiOutputTextarea.value = '';
+                showAlert('生成的公式已插入到作品中。');
+            } else {
+                showAlert('没有可以插入的公式结果。');
+            }
+        };
+
+
+        // --- Save, New, Delete Writing Functions (largely unchanged) ---
+        saveWritingBtn.onclick = async function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能保存作品！');
+                return;
+            }
+
+            const title = writingTitleInput.value.trim();
+            const content = writingContentTextarea.value.trim();
+
+            if (!title) {
+                showAlert('作品标题不能为空！');
+                return;
+            }
+
+            try {
+                if (currentWritingId) {
+                    // Update existing document
+                    const docRef = doc(db, `artifacts/${appId}/users/${currentUserId}/writings`, currentWritingId);
+                    await updateDoc(docRef, {
+                        title: title,
+                        content: content,
+                        updatedAt: serverTimestamp() // Use server timestamp for update time
+                    });
+                    showAlert('作品已更新！');
+                } else {
+                    // Create new document
+                    const newDocRef = await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/writings`), {
+                        title: title,
+                        content: content,
+                        createdAt: serverTimestamp(), // Use server timestamp for creation time
+                        updatedAt: serverTimestamp()
+                    });
+                    currentWritingId = newDocRef.id; // Set the new ID as current
+                    showAlert('新作品已保存！');
+                }
+            } catch (e) {
+                console.error("Error saving writing: ", e);
+                showAlert('保存作品失败，请稍后再试。');
+            }
+        };
+
+        newWritingBtn.onclick = function() {
+            if (!currentUserId) {
+                showAlert('请先登录才能新建作品！');
+                return;
+            }
+            clearEditor();
+            writingTitleInput.focus();
+        };
+
+        async function deleteWriting(writingId) {
+            if (!currentUserId) {
+                showAlert('请先登录才能删除作品！');
+                return;
+            }
+
+            const confirmation = await showConfirm('你确定要删除这个作品吗？');
+            if (confirmation) {
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/users/${currentUserId}/writings`, writingId));
+                    showAlert('作品已删除！');
+                    if (currentWritingId === writingId) {
+                        clearEditor();
+                    }
+                } catch (e) {
+                    console.error("Error deleting writing: ", e);
+                    showAlert('删除作品失败，请稍后再试。');
+                }
+            }
+        };
+
+        // --- Firebase Authentication Functions (unchanged) ---
+
+        emailLoginBtn.onclick = async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                showAlert('邮箱和密码不能为空。');
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Email Login Error:", error);
+                showAlert(`登录失败: ${error.message}`);
+            }
+        };
+
+        emailRegisterBtn.onclick = async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                showAlert('邮箱和密码不能为空。');
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showAlert('注册成功！已自动登录。');
+            }
+            catch (error) {
+                console.error("Email Register Error:", error);
+                showAlert(`注册失败: ${error.message}`);
+            }
+        };
+
+        googleSignInBtn.onclick = async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                console.error("Google Sign-In Error:", error);
+                showAlert(`Google 登录失败: ${error.message}`);
+            }
+        };
+
+        logoutBtn.onclick = async () => {
+            try {
+                await signOut(auth);
+                clearEditor();
+            } catch (error) {
+                console.error("Logout Error:", error);
+                showAlert(`退出登录失败: ${error.message}`);
+            }
+        };
+
+        // --- Firebase Auth State Listener (unchanged) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                userIdDisplay.textContent = `已登录: ${user.email || user.uid.substring(0, 8) + '...'}`;
+                logoutBtn.classList.remove('hidden');
+                authSection.style.display = 'none';
+                mainContentWrapper.style.display = 'flex';
+                console.log("User logged in:", user.uid);
+                setupFirestoreListeners();
+            } else {
+                currentUserId = null;
+                userIdDisplay.textContent = '未登录';
+                logoutBtn.classList.add('hidden');
+                authSection.style.display = 'flex';
+                mainContentWrapper.style.display = 'none';
+                console.log("User logged out or not authenticated.");
+                if (unsubscribeFromWritings) {
+                    unsubscribeFromWritings();
+                    unsubscribeFromWritings = null;
+                }
+                writingsListDiv.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">请登录以查看您的作品。</p>';
+                clearEditor();
+            }
+        });
+
+        // Setup Firestore Listeners for writings (unchanged)
+        function setupFirestoreListeners() {
+            loadingWritingsMessage.style.display = 'block';
+            const writingsColRef = collection(db, `artifacts/${appId}/users/${currentUserId}/writings`);
+            const q = query(writingsColRef, orderBy('updatedAt', 'desc'));
+
+            if (unsubscribeFromWritings) {
+                unsubscribeFromWritings();
+            }
+
+            unsubscribeFromWritings = onSnapshot(q, (snapshot) => {
+                loadingWritingsMessage.style.display = 'none';
+                allWritings = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderWritingsList();
+
+                if (currentWritingId && !allWritings.some(w => w.id === currentWritingId)) {
+                    clearEditor();
+                } else if (!currentWritingId && allWritings.length > 0) {
+                    loadWriting(allWritings[0].id);
+                } else if (allWritings.length === 0) {
+                    clearEditor();
+                }
+            }, (error) => {
+                console.error("Error fetching writings:", error);
+                showAlert("加载作品失败，请检查您的登录状态和网络连接。");
+                loadingWritingsMessage.textContent = '加载失败。';
+            });
+        }
+
+        // Render the list of writings in the sidebar (unchanged)
+        function renderWritingsList() {
+            writingsListDiv.innerHTML = '';
+            if (allWritings.length === 0) {
+                writingsListDiv.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">暂无作品，点击“新建作品”开始创作！</p>';
+                return;
+            }
+            allWritings.forEach(writing => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `writing-item ${writing.id === currentWritingId ? 'active' : ''}`;
+                itemDiv.dataset.id = writing.id;
+
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = writing.title || '无标题作品';
+                titleSpan.classList.add('flex-grow', 'truncate');
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-button';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteWriting(writing.id);
+                };
+
+                itemDiv.appendChild(titleSpan);
+                itemDiv.appendChild(deleteBtn);
+
+                itemDiv.onclick = () => loadWriting(writing.id);
+                writingsListDiv.appendChild(itemDiv);
+            });
+        }
+
+        // --- Event Listeners for Editor ---
+        writingContentTextarea.addEventListener('input', () => {
+            updatePreview();
+            updateWordCharCount();
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePreview();
+            updateWordCharCount();
+        });
+
     </script>
 </body>
 </html>
