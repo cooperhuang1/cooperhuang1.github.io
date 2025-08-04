@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的个人文档库</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts for 'Inter' -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,11 +31,50 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
+        /* The modal should be hidden by default */
         .modal {
             display: none;
+            /* Using a higher z-index to ensure modals are on top */
+            z-index: 1000;
         }
+        /* The modal will be displayed as a flex container when the 'open' class is added */
         .modal.open {
             display: flex;
+        }
+        .ai-image-container, .uploaded-file-container {
+            width: 100%;
+            height: 120px; /* Fixed height for preview */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f5f9;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .uploaded-file-container.is-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .uploaded-file-container.is-pdf {
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+            color: #4b5563;
+        }
+        .ai-image-container .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 10;
         }
     </style>
 </head>
@@ -56,12 +94,11 @@
                 </p>
             </div>
             
-            <!-- Upload Button -->
+            <!-- Add New Document Button -->
             <div class="flex items-center space-x-4">
-                <label for="file-upload" class="cursor-pointer bg-indigo-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105">
-                    <i class="ph ph-upload-simple text-lg mr-2"></i> 上传新文件
-                </label>
-                <input id="file-upload" type="file" class="hidden" multiple>
+                <button id="add-new-doc-btn" class="cursor-pointer bg-indigo-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105">
+                    <i class="ph ph-plus-circle text-lg mr-2"></i> 新增文档
+                </button>
             </div>
         </header>
 
@@ -190,8 +227,117 @@
         <span id="user-id"></span>
     </div>
 
+    <!-- Add New Document Modal -->
+    <div id="add-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">新增文档</h3>
+            <form id="add-form">
+                <div class="mb-4">
+                    <label for="add-title" class="block text-sm font-medium text-gray-700">标题</label>
+                    <input type="text" id="add-title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                </div>
+                <div class="mb-4">
+                    <label for="add-type" class="block text-sm font-medium text-gray-700">类型</label>
+                    <select id="add-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="论文">论文</option>
+                        <option value="讲义">讲义</option>
+                        <option value="笔记">笔记</option>
+                        <option value="网课">网课</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="add-author" class="block text-sm font-medium text-gray-700">作者</label>
+                    <input type="text" id="add-author" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                </div>
+
+                <!-- NEW: AI Image Generation Section -->
+                <div class="mb-4">
+                    <label for="image-prompt" class="block text-sm font-medium text-gray-700">AI图片生成提示词 (可选)</label>
+                    <input type="text" id="image-prompt" placeholder="描述你想要的图片，例如：'一只在月亮上打字的猫咪'" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div class="flex justify-end mb-4">
+                    <button type="button" id="generate-image-btn" class="inline-flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none">
+                        <i class="ph ph-magic-wand text-lg mr-2"></i> 生成图片
+                    </button>
+                </div>
+                <div id="ai-image-preview-container" class="hidden relative mb-4">
+                    <div class="ai-image-container">
+                        <div id="ai-image-loading-overlay" class="loading-overlay hidden">
+                            <i class="ph ph-spinner-gap animate-spin text-4xl text-indigo-500"></i>
+                        </div>
+                        <img id="ai-image-preview" alt="AI Generated Image" class="w-full h-full object-cover">
+                    </div>
+                    <button type="button" id="clear-image-btn" class="absolute top-2 right-2 p-1 text-red-500 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors">
+                        <i class="ph ph-x-circle text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Separator -->
+                <div class="relative flex py-5 items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 text-sm">或者</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <!-- UPDATED: File Upload Section (now supports images and PDFs) -->
+                <div class="mb-4">
+                    <label for="add-link" class="block text-sm font-medium text-gray-700">文件链接 (可选)</label>
+                    <input type="url" id="add-link" placeholder="例如: https://example.com/document.pdf" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div class="mb-4">
+                    <label for="file-upload" class="block text-sm font-medium text-gray-700">上传文件 (可选)</label>
+                    <input type="file" id="file-upload" accept="image/*, .pdf" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
+                </div>
+                <div id="uploaded-file-preview-container" class="hidden relative mb-4">
+                    <div id="uploaded-file-container" class="uploaded-file-container">
+                        <i id="uploaded-file-icon" class="ph ph-file-pdf text-4xl"></i>
+                        <img id="uploaded-image-preview" alt="Uploaded File Preview" class="hidden w-full h-full object-cover">
+                        <span id="uploaded-file-name" class="text-sm font-medium text-center line-clamp-2"></span>
+                    </div>
+                    <button type="button" id="clear-uploaded-file-btn" class="absolute top-2 right-2 p-1 text-red-500 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors">
+                        <i class="ph ph-x-circle text-lg"></i>
+                    </button>
+                </div>
+                
+                <!-- Conditional fields for online course -->
+                <div id="add-course-fields" class="hidden">
+                    <div class="mb-4">
+                        <label for="add-course-description" class="block text-sm font-medium text-gray-700">课程简介</label>
+                        <textarea id="add-course-description" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="add-course-instructor" class="block text-sm font-medium text-gray-700">讲师</label>
+                        <input type="text" id="add-course-instructor" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="mb-4">
+                        <label for="add-course-department" class="block text-sm font-medium text-gray-700">所属院系</label>
+                        <input type="text" id="add-course-department" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <!-- Simplified fields for resources and navigation. In a real app, these would be dynamic -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">学习资料类型 (用逗号分隔)</label>
+                        <input type="text" id="add-course-resources" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: 讲义, 习题集">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">课程导航 (JSON格式)</label>
+                        <textarea id="add-course-nav" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder='[{"title": "简介", "link": "#"}, {"title": "讲义", "link": "https://"}]'></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="cancel-add" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                        取消
+                    </button>
+                    <button type="submit" id="submit-add" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                        保存文档
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Edit Document Modal -->
-    <div id="edit-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div id="edit-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
             <h3 class="text-2xl font-bold text-gray-800 mb-4">编辑文档</h3>
             <form id="edit-form">
@@ -226,17 +372,17 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div id="delete-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 relative">
             <h3 class="text-2xl font-bold text-gray-800 mb-4">确认删除</h3>
             <p class="text-gray-600 mb-6">你确定要删除这个文档吗？此操作无法撤销。</p>
             <div class="flex justify-end space-x-4">
                 <button type="button" id="cancel-delete" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                    取消
-                </button>
-                <button type="button" id="confirm-delete" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none">
-                    删除
-                </button>
+                        取消
+                    </button>
+                    <button type="button" id="confirm-delete" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none">
+                        删除
+                    </button>
             </div>
         </div>
     </div>
@@ -269,11 +415,17 @@
             console.error("Firebase initialization failed:", error);
         }
 
+        // --- State Management Variables ---
         let userId = null;
         let documentsCollectionRef = null;
         let allDocuments = [];
+        let currentFilter = 'all'; 
+        let currentSearch = '';
+        let currentSort = 'date'; 
+        let activeCourse = null;
+        let docToDelete = null;
 
-        // Get DOM elements
+        // --- DOM Elements ---
         const mainHeader = document.getElementById('main-header');
         const mainLibraryView = document.getElementById('main-library-view');
         const courseDetailView = document.getElementById('course-detail-view');
@@ -283,12 +435,35 @@
         const sortButtons = document.querySelectorAll('.sort-btn');
         const noResultsMessage = document.getElementById('no-results');
         const loadingState = document.getElementById('loading-state');
-        const fileUploadInput = document.getElementById('file-upload');
+        const addNewDocBtn = document.getElementById('add-new-doc-btn');
         const backButton = document.getElementById('back-button');
         const courseNavLinksContainer = document.getElementById('course-nav-links');
         const userIdDisplay = document.getElementById('user-id');
 
         // Modal-related elements
+        const addModal = document.getElementById('add-modal');
+        const addForm = document.getElementById('add-form');
+        const addTypeSelect = document.getElementById('add-type');
+        const addCourseFields = document.getElementById('add-course-fields');
+        const imagePromptInput = document.getElementById('image-prompt');
+        const generateImageBtn = document.getElementById('generate-image-btn');
+        const imageLoadingOverlay = document.getElementById('ai-image-loading-overlay');
+        const imagePreviewContainer = document.getElementById('ai-image-preview-container');
+        const imagePreview = document.getElementById('ai-image-preview');
+        const clearImageBtn = document.getElementById('clear-image-btn');
+        
+        // NEW: Elements for file and link management
+        const addLinkInput = document.getElementById('add-link');
+        const fileUploadInput = document.getElementById('file-upload');
+        const uploadedFilePreviewContainer = document.getElementById('uploaded-file-preview-container');
+        const uploadedFileContainer = document.getElementById('uploaded-file-container');
+        const uploadedFileIcon = document.getElementById('uploaded-file-icon');
+        const uploadedImagePreview = document.getElementById('uploaded-image-preview');
+        const uploadedFileName = document.getElementById('uploaded-file-name');
+        const clearUploadedFileBtn = document.getElementById('clear-uploaded-file-btn');
+        
+        const submitAddBtn = document.getElementById('submit-add');
+
         const editModal = document.getElementById('edit-modal');
         const editForm = document.getElementById('edit-form');
         const editTitleInput = document.getElementById('edit-title');
@@ -298,45 +473,54 @@
 
         const deleteModal = document.getElementById('delete-modal');
         const confirmDeleteButton = document.getElementById('confirm-delete');
+        const cancelEditButton = document.getElementById('cancel-edit');
+        const cancelDeleteButton = document.getElementById('cancel-delete');
         
-        let currentFilter = 'all'; 
-        let currentSearch = '';
-        let currentSort = 'date'; 
-        let activeCourse = null;
-        let docToDelete = null;
+        // --- Utility Functions ---
 
-        // --- Modal Control Functions ---
-        // New, more robust modal control functions with event propagation handling
-        function openEditModal(doc) {
-            closeAllModals(); // Close any other open modals
-            editDocIdInput.value = doc.id;
-            editTitleInput.value = doc.title;
-            editAuthorInput.value = doc.author;
-            editTypeSelect.value = doc.type;
-            editModal.classList.add('open');
+        // Debounce function to limit the rate of function calls
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
         }
 
-        function closeEditModal() {
-            editModal.classList.remove('open');
+        // Exponential backoff for API calls
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            let retries = 0;
+            while (true) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+                    return response;
+                } catch (error) {
+                    if (retries >= maxRetries) {
+                        throw error;
+                    }
+                    const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
+                    retries++;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
         }
 
-        function openDeleteModal(docId) {
-            closeAllModals(); // Close any other open modals
-            docToDelete = docId;
-            deleteModal.classList.add('open');
-        }
-        
-        function closeDeleteModal() {
-            docToDelete = null;
-            deleteModal.classList.remove('open');
-        }
-        
-        function closeAllModals() {
-            closeEditModal();
-            closeDeleteModal();
+        // A single, centralized function to handle all modal closing
+        function closeModal(modalElement) {
+            modalElement.classList.remove('open');
         }
 
-        // --- Other App Functions ---
+        // A single, centralized function to handle all modal opening
+        function openModal(modalElement) {
+            closeModal(addModal);
+            closeModal(editModal);
+            closeModal(deleteModal);
+            modalElement.classList.add('open');
+        }
+
+        // Scrolls to a specific element on the page
         function handleNavLinkClick(event) {
             const href = event.currentTarget.getAttribute('href');
             if (href && href.startsWith('#')) {
@@ -352,6 +536,7 @@
             }
         }
         
+        // Updates the UI to show the course detail view
         function showCourseDetail(course) {
             activeCourse = course;
             mainLibraryView.classList.add('hidden');
@@ -386,6 +571,7 @@
             `).join('');
         }
         
+        // Hides the course detail view and shows the main library
         function showMainLibrary() {
             courseDetailView.classList.add('hidden');
             mainLibraryView.classList.remove('hidden');
@@ -393,19 +579,21 @@
             activeCourse = null;
         }
 
+        // Sorts documents based on the current sort criteria
         function sortDocuments(docs) {
             return docs.sort((a, b) => {
-                const dateA = a[currentSort];
-                const dateB = b[currentSort];
+                const valueA = a[currentSort];
+                const valueB = b[currentSort];
                 
                 if (currentSort === 'date') {
-                    return new Date(dateB) - new Date(dateA);
+                    return new Date(valueB) - new Date(valueA);
                 } else {
-                    return dateA.localeCompare(dateB);
+                    return valueA.localeCompare(valueB);
                 }
             });
         }
 
+        // Renders the documents to the UI based on current filter, sort, and search criteria
         function renderDocuments() {
             loadingState.classList.add('hidden');
             
@@ -432,296 +620,459 @@
             }
         }
 
+        // Generates an HTML card element for a given document object
         function renderDocumentCard(doc) {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-md p-6 flex flex-col justify-between transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl border border-gray-200';
             
+            // Document content section
             const contentDiv = document.createElement('div');
             
+            // NEW: Display image, PDF icon, or default placeholder
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'uploaded-file-container mb-4';
+
+            if (doc.imageData) {
+                // AI-generated image
+                previewContainer.classList.add('is-image');
+                const imageEl = document.createElement('img');
+                imageEl.src = `data:image/png;base64,${doc.imageData}`;
+                imageEl.alt = "AI Generated image";
+                previewContainer.appendChild(imageEl);
+            } else if (doc.filename && doc.filename.endsWith('.pdf')) {
+                // PDF file preview
+                previewContainer.classList.add('is-pdf');
+                const iconEl = document.createElement('i');
+                iconEl.className = 'ph ph-file-pdf text-4xl';
+                const nameEl = document.createElement('span');
+                nameEl.className = 'text-sm font-medium text-center line-clamp-2';
+                nameEl.textContent = doc.filename;
+                previewContainer.appendChild(iconEl);
+                previewContainer.appendChild(nameEl);
+            } else if (doc.imageLink) {
+                 // Uploaded image or link
+                previewContainer.classList.add('is-image');
+                const imageEl = document.createElement('img');
+                imageEl.src = doc.imageLink;
+                imageEl.alt = "Uploaded image";
+                imageEl.onerror = () => {
+                    imageEl.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Broken%20Link`;
+                    imageEl.alt = "Broken link placeholder";
+                };
+                previewContainer.appendChild(imageEl);
+            } else {
+                // Default placeholder for other document types
+                previewContainer.classList.add('is-pdf'); // Using PDF style for now, as it's a good generic file placeholder
+                const iconEl = document.createElement('i');
+                const iconClass = doc.type === '论文' ? 'ph ph-scroll-simple-text' : 
+                                  doc.type === '讲义' ? 'ph ph-file-pdf' :
+                                  doc.type === '笔记' ? 'ph ph-notepad' :
+                                  'ph ph-list-dashes';
+                iconEl.className = `${iconClass} text-4xl`;
+                const nameEl = document.createElement('span');
+                nameEl.className = 'text-sm font-medium text-center line-clamp-2';
+                nameEl.textContent = doc.type;
+                previewContainer.appendChild(iconEl);
+                previewContainer.appendChild(nameEl);
+            }
+
+            contentDiv.appendChild(previewContainer);
+
             const typeSpan = document.createElement('span');
             typeSpan.className = 'inline-block text-xs font-semibold px-2 py-1 rounded-full text-indigo-700 bg-indigo-100 mb-3';
             typeSpan.textContent = doc.type;
             contentDiv.appendChild(typeSpan);
 
             const titleH4 = document.createElement('h4');
-            titleH4.className = 'text-lg font-bold text-gray-800 mb-2';
+            titleH4.className = 'text-lg font-bold text-gray-800 line-clamp-2 mb-2';
             titleH4.textContent = doc.title;
             contentDiv.appendChild(titleH4);
 
             const authorP = document.createElement('p');
-            authorP.className = 'text-sm text-gray-500 mb-4';
+            authorP.className = 'text-sm text-gray-500 line-clamp-1 mb-4';
             authorP.textContent = `作者: ${doc.author}`;
             contentDiv.appendChild(authorP);
             
-            card.appendChild(contentDiv);
-
+            // Footer with buttons
             const footerDiv = document.createElement('div');
-            footerDiv.className = 'flex items-center justify-between mt-4 border-t pt-4';
-
-            const dateP = document.createElement('p');
-            dateP.className = 'text-xs text-gray-400';
-            dateP.textContent = `上传日期: ${doc.date}`;
-            footerDiv.appendChild(dateP);
+            footerDiv.className = 'flex items-center space-x-2 mt-auto pt-4 border-t border-gray-100';
             
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'flex items-center space-x-2';
-
-            const editButton = document.createElement('button');
-            editButton.className = 'p-2 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500';
-            editButton.innerHTML = '<i class="ph ph-pencil-simple text-base"></i>';
-            editButton.addEventListener('click', (e) => {
-                e.stopPropagation(); // Stop event propagation
-                const docToEdit = allDocuments.find(d => d.id === doc.id);
-                if (docToEdit) {
-                    openEditModal(docToEdit);
-                }
-            });
-            actionsDiv.appendChild(editButton);
-
-            const deleteButton = document.createElement('button');
-            deleteButton.className = 'p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500';
-            deleteButton.innerHTML = '<i class="ph ph-trash text-base"></i>';
-            deleteButton.addEventListener('click', (e) => {
-                e.stopPropagation(); // Stop event propagation
-                openDeleteModal(doc.id);
-            });
-            actionsDiv.appendChild(deleteButton);
-            
-            const linkA = document.createElement('a');
-            linkA.href = doc.link;
-            linkA.className = 'inline-flex items-center text-indigo-600 hover:text-indigo-800 font-semibold transition-colors duration-200 ml-2';
-            linkA.innerHTML = `<i class="ph ph-${doc.type === '网课' ? 'play-circle' : 'download-simple'} text-base mr-1"></i> ${doc.type === '网课' ? '查看' : '下载'}`;
-
+            // View button
+            const viewButton = document.createElement('button');
+            viewButton.className = 'flex-1 text-center py-2 px-4 rounded-md font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200';
+            viewButton.innerHTML = `<i class="ph ph-eye text-lg mr-2"></i> 查看`;
             if (doc.type === '网课') {
-                linkA.target = '_blank';
-                linkA.rel = 'noopener noreferrer';
-                card.classList.add('cursor-pointer');
-                card.addEventListener('click', () => showCourseDetail(doc));
+                viewButton.addEventListener('click', () => showCourseDetail(doc));
             } else {
-                linkA.download = true; 
+                const link = doc.link || (doc.imageData ? `data:image/png;base64,${doc.imageData}` : doc.imageLink);
+                if (link) {
+                    viewButton.addEventListener('click', () => window.open(link, '_blank'));
+                } else {
+                    viewButton.addEventListener('click', () => {
+                        console.log('No link or image data available to view.');
+                    });
+                    viewButton.disabled = true;
+                    viewButton.classList.add('bg-gray-400', 'cursor-not-allowed', 'hover:bg-gray-400');
+                    viewButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                }
             }
-            actionsDiv.appendChild(linkA);
+            footerDiv.appendChild(viewButton);
 
-            footerDiv.appendChild(actionsDiv);
+            // Edit button
+            const editButton = document.createElement('button');
+            editButton.className = 'p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-colors duration-200';
+            editButton.innerHTML = `<i class="ph ph-pencil-simple text-lg"></i>`;
+            editButton.addEventListener('click', () => handleEditClick(doc));
+            footerDiv.appendChild(editButton);
+
+            // Delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'p-2 rounded-md text-gray-500 hover:text-red-600 hover:bg-gray-100 transition-colors duration-200';
+            deleteButton.innerHTML = `<i class="ph ph-trash-simple text-lg"></i>`;
+            deleteButton.addEventListener('click', () => handleDeleteClick(doc.id));
+            footerDiv.appendChild(deleteButton);
+            
+            card.appendChild(contentDiv);
             card.appendChild(footerDiv);
-
+            
             return card;
         }
 
-        // --- Event Listeners ---
-        searchInput.addEventListener('keyup', (e) => {
-            currentSearch = e.target.value;
-            renderDocuments();
-        });
-
+        // --- Event Handlers ---
+        
+        // Handles clicks on filter buttons
         filterButtonsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('.filter-btn');
-            if (button) {
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('bg-indigo-100', 'text-indigo-700');
-                    btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+            const btn = e.target.closest('.filter-btn');
+            if (btn) {
+                currentFilter = btn.dataset.filter;
+                // Update active button style
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-100', 'text-indigo-700', 'hover:bg-indigo-200');
+                    b.classList.add('text-gray-700', 'hover:bg-gray-100');
                 });
-                button.classList.remove('text-gray-700', 'hover:bg-gray-100');
-                button.classList.add('bg-indigo-100', 'text-indigo-700');
-
-                currentFilter = button.dataset.filter;
+                btn.classList.add('bg-indigo-100', 'text-indigo-700', 'hover:bg-indigo-200');
                 renderDocuments();
             }
         });
-        
-        sortButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                sortButtons.forEach(btn => {
-                    btn.classList.remove('bg-indigo-100', 'text-indigo-700');
-                    btn.classList.add('text-gray-700', 'hover:bg-gray-100');
-                });
-                button.classList.remove('text-gray-700', 'hover:bg-gray-100');
-                button.classList.add('bg-indigo-100', 'text-indigo-700');
 
-                currentSort = button.dataset.sort;
+        // Handles clicks on sort buttons
+        sortButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentSort = btn.dataset.sort;
+                // Update active button style
+                document.querySelectorAll('.sort-btn').forEach(b => {
+                    b.classList.remove('bg-gray-100');
+                    b.classList.add('text-gray-700', 'hover:bg-gray-100');
+                });
+                btn.classList.add('bg-gray-100');
                 renderDocuments();
             });
         });
+
+        // Handles search input changes with debounce
+        const debouncedSearch = debounce(() => {
+            currentSearch = searchInput.value;
+            renderDocuments();
+        }, 300);
+        searchInput.addEventListener('input', debouncedSearch);
+
+        // Shows the Add New Document modal and resets the form
+        addNewDocBtn.addEventListener('click', () => {
+            addForm.reset();
+            // Clear any previous previews
+            imagePreviewContainer.classList.add('hidden');
+            uploadedFilePreviewContainer.classList.add('hidden');
+            addCourseFields.classList.add('hidden');
+            addLinkInput.value = '';
+            fileUploadInput.value = '';
+            imagePromptInput.value = '';
+            openModal(addModal);
+        });
+
+        // Hide course-specific fields when the '网课' type is not selected
+        addTypeSelect.addEventListener('change', () => {
+            if (addTypeSelect.value === '网课') {
+                addCourseFields.classList.remove('hidden');
+                addLinkInput.disabled = true; // Disable link for course
+                fileUploadInput.disabled = true; // Disable file upload for course
+            } else {
+                addCourseFields.classList.add('hidden');
+                addLinkInput.disabled = false;
+                fileUploadInput.disabled = false;
+            }
+        });
         
+        // Handles the click on the 'back' button in the course detail view
         backButton.addEventListener('click', showMainLibrary);
-        
-        fileUploadInput.addEventListener('change', async (e) => {
-            const files = e.target.files;
-            if (files.length > 0) {
-                const file = files[0];
-                const newDoc = {
-                    title: file.name,
-                    type: '讲义', 
-                    author: `用户 ${userId}`,
-                    date: new Date().toISOString().slice(0, 10), 
-                    link: 'https://example.com/placeholder-link'
-                };
-                
+
+        // Close modal buttons
+        document.getElementById('cancel-add').addEventListener('click', () => closeModal(addModal));
+        document.getElementById('cancel-edit').addEventListener('click', () => closeModal(editModal));
+        document.getElementById('cancel-delete').addEventListener('click', () => closeModal(deleteModal));
+
+        // Delete button click handler
+        const handleDeleteClick = (docId) => {
+            docToDelete = docId;
+            openModal(deleteModal);
+        };
+
+        // Confirm delete action
+        confirmDeleteButton.addEventListener('click', async () => {
+            if (docToDelete) {
                 try {
-                    await addDoc(documentsCollectionRef, newDoc);
-                    console.log("Document added successfully!");
-                } catch (error) {
-                    console.error("Error adding document:", error);
+                    await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/documents`, docToDelete));
+                    console.log('Document successfully deleted!');
+                    docToDelete = null; // Reset for safety
+                } catch (e) {
+                    console.error('Error removing document: ', e);
                 }
-                e.target.value = '';
+            }
+            closeModal(deleteModal);
+        });
+
+        // Edit button click handler
+        const handleEditClick = (doc) => {
+            editDocIdInput.value = doc.id;
+            editTitleInput.value = doc.title;
+            editAuthorInput.value = doc.author;
+            editTypeSelect.value = doc.type;
+            openModal(editModal);
+        };
+
+        // Handles the form submission for adding a new document
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitAddBtn.disabled = true;
+
+            const newDoc = {
+                title: document.getElementById('add-title').value,
+                type: addTypeSelect.value,
+                author: document.getElementById('add-author').value,
+                date: new Date().toISOString(),
+                link: addLinkInput.value,
+            };
+
+            if (newDoc.type === '网课') {
+                newDoc.description = document.getElementById('add-course-description').value;
+                newDoc.instructor = document.getElementById('add-course-instructor').value;
+                newDoc.department = document.getElementById('add-course-department').value;
+                try {
+                    newDoc.resources = document.getElementById('add-course-resources').value.split(',').map(s => s.trim()).filter(s => s);
+                } catch {
+                    newDoc.resources = [];
+                }
+                try {
+                    newDoc.nav = JSON.parse(document.getElementById('add-course-nav').value);
+                } catch {
+                    newDoc.nav = [];
+                }
+            }
+
+            // Check for AI image data
+            if (imagePreviewContainer.classList.contains('open') && imagePreview.src) {
+                newDoc.imageData = imagePreview.src.split(',')[1];
+            } 
+            // Check for uploaded file data
+            else if (fileUploadInput.files.length > 0) {
+                const file = fileUploadInput.files[0];
+                const fileName = file.name;
+                const fileExtension = fileName.split('.').pop().toLowerCase();
+                
+                newDoc.filename = fileName; // Store filename for display
+                
+                if (file.type.startsWith('image/')) {
+                    // Simulate file upload and get a public URL for images
+                    newDoc.imageLink = `https://firebasestorage.googleapis.com/v0/b/mock-storage.appspot.com/o/${encodeURIComponent(fileName)}?alt=media`;
+                } else if (file.type === 'application/pdf') {
+                    // Use a mock PDF link for PDF files
+                    newDoc.link = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+                }
+            }
+
+            try {
+                await addDoc(documentsCollectionRef, newDoc);
+                addForm.reset();
+                closeModal(addModal);
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            } finally {
+                submitAddBtn.disabled = false;
             }
         });
 
+        // Handles the form submission for editing a document
         editForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const docId = editDocIdInput.value;
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/documents/${docId}`);
-            
             const updatedData = {
                 title: editTitleInput.value,
                 author: editAuthorInput.value,
-                type: editTypeSelect.value
+                type: editTypeSelect.value,
             };
 
             try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/documents`, docId);
                 await updateDoc(docRef, updatedData);
-                console.log("Document updated successfully!");
-                closeEditModal();
-            } catch (error) {
-                console.error("Error updating document:", error);
+                closeModal(editModal);
+            } catch (e) {
+                console.error("Error updating document: ", e);
             }
         });
 
-        confirmDeleteButton.addEventListener('click', async () => {
-            if (docToDelete) {
-                const docRef = doc(db, `artifacts/${appId}/users/${userId}/documents/${docToDelete}`);
-                try {
-                    await deleteDoc(docRef);
-                    console.log("Document deleted successfully!");
-                    closeDeleteModal();
-                } catch (error) {
-                    console.error("Error deleting document:", error);
+        // --- AI Image Generation Feature ---
+        generateImageBtn.addEventListener('click', async () => {
+            const prompt = imagePromptInput.value;
+            if (!prompt) {
+                console.error("Please enter a prompt for the AI image.");
+                return;
+            }
+
+            imageLoadingOverlay.classList.remove('hidden');
+            imagePreviewContainer.classList.remove('hidden');
+            generateImageBtn.disabled = true;
+
+            try {
+                const payload = {
+                    instances: { prompt: prompt },
+                    parameters: { "sampleCount": 1 }
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                
+                const response = await fetchWithBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const base64Data = result.predictions[0].bytesBase64Encoded;
+                    imagePreview.src = `data:image/png;base64,${base64Data}`;
+                    imagePreviewContainer.classList.remove('hidden');
+                    // Disable other inputs since we now have an AI image
+                    fileUploadInput.disabled = true;
+                    addLinkInput.disabled = true;
+                } else {
+                    console.error("AI image generation failed or returned unexpected data.");
+                    // Fallback placeholder
+                    imagePreview.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Error`;
                 }
+
+            } catch (error) {
+                console.error('Error generating AI image:', error);
+                imagePreview.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Error`;
+            } finally {
+                imageLoadingOverlay.classList.add('hidden');
+                generateImageBtn.disabled = false;
             }
         });
 
-        // Use more specific IDs for modal close buttons for clarity
-        document.getElementById('cancel-edit').addEventListener('click', closeEditModal);
-        document.getElementById('cancel-delete').addEventListener('click', closeDeleteModal);
-
-        editModal.addEventListener('click', (e) => {
-            if (e.target === editModal) {
-                closeEditModal();
-            }
-        });
-
-        deleteModal.addEventListener('click', (e) => {
-            if (e.target === deleteModal) {
-                closeDeleteModal();
-            }
+        clearImageBtn.addEventListener('click', () => {
+            imagePreview.src = '';
+            imagePromptInput.value = '';
+            imagePreviewContainer.classList.add('hidden');
+            fileUploadInput.disabled = false;
+            addLinkInput.disabled = false;
         });
         
-        // --- Firebase Auth & Data Loading ---
+        // --- File Upload Logic ---
+        fileUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadedFilePreviewContainer.classList.remove('hidden');
+                // Disable other inputs
+                imagePromptInput.disabled = true;
+                generateImageBtn.disabled = true;
+                addLinkInput.disabled = true;
+
+                // Check file type and display appropriate preview
+                if (file.type.startsWith('image/')) {
+                    uploadedFileContainer.classList.remove('is-pdf');
+                    uploadedFileContainer.classList.add('is-image');
+                    uploadedFileIcon.classList.add('hidden');
+                    uploadedFileName.classList.add('hidden');
+                    uploadedImagePreview.classList.remove('hidden');
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        uploadedImagePreview.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    uploadedFileContainer.classList.remove('is-image');
+                    uploadedFileContainer.classList.add('is-pdf');
+                    uploadedImagePreview.classList.add('hidden');
+                    uploadedFileIcon.classList.remove('hidden');
+                    uploadedFileName.classList.remove('hidden');
+                    uploadedFileIcon.className = 'ph ph-file-pdf text-4xl';
+                    uploadedFileName.textContent = file.name;
+                }
+            } else {
+                uploadedFilePreviewContainer.classList.add('hidden');
+                // Enable other inputs
+                imagePromptInput.disabled = false;
+                generateImageBtn.disabled = false;
+                addLinkInput.disabled = false;
+            }
+        });
+
+        clearUploadedFileBtn.addEventListener('click', () => {
+            fileUploadInput.value = '';
+            uploadedFilePreviewContainer.classList.add('hidden');
+            uploadedFileContainer.classList.remove('is-image', 'is-pdf');
+            uploadedImagePreview.src = '';
+            uploadedFileName.textContent = '';
+            // Enable other inputs
+            imagePromptInput.disabled = false;
+            generateImageBtn.disabled = false;
+            addLinkInput.disabled = false;
+        });
+
+        addLinkInput.addEventListener('input', (e) => {
+             // Disable other inputs if a link is provided
+            if (e.target.value) {
+                imagePromptInput.disabled = true;
+                generateImageBtn.disabled = true;
+                fileUploadInput.disabled = true;
+            } else {
+                imagePromptInput.disabled = false;
+                generateImageBtn.disabled = false;
+                fileUploadInput.disabled = false;
+            }
+        });
+
+        // --- Firebase Auth and Data Retrieval ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 userId = user.uid;
                 userIdDisplay.textContent = `用户ID: ${userId}`;
+                // Set the Firestore collection reference
                 documentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/documents`);
-
-                onSnapshot(documentsCollectionRef, async (snapshot) => {
-                    const docs = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-                    allDocuments = docs;
-                    
-                    if (docs.length === 0) {
-                        await populateInitialData();
-                    } else {
-                        renderDocuments();
-                    }
-                }, (error) => {
-                    console.error("Error fetching documents:", error);
-                    loadingState.classList.add('hidden');
-                    noResultsMessage.textContent = "无法加载文档，请检查网络连接。";
-                    noResultsMessage.classList.remove('hidden');
+                
+                // Set up real-time listener for documents
+                onSnapshot(documentsCollectionRef, (snapshot) => {
+                    allDocuments = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    renderDocuments();
                 });
             } else {
-                console.log("No user signed in.");
+                try {
+                    // Sign in with custom token if available, otherwise anonymously
+                    if (authToken) {
+                        await signInWithCustomToken(auth, authToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                }
             }
         });
 
-        async function authenticateAndLoad() {
-            try {
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                loadingState.classList.add('hidden');
-                noResultsMessage.textContent = "认证失败，无法加载文档。";
-                noResultsMessage.classList.remove('hidden');
-            }
-        }
-
-        async function populateInitialData() {
-            const initialDocuments = [
-                { id: '1', title: '随机矩阵理论讲义', type: '讲义', author: 'Piet Brouwer', date: '2006-03-15', link: 'https://example.com/lecture/random-matrix-theory' },
-                { id: '2', title: '量子霍尔效应研究综述', type: '论文', author: 'Chris Henley', date: '2006-04-22', link: 'https://example.com/paper/quantized-hall-effect' },
-                { id: '3', title: '无序系统与计算复杂性笔记', type: '笔记', author: 'James Sethna', date: '2006-05-10', link: 'https://example.com/notes/disordered-systems' },
-                { id: '4', title: '微分方程渐近分析', type: '讲义', author: 'Veit Elser', date: '2007-01-05', link: 'https://example.com/lecture/asymptotic-analysis' },
-                { id: '5', title: '超流物理学入门', type: '笔记', author: 'Erich Mueller', date: '2007-02-18', link: 'https://example.com/notes/superfluidity' },
-                { id: '6', title: '多体理论中的张量网络应用', type: '论文', author: 'Eun-Ah Kim', date: '2020-10-30', link: 'https://example.com/paper/tensor-network' },
-                { id: '7', title: '生命物理学前沿', type: '论文', author: 'Jane Wang', date: '2024-02-14', link: 'https://example.com/paper/physics-of-life' },
-                { id: '8', title: '实用密度泛函理论', type: '讲义', author: 'Tomas Arias', date: '2011-09-01', link: 'https://example.com/lecture/dft-practical' },
-                { id: '9', title: '量子临界性简述', type: '笔记', author: 'Eun-Ah Kim', date: '2009-11-25', link: 'https://example.com/notes/quantum-criticality' },
-                { id: '10', title: '路径积分与量子统计', type: '讲义', author: 'Nandini Ananth', date: '2020-05-20', link: 'https://example.com/lecture/path-integrals' },
-                { 
-                    id: '11', 
-                    title: '凝聚态物理中的现代量子多体理论', 
-                    type: '网课', 
-                    author: '文小刚教授', 
-                    date: '2021-09-01', 
-                    description: '本研究生课程涵盖凝聚态物理中的量子多体效应。课程重点关注相互作用多体系统中出现的概念和物理图景。',
-                    instructor: '文小刚教授',
-                    department: '物理系',
-                    resources: ['讲义', '习题集'],
-                    nav: [
-                        { title: '课程简介', link: '#course-intro' },
-                        { title: '讲义', link: 'https://example.com/online-course/many-body-theory/lecture-notes' },
-                        { title: '作业', link: 'https://example.com/online-course/many-body-theory/assignments' },
-                    ]
-                },
-                { 
-                    id: '12', 
-                    title: '广义相对论导论', 
-                    type: '网课', 
-                    author: 'Tomas Arias', 
-                    date: '2023-03-22', 
-                    description: '本课程介绍广义相对论的基础知识，包括狭义相对论回顾、爱因斯坦场方程和黑洞物理学。',
-                    instructor: 'Tomas Arias',
-                    department: '物理系',
-                    resources: ['讲义', '习题集'],
-                    nav: [
-                        { title: '课程简介', link: '#course-intro' },
-                        { title: '讲义', link: 'https://example.com/online-course/general-relativity/lecture-notes' },
-                        { title: '作业', link: 'https://example.com/online-course/general-relativity/assignments' },
-                    ]
-                },
-            ];
-            
-            console.log("Firestore collection is empty, populating with initial data...");
-            const batch = writeBatch(db);
-            initialDocuments.forEach(docData => {
-                const newDocRef = doc(documentsCollectionRef, docData.id);
-                batch.set(newDocRef, docData);
-            });
-
-            try {
-                await batch.commit();
-                console.log("Initial data populated successfully!");
-            } catch (error) {
-                console.error("Error populating initial data:", error);
-            }
-        }
-        
-        window.onload = () => {
-            authenticateAndLoad();
-        };
     </script>
 </body>
 </html>
