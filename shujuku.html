@@ -1,1079 +1,448 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人文档库</title>
-    <!-- Tailwind CSS CDN for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for 'Inter' -->
+    <title>衡渊智研 - Abyssal Metrics</title>
+    <!-- 引入Inter字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Phosphor Icons for a clean look -->
-    <script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+    <!-- 引入Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            scroll-behavior: smooth;
+            /* 使用动态渐变背景，以增强毛玻璃效果 */
+            background: radial-gradient(circle at 20% 50%, #e0f2fe, transparent),
+                        radial-gradient(circle at 80% 80%, #fef3c7, transparent),
+                        radial-gradient(circle at 60% 20%, #bfdbfe, transparent),
+                        #f1f5f9;
+            background-size: 200% 200%;
+            animation: animate-background 30s linear infinite;
         }
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
+
+        @keyframes animate-background {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+
+        /* 隐藏滚动条但允许滚动 */
+        body::-webkit-scrollbar {
+            width: 0 !important;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 4px;
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
+
+        /* 通用渐入上滑动画 */
+        @keyframes fadeInMoveUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        /* The modal should be hidden by default */
-        .modal {
-            display: none;
-            /* Using a higher z-index to ensure modals are on top */
-            z-index: 1000;
+        .animate-fade-in-up {
+            animation: fadeInMoveUp 0.8s ease-out forwards;
+            opacity: 0;
         }
-        /* The modal will be displayed as a flex container when the 'open' class is added */
-        .modal.open {
-            display: flex;
+        .animate-delay-200 { animation-delay: 0.2s; }
+        .animate-delay-400 { animation-delay: 0.4s; }
+        .animate-delay-600 { animation-delay: 0.6s; }
+        .animate-delay-800 { animation-delay: 0.8s; }
+
+        /* 滚动触发的动画 */
+        .scroll-animated {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
         }
-        .ai-image-container, .uploaded-file-container {
-            width: 100%;
-            height: 120px; /* Fixed height for preview */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f1f5f9;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            position: relative;
+        .scroll-animated.is-visible {
+            opacity: 1;
+            transform: translateY(0);
         }
-        .uploaded-file-container.is-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        
+        /* 按钮悬停效果 */
+        .button-hover-effect {
+            transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .uploaded-file-container.is-pdf {
-            flex-direction: column;
-            gap: 0.5rem;
-            padding: 1rem;
-            color: #4b5563;
+        .button-hover-effect:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #1e40af, 0 0 25px #1e40af;
         }
-        .ai-image-container .loading-overlay {
+        .button-hover-effect:active {
+            transform: scale(0.95);
+        }
+
+        /* 卡片悬停效果 */
+        .card-hover-effect {
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 50, 100, 0.15);
+            border-color: #1d4ed8; /* 边框高亮 */
+        }
+
+        /* 时间线样式 */
+        .timeline-line {
             position: absolute;
+            left: 50%;
+            width: 4px;
+            background-color: #cbd5e1; /* 浅灰色时间线 */
             top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
+            bottom: 0;
+            transform: translateX(-50%);
+        }
+        .md\\:timeline-item-left::before, .md\\:timeline-item-right::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #1d4ed8; /* 蓝色圆点 */
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            left: calc(50% - 8px);
             z-index: 10;
+            box-shadow: 0 0 0 4px #e2e8f0; /* 外部浅灰色光晕 */
+        }
+        .md\\:timeline-item-left .bg-slate-50 {
+            border-right: 4px solid #1d4ed8;
+        }
+        .md\\:timeline-item-right .bg-slate-50 {
+            border-left: 4px solid #1d4ed8;
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<!-- 页面主体背景改为动态渐变，以增强毛玻璃效果 -->
+<body class="text-slate-800">
 
-    <!-- Main Container -->
-    <div class="max-w-7xl mx-auto p-4 md:p-8">
-
-        <!-- Header Section for main library view -->
-        <header id="main-header" class="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div class="text-center md:text-left">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-800">
-                    我的个人文档库
-                </h1>
-                <p class="text-gray-500 mt-2 text-sm md:text-base">
-                    在这里管理你所有的论文、讲义和笔记。
-                </p>
+    <!-- 导航栏 - 增强毛玻璃效果，透明度更高，阴影更柔和 -->
+    <header class="fixed w-full top-0 z-50 bg-white/40 backdrop-blur-3xl shadow-md border-b border-white/70 transition-colors duration-500">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-3 font-bold text-blue-700 hover:text-blue-500 transition-colors duration-300">
+                <!-- SVG Logo - 马门溪之姿, with color adjustment -->
+                <div class="w-10 h-10 md:w-12 md:h-12 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100">
+                        <path d="M 20 80 Q 40 20, 80 20 T 90 30 L 85 35 C 70 25, 50 40, 30 70 Z" fill="#1e40af" />
+                        <circle cx="80" cy="25" r="3" fill="#ffffff" />
+                    </svg>
+                </div>
+                <span class="text-2xl">衡渊智研</span>
+            </a>
+            
+            <div class="space-x-8 hidden md:flex font-semibold text-slate-600">
+                <a href="#about" class="hover:text-blue-700 transition-colors duration-300">关于我们</a>
+                <a href="#services" class="hover:text-blue-700 transition-colors duration-300">核心业务</a>
+                <a href="#roadmap" class="hover:text-blue-700 transition-colors duration-300">发展路线</a>
+                <a href="#team" class="hover:text-blue-700 transition-colors duration-300">核心团队</a>
+                <a href="#vision" class="hover:text-blue-700 transition-colors duration-300">未来规划</a>
+                <a href="#customers" class="hover:text-blue-700 transition-colors duration-300">目标客户</a>
+                <a href="#contact" class="hover:text-blue-700 transition-colors duration-300">联系我们</a>
             </div>
             
-            <!-- Add New Document Button -->
-            <div class="flex items-center space-x-4">
-                <button id="add-new-doc-btn" class="cursor-pointer bg-indigo-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105">
-                    <i class="ph ph-plus-circle text-lg mr-2"></i> 新增文档
-                </button>
+            <!-- Mobile Menu button -->
+            <button id="mobile-menu-button" class="md:hidden text-blue-700 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+        </nav>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white/40 backdrop-blur-3xl py-4 text-slate-600">
+            <a href="#about" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">关于我们</a>
+            <a href="#services" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">核心业务</a>
+            <a href="#roadmap" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">发展路线</a>
+            <a href="#team" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">核心团队</a>
+            <a href="#vision" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">未来规划</a>
+            <a href="#customers" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">目标客户</a>
+            <a href="#contact" class="block px-6 py-3 hover:bg-slate-200 transition-colors duration-300">联系我们</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- 首页英雄区 - 移除动态背景 -->
+        <section id="hero" class="relative h-screen flex items-center justify-center overflow-hidden">
+            <div class="container mx-auto px-6 text-center z-10">
+                <h1 class="text-6xl md:text-8xl font-extrabold mb-4 text-slate-900 drop-shadow-xl animate-fade-in-up">衡渊智研</h1>
+                <h2 class="text-3xl md:text-5xl text-blue-700 font-medium mb-8 animate-fade-in-up animate-delay-200">Abyssal Metrics</h2>
+                <p class="text-lg md:text-xl max-w-3xl mx-auto mb-10 text-slate-600 leading-relaxed animate-fade-in-up animate-delay-400">
+                    深邃广博，精准衡量。专注于行星科学、物理领域的科研咨询与数据评估，为您的科学探索提供深度支持。
+                </p>
+                <a href="#services" class="bg-blue-700 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105 shadow-lg button-hover-effect animate-fade-in-up animate-delay-600">
+                    探索我们的服务
+                </a>
             </div>
-        </header>
+        </section>
 
-        <!-- Main Library View -->
-        <main id="main-library-view">
-            <!-- Main Content Area -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-
-                <!-- Sidebar for Filters and Sorting -->
-                <aside class="col-span-1 bg-white rounded-2xl shadow-lg p-6 h-fit sticky top-28">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">筛选条件</h3>
-                    <div class="space-y-2 mb-6" id="filter-buttons-container">
-                        <button class="filter-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 bg-indigo-100 text-indigo-700 hover:bg-indigo-200" data-filter="all">
-                            <i class="ph ph-list-dashes text-lg mr-2"></i> 所有文件
-                        </button>
-                        <button class="filter-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-filter="论文">
-                            <i class="ph ph-scroll-simple-text text-lg mr-2"></i> 论文
-                        </button>
-                        <button class="filter-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-filter="讲义">
-                            <i class="ph ph-file-pdf text-lg mr-2"></i> 讲义
-                        </button>
-                        <button class="filter-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-filter="笔记">
-                            <i class="ph ph-notepad text-lg mr-2"></i> 笔记
-                        </button>
-                        <button class="filter-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-filter="网课">
-                            <i class="ph ph-monitor-play text-lg mr-2"></i> 网课
-                        </button>
-                    </div>
-
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-t pt-4">排序方式</h3>
-                    <div class="space-y-2">
-                        <button class="sort-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-sort="title">
-                            <i class="ph ph-sort-by-alpha text-lg mr-2"></i> 按标题
-                        </button>
-                        <button class="sort-btn w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100" data-sort="date">
-                            <i class="ph ph-calendar text-lg mr-2"></i> 按日期
-                        </button>
-                    </div>
-                </aside>
-
-                <!-- Document List -->
-                <div class="md:col-span-3">
-
-                    <!-- Search Bar -->
-                    <div class="mb-6">
-                        <div class="relative">
-                            <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="search-input" placeholder="按标题、作者或类型搜索..." class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+        <!-- 关于我们 -->
+        <section id="about" class="py-24 bg-white/40 backdrop-blur-md scroll-animated border border-white/70 rounded-3xl mx-6 md:mx-auto max-w-6xl my-12 shadow-xl">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">关于我们</h2>
+                <div class="grid md:grid-cols-2 gap-16 items-center">
+                    <div class="animate-fade-in-up">
+                        <h3 class="text-3xl font-semibold mb-4 text-blue-600">品牌释义</h3>
+                        <div class="space-y-4 text-slate-700 leading-relaxed">
+                            <p class="flex items-center"><span class="text-blue-700 text-2xl font-bold w-12 flex-shrink-0">衡：</span>精准衡量、评估</p>
+                            <p class="flex items-center"><span class="text-blue-700 text-2xl font-bold w-12 flex-shrink-0">渊：</span>深邃广博</p>
+                            <p class="flex items-center"><span class="text-blue-700 text-2xl font-bold w-12 flex-shrink-0">Abyssal：</span>深海深渊，象征专业深度</p>
+                            <p class="flex items-center"><span class="text-blue-700 text-2xl font-bold w-12 flex-shrink-0">Metrics：</span>数据指标与评估</p>
                         </div>
                     </div>
-
-                    <!-- Loading state -->
-                    <div id="loading-state" class="text-center text-gray-500 py-12">
-                        <p class="text-xl">
-                            <i class="ph ph-spinner-gap animate-spin text-4xl text-indigo-500"></i>
-                        </p>
-                        <p class="mt-2 text-sm">正在加载文档...</p>
-                    </div>
-
-                    <!-- Document Grid -->
-                    <div id="document-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Document cards will be rendered here by JavaScript -->
-                    </div>
-
-                    <!-- No Results Message -->
-                    <div id="no-results" class="hidden text-center text-gray-500 py-12">
-                        <p class="text-xl">未找到匹配的文档。</p>
-                        <p class="mt-2 text-sm">请尝试其他搜索关键词或筛选条件，或点击右上角“新增文档”。</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Course Detail View (Initially hidden) -->
-        <div id="course-detail-view" class="hidden">
-            <!-- Course Header -->
-            <div id="course-header" class="bg-indigo-700 text-white rounded-2xl shadow-lg p-6 md:p-8 mb-8">
-                <button id="back-button" class="flex items-center text-indigo-100 hover:text-white transition-colors duration-200 mb-4">
-                    <i class="ph ph-arrow-left text-xl mr-2"></i>
-                    返回文档库
-                </button>
-                <div class="flex items-center space-x-4">
-                    <div class="p-3 bg-white bg-opacity-20 rounded-full">
-                        <i class="ph ph-monitor-play text-3xl"></i>
-                    </div>
-                    <div>
-                        <h1 id="course-title" class="text-3xl md:text-4xl font-bold">课程标题</h1>
-                        <p class="mt-1 text-indigo-200 text-sm md:text-base">
-                            <span id="course-department" class="font-semibold"></span> | 
-                            讲师: <span id="course-instructor"></span>
+                    <div class="animate-fade-in-up animate-delay-200">
+                        <h3 class="text-3xl font-semibold mb-4 text-blue-600">公司定位</h3>
+                        <p class="text-lg text-slate-700 leading-relaxed">
+                            衡渊智研专注于行星科学、物理领域的科研咨询与数据评估，通过深度数据分析和专业科研实力衡量，为高校、科研机构、航天企业提供高价值决策支持和科研规划服务。
                         </p>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Main content for course details -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <!-- Left Sidebar for course navigation -->
-                <aside class="col-span-1 bg-white rounded-2xl shadow-lg p-6 h-fit sticky top-28">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">课程导航</h3>
-                    <div id="course-nav-links" class="space-y-2">
-                        <!-- Links will be populated here by JS -->
+        <!-- 核心业务 -->
+        <section id="services" class="py-24 scroll-animated">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">核心业务</h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- 业务卡片 -->
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 card-hover-effect animate-fade-in-up">
+                        <div class="mb-4 text-blue-700">
+                            <!-- SVG Icon for Consulting Report -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 1-2 2v16a2 2 0 0 1 2 2h12a2 2 0 0 1 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">定制化咨询报告</h3>
+                        <p class="text-slate-700 leading-relaxed">针对高校、科研团队、企业提供科研竞争力分析、项目申报支持等专项报告。</p>
                     </div>
-                </aside>
-
-                <!-- Main content area -->
-                <div class="md:col-span-3">
-                    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">课程简介</h2>
-                        <p id="course-description" class="text-gray-600 leading-relaxed"></p>
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 card-hover-effect animate-fade-in-up animate-delay-200">
+                        <div class="mb-4 text-blue-700">
+                            <!-- SVG Icon for Rankings -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path>
+                                <line x1="18" y1="16" x2="18" y2="21"></line>
+                                <line x1="12" y1="12" x2="12" y2="21"></line>
+                                <line x1="6" y1="8" x2="6" y2="21"></line>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">科研实力排行榜</h3>
+                        <p class="text-slate-700 leading-relaxed">发布权威榜单和趋势分析，帮助客户了解科研竞争态势与发展方向。</p>
                     </div>
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 card-hover-effect animate-fade-in-up animate-delay-400">
+                        <div class="mb-4 text-blue-700">
+                            <!-- SVG Icon for Training -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20h-8.5a2.5 2.5 0 0 1 0-5H20"></path>
+                                <line x1="18" y1="6" x2="12" y2="6"></line>
+                                <line x1="18" y1="10" x2="12" y2="10"></line>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">专项培训与讲座</h3>
+                        <p class="text-slate-700 leading-relaxed">举办线上线下科研管理、数据分析、学术写作等培训课程。</p>
+                    </div>
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 card-hover-effect animate-fade-in-up animate-delay-600">
+                        <div class="mb-4 text-blue-700">
+                            <!-- SVG Icon for Projects -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">政府及企业项目</h3>
+                        <p class="text-slate-700 leading-relaxed">承接政府及企业科研项目调研、评估与咨询服务。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-                    <div class="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">学习资料类型</h2>
-                        <div id="course-resources" class="flex flex-wrap gap-2 mt-2">
-                            <!-- Resource tags will be populated here by JS -->
+        <!-- 发展路线图 -->
+        <section id="roadmap" class="py-24 bg-white/40 backdrop-blur-md scroll-animated border border-white/70 rounded-3xl mx-6 md:mx-auto max-w-6xl my-12 shadow-xl">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">发展路线图</h2>
+                <div class="relative max-w-5xl mx-auto">
+                    <div class="hidden md:block timeline-line"></div>
+                    <!-- Timeline Item 1 -->
+                    <div class="md:grid md:grid-cols-2 items-center mb-12 relative md:timeline-item-left">
+                        <div class="bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/90 text-center md:text-right scroll-animated card-hover-effect">
+                            <h3 class="text-xl font-bold text-blue-600 mb-2">0-3个月</h3>
+                            <p class="text-slate-700">搭建官网和社媒，制作样板报告，启动内容营销</p>
+                        </div>
+                    </div>
+                    <!-- Timeline Item 2 -->
+                    <div class="md:grid md:grid-cols-2 items-center mb-12 relative md:timeline-item-right">
+                        <div class="bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/90 text-center md:text-left scroll-animated card-hover-effect md:col-start-2">
+                            <h3 class="text-xl font-bold text-blue-600 mb-2">3-6个月</h3>
+                            <p class="text-slate-700">参加行业会议，开展客户拜访，进行免费试点项目</p>
+                        </div>
+                    </div>
+                    <!-- Timeline Item 3 -->
+                    <div class="md:grid md:grid-cols-2 items-center mb-12 relative md:timeline-item-left">
+                        <div class="bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/90 text-center md:text-right scroll-animated card-hover-effect">
+                            <h3 class="text-xl font-bold text-blue-600 mb-2">6-12个月</h3>
+                            <p class="text-slate-700">正式发布科研实力榜单，举办发布会，签订首批付费客户</p>
+                        </div>
+                    </div>
+                    <!-- Timeline Item 4 -->
+                    <div class="md:grid md:grid-cols-2 items-center relative md:timeline-item-right">
+                        <div class="bg-white/70 backdrop-blur-sm p-6 rounded-xl shadow-md border border-white/90 text-center md:text-left scroll-animated card-hover-effect md:col-start-2">
+                            <h3 class="text-xl font-bold text-blue-600 mb-2">12个月以后</h3>
+                            <p class="text-slate-700">拓展多领域客户，增加咨询产品线，实现稳定盈利</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- User ID display -->
-    <div id="user-info" class="fixed bottom-4 right-4 bg-gray-800 text-white text-xs px-4 py-2 rounded-full shadow-lg">
-        <span id="user-id"></span>
-    </div>
+        </section>
 
-    <!-- Add New Document Modal -->
-    <div id="add-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4">新增文档</h3>
-            <form id="add-form">
-                <div class="mb-4">
-                    <label for="add-title" class="block text-sm font-medium text-gray-700">标题</label>
-                    <input type="text" id="add-title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                </div>
-                <div class="mb-4">
-                    <label for="add-type" class="block text-sm font-medium text-gray-700">类型</label>
-                    <select id="add-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="论文">论文</option>
-                        <option value="讲义">讲义</option>
-                        <option value="笔记">笔记</option>
-                        <option value="网课">网课</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="add-author" class="block text-sm font-medium text-gray-700">作者</label>
-                    <input type="text" id="add-author" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                </div>
-
-                <!-- NEW: AI Image Generation Section -->
-                <div class="mb-4">
-                    <label for="image-prompt" class="block text-sm font-medium text-gray-700">AI图片生成提示词 (可选)</label>
-                    <input type="text" id="image-prompt" placeholder="描述你想要的图片，例如：'一只在月亮上打字的猫咪'" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div class="flex justify-end mb-4">
-                    <button type="button" id="generate-image-btn" class="inline-flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none">
-                        <i class="ph ph-magic-wand text-lg mr-2"></i> 生成图片
-                    </button>
-                </div>
-                <div id="ai-image-preview-container" class="hidden relative mb-4">
-                    <div class="ai-image-container">
-                        <div id="ai-image-loading-overlay" class="loading-overlay hidden">
-                            <i class="ph ph-spinner-gap animate-spin text-4xl text-indigo-500"></i>
-                        </div>
-                        <img id="ai-image-preview" alt="AI Generated Image" class="w-full h-full object-cover">
+        <!-- 核心团队 -->
+        <section id="team" class="py-24 scroll-animated">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">核心团队</h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Team Member 1 -->
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 text-center card-hover-effect scroll-animated">
+                        <img src="https://placehold.co/150x150/f1f5f9/334155?text=Member+1" alt="团队成员1" class="rounded-full mx-auto mb-4 border-4 border-blue-700">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-2">张伟</h3>
+                        <p class="text-lg text-slate-700">行星科学专家</p>
                     </div>
-                    <button type="button" id="clear-image-btn" class="absolute top-2 right-2 p-1 text-red-500 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors">
-                        <i class="ph ph-x-circle text-lg"></i>
-                    </button>
-                </div>
-
-                <!-- Separator -->
-                <div class="relative flex py-5 items-center">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="flex-shrink mx-4 text-gray-500 text-sm">或者</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                <!-- UPDATED: File Upload Section (now supports images and PDFs) -->
-                <div class="mb-4">
-                    <label for="add-link" class="block text-sm font-medium text-gray-700">文件链接 (可选)</label>
-                    <input type="url" id="add-link" placeholder="例如: https://example.com/document.pdf" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div class="mb-4">
-                    <label for="file-upload" class="block text-sm font-medium text-gray-700">上传文件 (可选)</label>
-                    <input type="file" id="file-upload" accept="image/*, .pdf" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
-                </div>
-                <div id="uploaded-file-preview-container" class="hidden relative mb-4">
-                    <div id="uploaded-file-container" class="uploaded-file-container">
-                        <i id="uploaded-file-icon" class="ph ph-file-pdf text-4xl"></i>
-                        <img id="uploaded-image-preview" alt="Uploaded File Preview" class="hidden w-full h-full object-cover">
-                        <span id="uploaded-file-name" class="text-sm font-medium text-center line-clamp-2"></span>
+                    <!-- Team Member 2 -->
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 text-center card-hover-effect scroll-animated animate-delay-200">
+                        <img src="https://placehold.co/150x150/f1f5f9/334155?text=Member+2" alt="团队成员2" class="rounded-full mx-auto mb-4 border-4 border-blue-700">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-2">李明</h3>
+                        <p class="text-lg text-slate-700">资深数据分析师</p>
                     </div>
-                    <button type="button" id="clear-uploaded-file-btn" class="absolute top-2 right-2 p-1 text-red-500 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors">
-                        <i class="ph ph-x-circle text-lg"></i>
-                    </button>
-                </div>
-                
-                <!-- Conditional fields for online course -->
-                <div id="add-course-fields" class="hidden">
-                    <div class="mb-4">
-                        <label for="add-course-description" class="block text-sm font-medium text-gray-700">课程简介</label>
-                        <textarea id="add-course-description" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                    <!-- Team Member 3 -->
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 text-center card-hover-effect scroll-animated animate-delay-400">
+                        <img src="https://placehold.co/150x150/f1f5f9/334155?text=Member+3" alt="团队成员3" class="rounded-full mx-auto mb-4 border-4 border-blue-700">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-2">王丽</h3>
+                        <p class="text-lg text-slate-700">产品与运营经理</p>
                     </div>
-                    <div class="mb-4">
-                        <label for="add-course-instructor" class="block text-sm font-medium text-gray-700">讲师</label>
-                        <input type="text" id="add-course-instructor" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    </div>
-                    <div class="mb-4">
-                        <label for="add-course-department" class="block text-sm font-medium text-gray-700">所属院系</label>
-                        <input type="text" id="add-course-department" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    </div>
-                    <!-- Simplified fields for resources and navigation. In a real app, these would be dynamic -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">学习资料类型 (用逗号分隔)</label>
-                        <input type="text" id="add-course-resources" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="例如: 讲义, 习题集">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">课程导航 (JSON格式)</label>
-                        <textarea id="add-course-nav" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder='[{"title": "简介", "link": "#"}, {"title": "讲义", "link": "https://"}]'></textarea>
+                    <!-- Team Member 4 -->
+                    <div class="bg-white/40 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/70 text-center card-hover-effect scroll-animated animate-delay-600">
+                        <img src="https://placehold.co/150x150/f1f5f9/334155?text=Member+4" alt="团队成员4" class="rounded-full mx-auto mb-4 border-4 border-blue-700">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-2">赵军</h3>
+                        <p class="text-lg text-slate-700">市场与客户经理</p>
                     </div>
                 </div>
-
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="cancel-add" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        取消
-                    </button>
-                    <button type="submit" id="submit-add" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
-                        保存文档
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Document Modal -->
-    <div id="edit-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4">编辑文档</h3>
-            <form id="edit-form">
-                <input type="hidden" id="edit-doc-id">
-                <div class="mb-4">
-                    <label for="edit-title" class="block text-sm font-medium text-gray-700">标题</label>
-                    <input type="text" id="edit-title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div class="mb-4">
-                    <label for="edit-author" class="block text-sm font-medium text-gray-700">作者</label>
-                    <input type="text" id="edit-author" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <div class="mb-4">
-                    <label for="edit-type" class="block text-sm font-medium text-gray-700">类型</label>
-                    <select id="edit-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="论文">论文</option>
-                        <option value="讲义">讲义</option>
-                        <option value="笔记">笔记</option>
-                        <option value="网课">网课</option>
-                    </select>
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="cancel-edit" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        取消
-                    </button>
-                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
-                        保存更改
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 relative">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4">确认删除</h3>
-            <p class="text-gray-600 mb-6">你确定要删除这个文档吗？此操作无法撤销。</p>
-            <div class="flex justify-end space-x-4">
-                <button type="button" id="cancel-delete" class="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        取消
-                    </button>
-                    <button type="button" id="confirm-delete" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none">
-                        删除
-                    </button>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- JavaScript for dynamic content and interactivity -->
-    <script type="module">
-        // Firebase and Firestore imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        <!-- 未来规划 -->
+        <section id="vision" class="py-24 bg-white/40 backdrop-blur-md scroll-animated border border-white/70 rounded-3xl mx-6 md:mx-auto max-w-6xl my-12 shadow-xl">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">未来规划与扩展方向</h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Vision Item 1 -->
+                    <div class="bg-white/70 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/90 card-hover-effect scroll-animated">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">知识产权咨询</h3>
+                        <p class="text-slate-700 leading-relaxed">拓展知识产权及成果转化咨询服务，助力科研成果商业化。</p>
+                    </div>
+                    <!-- Vision Item 2 -->
+                    <div class="bg-white/70 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/90 card-hover-effect scroll-animated animate-delay-200">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">行业数据平台</h3>
+                        <p class="text-slate-700 leading-relaxed">建立行业数据库及数据平台，提供更深层次的数据服务。</p>
+                    </div>
+                    <!-- Vision Item 3 -->
+                    <div class="bg-white/70 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/90 card-hover-effect scroll-animated animate-delay-400">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">品牌国际化</h3>
+                        <p class="text-slate-700 leading-relaxed">推动品牌国际化，拓展海外客户，提升全球影响力。</p>
+                    </div>
+                    <!-- Vision Item 4 -->
+                    <div class="bg-white/70 backdrop-blur-sm p-8 rounded-xl shadow-md border border-white/90 card-hover-effect scroll-animated animate-delay-600">
+                        <h3 class="text-2xl font-bold text-blue-600 mb-4">科研培训认证</h3>
+                        <p class="text-slate-700 leading-relaxed">开展多样化科研培训和认证项目，赋能更多科研人才。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        // Global variables provided by the environment
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        <!-- 目标客户 -->
+        <section id="customers" class="py-24 scroll-animated">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-center text-blue-700 mb-12">目标客户群</h2>
+                <div class="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <div class="bg-white/40 backdrop-blur-sm p-6 rounded-xl text-center shadow-md border border-white/70 hover:bg-slate-200/50 transition-colors duration-300 animate-fade-in-up">高校科研管理部门</div>
+                    <div class="bg-white/40 backdrop-blur-sm p-6 rounded-xl text-center shadow-md border border-white/70 hover:bg-slate-200/50 transition-colors duration-300 animate-fade-in-up animate-delay-100">科研院所和实验室</div>
+                    <div class="bg-white/40 backdrop-blur-sm p-6 rounded-xl text-center shadow-md border border-white/70 hover:bg-slate-200/50 transition-colors duration-300 animate-fade-in-up animate-delay-200">航天及相关科研企业</div>
+                    <div class="bg-white/40 backdrop-blur-sm p-6 rounded-xl text-center shadow-md border border-white/70 hover:bg-slate-200/50 transition-colors duration-300 animate-fade-in-up animate-delay-300">政府科研项目管理部门</div>
+                    <div class="bg-white/40 backdrop-blur-sm p-6 rounded-xl text-center shadow-md border border-white/70 hover:bg-slate-200/50 transition-colors duration-300 animate-fade-in-up animate-delay-400">行业协会和学术团体</div>
+                </div>
+            </div>
+        </section>
 
-        // Initialize Firebase services
-        let app, db, auth;
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            try {
-                const analytics = getAnalytics(app); 
-            } catch (e) {
-                console.warn("Firebase Analytics could not be initialized. This is expected if it's not configured.");
-            }
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-        }
+        <!-- 联系我们 -->
+        <section id="contact" class="py-24 bg-white/40 backdrop-blur-md scroll-animated border border-white/70 rounded-3xl mx-6 md:mx-auto max-w-6xl my-12 shadow-xl">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl font-bold text-blue-700 mb-6">与我们联系</h2>
+                <p class="text-lg text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed">
+                    我们致力于为您的科研之路提供专业支持。欢迎随时与我们沟通，共创未来。
+                </p>
+                <a href="mailto:contact@abyssalmetrics.com" class="bg-blue-700 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105 shadow-lg button-hover-effect">
+                    发送邮件
+                </a>
+            </div>
+        </section>
+    </main>
 
-        // --- State Management Variables ---
-        let userId = null;
-        let documentsCollectionRef = null;
-        let allDocuments = [];
-        let currentFilter = 'all'; 
-        let currentSearch = '';
-        let currentSort = 'date'; 
-        let activeCourse = null;
-        let docToDelete = null;
-        let unsubscribe = null; // To hold the listener cleanup function
+    <!-- 页脚 -->
+    <footer class="bg-white/40 backdrop-blur-sm border-t border-white/70 py-8 text-center text-slate-500">
+        <p>&copy; 2025 衡渊智研（Abyssal Metrics）. All Rights Reserved.</p>
+    </footer>
 
-        // --- DOM Elements ---
-        const mainHeader = document.getElementById('main-header');
-        const mainLibraryView = document.getElementById('main-library-view');
-        const courseDetailView = document.getElementById('course-detail-view');
-        const documentGrid = document.getElementById('document-grid');
-        const searchInput = document.getElementById('search-input');
-        const filterButtonsContainer = document.getElementById('filter-buttons-container');
-        const sortButtons = document.querySelectorAll('.sort-btn');
-        const noResultsMessage = document.getElementById('no-results');
-        const loadingState = document.getElementById('loading-state');
-        const addNewDocBtn = document.getElementById('add-new-doc-btn');
-        const backButton = document.getElementById('back-button');
-        const courseNavLinksContainer = document.getElementById('course-nav-links');
-        const userIdDisplay = document.getElementById('user-id');
+    <!-- JavaScript for mobile menu toggle and animations -->
+    <script>
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
 
-        // Modal-related elements
-        const addModal = document.getElementById('add-modal');
-        const addForm = document.getElementById('add-form');
-        const addTypeSelect = document.getElementById('add-type');
-        const addCourseFields = document.getElementById('add-course-fields');
-        const imagePromptInput = document.getElementById('image-prompt');
-        const generateImageBtn = document.getElementById('generate-image-btn');
-        const imageLoadingOverlay = document.getElementById('ai-image-loading-overlay');
-        const imagePreviewContainer = document.getElementById('ai-image-preview-container');
-        const imagePreview = document.getElementById('ai-image-preview');
-        const clearImageBtn = document.getElementById('clear-image-btn');
-        
-        const addLinkInput = document.getElementById('add-link');
-        const fileUploadInput = document.getElementById('file-upload');
-        const uploadedFilePreviewContainer = document.getElementById('uploaded-file-preview-container');
-        const uploadedFileContainer = document.getElementById('uploaded-file-container');
-        const uploadedFileIcon = document.getElementById('uploaded-file-icon');
-        const uploadedImagePreview = document.getElementById('uploaded-image-preview');
-        const uploadedFileName = document.getElementById('uploaded-file-name');
-        const clearUploadedFileBtn = document.getElementById('clear-uploaded-file-btn');
-        
-        const submitAddBtn = document.getElementById('submit-add');
-
-        const editModal = document.getElementById('edit-modal');
-        const editForm = document.getElementById('edit-form');
-        const editTitleInput = document.getElementById('edit-title');
-        const editAuthorInput = document.getElementById('edit-author');
-        const editTypeSelect = document.getElementById('edit-type');
-        const editDocIdInput = document.getElementById('edit-doc-id');
-
-        const deleteModal = document.getElementById('delete-modal');
-        const confirmDeleteButton = document.getElementById('confirm-delete');
-        const cancelEditButton = document.getElementById('cancel-edit');
-        const cancelDeleteButton = document.getElementById('cancel-delete');
-        
-        // --- Utility Functions ---
-
-        function debounce(func, delay) {
-            let timeout;
-            return function(...args) {
-                const context = this;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(context, args), delay);
-            };
-        }
-
-        async function fetchWithBackoff(url, options, maxRetries = 5) {
-            let retries = 0;
-            while (true) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
-                    return response;
-                } catch (error) {
-                    if (retries >= maxRetries) {
-                        throw error;
-                    }
-                    const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                    retries++;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-            }
-        }
-
-        function closeModal(modalElement) {
-            modalElement.classList.remove('open');
-        }
-
-        function openModal(modalElement) {
-            closeModal(addModal);
-            closeModal(editModal);
-            closeModal(deleteModal);
-            modalElement.classList.add('open');
-        }
-
-        function handleNavLinkClick(event) {
-            const href = event.currentTarget.getAttribute('href');
-            if (href && href.startsWith('#')) {
-                event.preventDefault();
-                const targetId = href.substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 100, 
+        // Optional: Smooth scroll for nav links (desktop and mobile)
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const targetId = this.getAttribute('href');
+                if (targetId && targetId !== '#') {
+                    e.preventDefault();
+                    document.querySelector(targetId).scrollIntoView({
                         behavior: 'smooth'
                     });
                 }
-            }
-        }
-        
-        function showCourseDetail(course) {
-            activeCourse = course;
-            mainLibraryView.classList.add('hidden');
-            mainHeader.classList.add('hidden');
-            courseDetailView.classList.remove('hidden');
-
-            document.getElementById('course-title').textContent = course.title;
-            document.getElementById('course-department').textContent = course.department;
-            document.getElementById('course-instructor').textContent = course.instructor;
-            document.getElementById('course-description').textContent = course.description;
-
-            courseNavLinksContainer.innerHTML = '';
-
-            // --- FIX STARTS HERE ---
-            // The course.nav property might be a JSON string from the seed data,
-            // or an array for newly created courses. This handles both cases.
-            let navItems = [];
-            if (course.nav) {
-                if (typeof course.nav === 'string') {
-                    try {
-                        // Attempt to parse the string into an array
-                        navItems = JSON.parse(course.nav);
-                    } catch (e) {
-                        console.error("Failed to parse course navigation JSON:", e);
-                        navItems = []; // Default to an empty array on parsing error
-                    }
-                } else if (Array.isArray(course.nav)) {
-                    // If it's already an array, use it directly
-                    navItems = course.nav;
-                }
-            }
-            // --- FIX ENDS HERE ---
-
-            navItems.forEach(navItem => {
-                const navLink = document.createElement('a');
-                navLink.href = navItem.link;
-                navLink.className = 'flex items-center gap-2 w-full text-left py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-gray-700 hover:bg-gray-100';
-                navLink.innerHTML = `<i class="ph ph-link text-lg"></i><span>${navItem.title}</span>`;
-
-                if (navItem.link && !navItem.link.startsWith('#')) {
-                    navLink.target = '_blank';
-                    navLink.rel = 'noopener noreferrer';
-                } else {
-                    navLink.addEventListener('click', handleNavLinkClick);
-                }
                 
-                courseNavLinksContainer.appendChild(navLink);
-            });
-
-            const resourcesContainer = document.getElementById('course-resources');
-            // Use a defensive check for resources as well
-            resourcesContainer.innerHTML = (course.resources || []).map(resource => `
-                <span class="text-xs font-semibold px-2 py-1 rounded-full text-gray-700 bg-gray-100">${resource}</span>
-            `).join('');
-        }
-        
-        function showMainLibrary() {
-            courseDetailView.classList.add('hidden');
-            mainLibraryView.classList.remove('hidden');
-            mainHeader.classList.remove('hidden');
-            activeCourse = null;
-        }
-
-        function sortDocuments(docs) {
-            return docs.sort((a, b) => {
-                const valueA = a[currentSort];
-                const valueB = b[currentSort];
-                
-                if (currentSort === 'date') {
-                    return new Date(valueB) - new Date(valueA);
-                } else {
-                    return (valueA || '').localeCompare(valueB || '');
+                // Close mobile menu after clicking a link
+                if (!document.getElementById('mobile-menu').classList.contains('hidden')) {
+                    document.getElementById('mobile-menu').classList.add('hidden');
                 }
-            });
-        }
-
-        function renderDocuments() {
-            loadingState.classList.add('hidden');
-            
-            const filteredByType = currentFilter === 'all'
-                ? allDocuments
-                : allDocuments.filter(doc => doc.type === currentFilter);
-            
-            const filteredBySearch = filteredByType.filter(doc => 
-                (doc.title || '').toLowerCase().includes(currentSearch.toLowerCase()) ||
-                (doc.author || '').toLowerCase().includes(currentSearch.toLowerCase()) ||
-                (doc.type || '').toLowerCase().includes(currentSearch.toLowerCase())
-            );
-
-            const sortedDocuments = sortDocuments(filteredBySearch);
-            documentGrid.innerHTML = '';
-            
-            if (sortedDocuments.length > 0) {
-                noResultsMessage.classList.add('hidden');
-                documentGrid.classList.remove('hidden');
-                sortedDocuments.forEach(doc => {
-                    documentGrid.appendChild(renderDocumentCard(doc));
-                });
-            } else {
-                noResultsMessage.classList.remove('hidden');
-                documentGrid.classList.add('hidden');
-            }
-        }
-
-        function renderDocumentCard(doc) {
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-md p-6 flex flex-col justify-between transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl border border-gray-200';
-            
-            const contentDiv = document.createElement('div');
-            
-            const previewContainer = document.createElement('div');
-            previewContainer.className = 'uploaded-file-container mb-4';
-
-            if (doc.imageData) {
-                previewContainer.classList.add('is-image');
-                const imageEl = document.createElement('img');
-                imageEl.src = `data:image/png;base64,${doc.imageData}`;
-                imageEl.alt = "AI Generated image";
-                previewContainer.appendChild(imageEl);
-            } else if (doc.filename && doc.filename.endsWith('.pdf')) {
-                previewContainer.classList.add('is-pdf');
-                const iconEl = document.createElement('i');
-                iconEl.className = 'ph ph-file-pdf text-4xl';
-                const nameEl = document.createElement('span');
-                nameEl.className = 'text-sm font-medium text-center line-clamp-2';
-                nameEl.textContent = doc.filename;
-                previewContainer.appendChild(iconEl);
-                previewContainer.appendChild(nameEl);
-            } else if (doc.imageLink) {
-                previewContainer.classList.add('is-image');
-                const imageEl = document.createElement('img');
-                imageEl.src = doc.imageLink;
-                imageEl.alt = "Uploaded image";
-                imageEl.onerror = () => {
-                    imageEl.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Broken%20Link`;
-                    imageEl.alt = "Broken link placeholder";
-                };
-                previewContainer.appendChild(imageEl);
-            } else {
-                previewContainer.classList.add('is-pdf');
-                const iconEl = document.createElement('i');
-                const iconClass = doc.type === '论文' ? 'ph ph-scroll-simple-text' : 
-                                  doc.type === '讲义' ? 'ph ph-file-pdf' :
-                                  doc.type === '笔记' ? 'ph ph-notepad' :
-                                  'ph ph-monitor-play';
-                iconEl.className = `${iconClass} text-4xl`;
-                const nameEl = document.createElement('span');
-                nameEl.className = 'text-sm font-medium text-center line-clamp-2';
-                nameEl.textContent = doc.type;
-                previewContainer.appendChild(iconEl);
-                previewContainer.appendChild(nameEl);
-            }
-
-            contentDiv.appendChild(previewContainer);
-
-            const typeSpan = document.createElement('span');
-            typeSpan.className = 'inline-block text-xs font-semibold px-2 py-1 rounded-full text-indigo-700 bg-indigo-100 mb-3';
-            typeSpan.textContent = doc.type;
-            contentDiv.appendChild(typeSpan);
-
-            const titleH4 = document.createElement('h4');
-            titleH4.className = 'text-lg font-bold text-gray-800 line-clamp-2 mb-2';
-            titleH4.textContent = doc.title;
-            contentDiv.appendChild(titleH4);
-
-            const authorP = document.createElement('p');
-            authorP.className = 'text-sm text-gray-500 line-clamp-1 mb-4';
-            authorP.textContent = `作者: ${doc.author}`;
-            contentDiv.appendChild(authorP);
-            
-            const footerDiv = document.createElement('div');
-            footerDiv.className = 'flex items-center space-x-2 mt-auto pt-4 border-t border-gray-100';
-            
-            const viewButton = document.createElement('button');
-            viewButton.className = 'flex-1 text-center py-2 px-4 rounded-md font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200 flex items-center justify-center';
-            viewButton.innerHTML = `<i class="ph ph-eye text-lg mr-2"></i> 查看`;
-            if (doc.type === '网课') {
-                viewButton.addEventListener('click', () => showCourseDetail(doc));
-            } else {
-                const link = doc.link || (doc.imageData ? `data:image/png;base64,${doc.imageData}` : doc.imageLink);
-                if (link) {
-                    viewButton.addEventListener('click', () => window.open(link, '_blank'));
-                } else {
-                    viewButton.disabled = true;
-                    viewButton.classList.add('bg-gray-400', 'cursor-not-allowed', 'hover:bg-gray-400');
-                    viewButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-                }
-            }
-            footerDiv.appendChild(viewButton);
-
-            const editButton = document.createElement('button');
-            editButton.className = 'p-2 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-colors duration-200';
-            editButton.innerHTML = `<i class="ph ph-pencil-simple text-lg"></i>`;
-            editButton.addEventListener('click', () => handleEditClick(doc));
-            footerDiv.appendChild(editButton);
-
-            const deleteButton = document.createElement('button');
-            deleteButton.className = 'p-2 rounded-md text-gray-500 hover:text-red-600 hover:bg-gray-100 transition-colors duration-200';
-            deleteButton.innerHTML = `<i class="ph ph-trash-simple text-lg"></i>`;
-            deleteButton.addEventListener('click', () => handleDeleteClick(doc.id));
-            footerDiv.appendChild(deleteButton);
-            
-            card.appendChild(contentDiv);
-            card.appendChild(footerDiv);
-            
-            return card;
-        }
-
-        // --- Event Handlers ---
-        
-        filterButtonsContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('.filter-btn');
-            if (btn) {
-                currentFilter = btn.dataset.filter;
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('bg-indigo-100', 'text-indigo-700');
-                    b.classList.add('text-gray-700', 'hover:bg-gray-100');
-                });
-                btn.classList.add('bg-indigo-100', 'text-indigo-700');
-                renderDocuments();
-            }
-        });
-
-        sortButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentSort = btn.dataset.sort;
-                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('bg-gray-200'));
-                btn.classList.add('bg-gray-200');
-                renderDocuments();
             });
         });
 
-        const debouncedSearch = debounce(() => {
-            currentSearch = searchInput.value;
-            renderDocuments();
-        }, 300);
-        searchInput.addEventListener('input', debouncedSearch);
-
-        addNewDocBtn.addEventListener('click', () => {
-            addForm.reset();
-            imagePreviewContainer.classList.add('hidden');
-            uploadedFilePreviewContainer.classList.add('hidden');
-            addCourseFields.classList.add('hidden');
-            addLinkInput.value = '';
-            fileUploadInput.value = '';
-            imagePromptInput.value = '';
-            openModal(addModal);
-        });
-
-        addTypeSelect.addEventListener('change', () => {
-            if (addTypeSelect.value === '网课') {
-                addCourseFields.classList.remove('hidden');
-                addLinkInput.disabled = true;
-                fileUploadInput.disabled = true;
-            } else {
-                addCourseFields.classList.add('hidden');
-                addLinkInput.disabled = false;
-                fileUploadInput.disabled = false;
-            }
-        });
-        
-        backButton.addEventListener('click', showMainLibrary);
-
-        document.getElementById('cancel-add').addEventListener('click', () => closeModal(addModal));
-        cancelEditButton.addEventListener('click', () => closeModal(editModal));
-        cancelDeleteButton.addEventListener('click', () => closeModal(deleteModal));
-
-        const handleDeleteClick = (docId) => {
-            docToDelete = docId;
-            openModal(deleteModal);
-        };
-
-        confirmDeleteButton.addEventListener('click', async () => {
-            if (docToDelete) {
-                try {
-                    await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/documents`, docToDelete));
-                    docToDelete = null; 
-                } catch (e) {
-                    console.error('Error removing document: ', e);
+        // Intersection Observer for scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
                 }
-            }
-            closeModal(deleteModal);
-        });
-
-        const handleEditClick = (doc) => {
-            editDocIdInput.value = doc.id;
-            editTitleInput.value = doc.title;
-            editAuthorInput.value = doc.author;
-            editTypeSelect.value = doc.type;
-            openModal(editModal);
-        };
-
-        addForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            submitAddBtn.disabled = true;
-
-            const newDoc = {
-                title: document.getElementById('add-title').value,
-                type: addTypeSelect.value,
-                author: document.getElementById('add-author').value,
-                date: new Date().toISOString(),
-                link: addLinkInput.value,
-            };
-
-            if (newDoc.type === '网课') {
-                newDoc.description = document.getElementById('add-course-description').value;
-                newDoc.instructor = document.getElementById('add-course-instructor').value;
-                newDoc.department = document.getElementById('add-course-department').value;
-                try {
-                    newDoc.resources = document.getElementById('add-course-resources').value.split(',').map(s => s.trim()).filter(s => s);
-                } catch { newDoc.resources = []; }
-                try {
-                    newDoc.nav = JSON.parse(document.getElementById('add-course-nav').value);
-                } catch { newDoc.nav = []; }
-            }
-
-            if (imagePreview.src && !imagePreview.src.startsWith('https://placehold.co')) {
-                newDoc.imageData = imagePreview.src.split(',')[1];
-            } else if (fileUploadInput.files.length > 0) {
-                const file = fileUploadInput.files[0];
-                newDoc.filename = file.name;
-                if (file.type.startsWith('image/')) {
-                    newDoc.imageLink = URL.createObjectURL(file); // Note: This is a temporary local URL
-                } else if (file.type === 'application/pdf') {
-                    newDoc.link = URL.createObjectURL(file);
-                }
-            }
-
-            try {
-                await addDoc(documentsCollectionRef, newDoc);
-                addForm.reset();
-                closeModal(addModal);
-            } catch (e) {
-                console.error("Error adding document: ", e);
-            } finally {
-                submitAddBtn.disabled = false;
-            }
-        });
-
-        editForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const docId = editDocIdInput.value;
-            const updatedData = {
-                title: editTitleInput.value,
-                author: editAuthorInput.value,
-                type: editTypeSelect.value,
-            };
-
-            try {
-                const docRef = doc(db, `artifacts/${appId}/users/${userId}/documents`, docId);
-                await updateDoc(docRef, updatedData);
-                closeModal(editModal);
-            } catch (e) {
-                console.error("Error updating document: ", e);
-            }
-        });
-
-        generateImageBtn.addEventListener('click', async () => {
-            const prompt = imagePromptInput.value;
-            if (!prompt) {
-                console.error("Please enter a prompt for the AI image.");
-                return;
-            }
-
-            imageLoadingOverlay.classList.remove('hidden');
-            imagePreviewContainer.classList.remove('hidden');
-            generateImageBtn.disabled = true;
-
-            try {
-                const payload = { instances: [{ prompt }], parameters: { "sampleCount": 1 } };
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-                
-                const response = await fetchWithBackoff(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if (result.predictions?.[0]?.bytesBase64Encoded) {
-                    const base64Data = result.predictions[0].bytesBase64Encoded;
-                    imagePreview.src = `data:image/png;base64,${base64Data}`;
-                    fileUploadInput.disabled = true;
-                    addLinkInput.disabled = true;
-                } else {
-                    imagePreview.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Error`;
-                }
-            } catch (error) {
-                console.error('Error generating AI image:', error);
-                imagePreview.src = `https://placehold.co/120x120/e2e8f0/64748b?text=Error`;
-            } finally {
-                imageLoadingOverlay.classList.add('hidden');
-                generateImageBtn.disabled = false;
-            }
-        });
-
-        clearImageBtn.addEventListener('click', () => {
-            imagePreview.src = '';
-            imagePromptInput.value = '';
-            imagePreviewContainer.classList.add('hidden');
-            fileUploadInput.disabled = false;
-            addLinkInput.disabled = false;
-        });
-        
-        fileUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                uploadedFilePreviewContainer.classList.remove('hidden');
-                imagePromptInput.disabled = true;
-                generateImageBtn.disabled = true;
-                addLinkInput.disabled = true;
-
-                if (file.type.startsWith('image/')) {
-                    uploadedFileContainer.className = 'uploaded-file-container is-image';
-                    uploadedFileIcon.classList.add('hidden');
-                    uploadedFileName.classList.add('hidden');
-                    uploadedImagePreview.classList.remove('hidden');
-                    uploadedImagePreview.src = URL.createObjectURL(file);
-                } else if (file.type === 'application/pdf') {
-                    uploadedFileContainer.className = 'uploaded-file-container is-pdf';
-                    uploadedImagePreview.classList.add('hidden');
-                    uploadedFileIcon.classList.remove('hidden');
-                    uploadedFileName.classList.remove('hidden');
-                    uploadedFileIcon.className = 'ph ph-file-pdf text-4xl';
-                    uploadedFileName.textContent = file.name;
-                }
-            } else {
-                clearUploadedFileBtn.click();
-            }
-        });
-
-        clearUploadedFileBtn.addEventListener('click', () => {
-            fileUploadInput.value = '';
-            uploadedFilePreviewContainer.classList.add('hidden');
-            imagePromptInput.disabled = false;
-            generateImageBtn.disabled = false;
-            addLinkInput.disabled = false;
-        });
-
-        addLinkInput.addEventListener('input', (e) => {
-            if (e.target.value) {
-                imagePromptInput.disabled = true;
-                generateImageBtn.disabled = true;
-                fileUploadInput.disabled = true;
-            } else {
-                imagePromptInput.disabled = false;
-                generateImageBtn.disabled = false;
-                fileUploadInput.disabled = false;
-            }
-        });
-
-        // --- NEW: Function to add initial placeholder data ---
-        async function seedInitialData() {
-            console.log("Seeding initial data...");
-            const batch = writeBatch(db);
-            const initialDocs = [
-                {
-                    title: "Web开发全栈训练营",
-                    author: "CodeAcademy",
-                    type: "网课",
-                    date: new Date('2023-09-01T10:00:00Z').toISOString(),
-                    description: "从零基础到精通，学习HTML, CSS, JavaScript, React和Node.js。",
-                    instructor: "吴老师",
-                    department: "计算机科学",
-                    resources: ["课程大纲", "项目源码", "在线论坛"],
-                    nav: JSON.stringify([{"title": "欢迎", "link": "#"}, {"title": "第一章：HTML基础", "link": "#"}])
-                },
-                {
-                    title: "人工智能在医学影像中的应用",
-                    author: "李明",
-                    type: "论文",
-                    date: new Date('2024-05-20T14:30:00Z').toISOString(),
-                    link: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-                },
-                {
-                    title: "量子物理导论 - 第一周讲义",
-                    author: "王教授",
-                    type: "讲义",
-                    date: new Date('2024-02-15T09:00:00Z').toISOString(),
-                    filename: "quantum_physics_w1.pdf"
-                },
-                {
-                    title: "项目启动会议纪要",
-                    author: "张伟",
-                    type: "笔记",
-                    date: new Date().toISOString(),
-                    imageLink: "https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=2574&auto=format&fit=crop"
-                }
-            ];
-
-            initialDocs.forEach(docData => {
-                const docRef = doc(collection(db, `artifacts/${appId}/users/${userId}/documents`));
-                batch.set(docRef, docData);
             });
-
-            try {
-                await batch.commit();
-                console.log("Initial data seeded successfully.");
-            } catch (error) {
-                console.error("Error seeding initial data: ", error);
-            }
-        }
-
-        // --- Firebase Auth and Data Retrieval ---
-        onAuthStateChanged(auth, async (user) => {
-            if (unsubscribe) unsubscribe(); // Clean up previous listener if auth state changes
-
-            if (user) {
-                userId = user.uid;
-                userIdDisplay.textContent = `用户ID: ${userId}`;
-                documentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/documents`);
-                
-                unsubscribe = onSnapshot(documentsCollectionRef, (snapshot) => {
-                    if (snapshot.empty) {
-                        // NEW: If the database is empty, add placeholder data
-                        seedInitialData();
-                    }
-                    allDocuments = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    renderDocuments();
-                }, (error) => {
-                    console.error("Error listening to document changes:", error);
-                });
-
-            } else {
-                try {
-                    if (authToken) {
-                        await signInWithCustomToken(auth, authToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    loadingState.innerHTML = '<p>认证失败，请刷新页面重试。</p>';
-                }
-            }
+        }, {
+            threshold: 0.2 // Trigger when 20% of the element is visible
         });
 
+        document.querySelectorAll('.scroll-animated').forEach((section) => {
+            observer.observe(section);
+        });
     </script>
 </body>
 </html>
+
 
