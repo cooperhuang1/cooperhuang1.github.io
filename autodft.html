@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoDFT - 从零构建的量子化学沙盒</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glow-color: #6366f1;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: #0a0a0a;
+            color: #e2e8f0;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.2;
+        }
+        .glass-effect {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            left: var(--x);
+            top: var(--y);
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--glow-color) 0%, rgba(99, 102, 241, 0) 60%);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .feature-card:hover::before {
+            opacity: 0.2;
+        }
+        .animated-element {
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        .animated-element.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .btn-primary {
+            @apply bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-500 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-indigo-500/30;
+        }
+        .btn-secondary {
+            @apply bg-gray-700/50 border border-slate-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600/50 hover:border-slate-500 transition-all duration-300 transform hover:scale-105;
+        }
+        .section-title {
+            @apply text-4xl md:text-5xl font-extrabold text-center mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-400;
+            background-size: 200% auto;
+            animation: gradient-text 5s linear infinite;
+        }
+        @keyframes gradient-text {
+            to {
+                background-position: 200% center;
+            }
+        }
+        .section-subtitle {
+            @apply text-lg text-center text-slate-400 max-w-2xl mx-auto mb-12;
+        }
+        .timeline-item .content {
+            transition-delay: 0.2s;
+        }
+        .code-block .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: #a78bfa;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-white">
+                <span class="text-indigo-400">Auto</span>DFT
+            </a>
+            <nav class="hidden md:flex space-x-8 items-center">
+                <a href="#features" class="text-slate-300 hover:text-indigo-400 transition">核心特性</a>
+                <a href="#quick-start" class="text-slate-300 hover:text-indigo-400 transition">快速上手</a>
+                <a href="#developers" class="text-slate-300 hover:text-indigo-400 transition">开发者</a>
+                <a href="#roadmap" class="text-slate-300 hover:text-indigo-400 transition">路线图</a>
+            </nav>
+            <a href="#quick-start" class="hidden md:block bg-indigo-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-indigo-500 transition-all duration-300">
+                开始使用
+            </a>
+            <button id="mobile-menu-button" class="md:hidden text-white z-50">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900/80 backdrop-blur-sm">
+            <a href="#features" class="block py-2 px-6 text-slate-300 hover:bg-indigo-600">核心特性</a>
+            <a href="#quick-start" class="block py-2 px-6 text-slate-300 hover:bg-indigo-600">快速上手</a>
+            <a href="#developers" class="block py-2 px-6 text-slate-300 hover:bg-indigo-600">开发者</a>
+            <a href="#roadmap" class="block py-2 px-6 text-slate-300 hover:bg-indigo-600">路线图</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center text-center relative overflow-hidden pt-20">
+            <div class="container mx-auto px-6 z-10">
+                <h1 class="text-5xl md:text-7xl font-black mb-6 text-white leading-tight">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500" style="background-size: 200% auto; animation: gradient-text 3s linear infinite;">AutoDFT</span>: 从零构建的量子化学沙盒
+                </h1>
+                <p class="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto mb-10">
+                    完全自主，极致可控。我们从零开始构建每一个核心数值模块，不依赖任何第三方库，为您提供一个透明、可扩展的DFT研究平台。
+                </p>
+                <div class="flex justify-center space-x-4">
+                    <a href="#quick-start" class="btn-primary">快速上手</a>
+                    <a href="#developers" class="btn-secondary">开发者指南</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 md:py-32">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">核心特性</h2>
+                <p class="section-subtitle">AutoDFT 的设计哲学是完全自主与极致可控，这带来了无与伦比的灵活性和透明度。</p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Feature Cards -->
+                    <div class="feature-card animated-element glass-effect p-8 rounded-2xl text-center">
+                        <div class="mb-4 text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg></div>
+                        <h3 class="text-xl font-bold mb-2 text-white">完全自主</h3>
+                        <p class="text-slate-400">自研线性代数、积分、FFT库，不依赖任何外部编译库，核心算法完全透明。</p>
+                    </div>
+                    <div class="feature-card animated-element glass-effect p-8 rounded-2xl text-center" style="transition-delay: 0.1s;">
+                        <div class="mb-4 text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 16v-2m0-10v-2m0 6V8m-6 4h2m14 0h2m-4-8l-2-2m0 16l2-2m-12-12l2-2m0 16l-2-2"/></svg></div>
+                        <h3 class="text-xl font-bold mb-2 text-white">极致可控</h3>
+                        <p class="text-slate-400">模块化的 C++17 架构，让扩展新的泛函、基组或算法变得前所未有的简单。</p>
+                    </div>
+                    <div class="feature-card animated-element glass-effect p-8 rounded-2xl text-center" style="transition-delay: 0.2s;">
+                        <div class="mb-4 text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9V3"/></svg></div>
+                        <h3 class="text-xl font-bold mb-2 text-white">跨平台</h3>
+                        <p class="text-slate-400">提供 Windows (MSVC, MinGW) 和 Linux/macOS 的构建脚本，确保一致的开发与使用体验。</p>
+                    </div>
+                    <div class="feature-card animated-element glass-effect p-8 rounded-2xl text-center" style="transition-delay: 0.3s;">
+                        <div class="mb-4 text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg></div>
+                        <h3 class="text-xl font-bold mb-2 text-white">多格式支持</h3>
+                        <p class="text-slate-400">原生支持 XYZ, VASP (POSCAR/CONTCAR) 文件，并提供对 CIF 格式的实验性支持。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start Section -->
+        <section id="quick-start" class="py-20 md:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">三步快速上手</h2>
+                <p class="section-subtitle">只需几条命令，即可完成您的第一次量子化学计算。</p>
+                <div class="code-block animated-element glass-effect rounded-2xl p-6 max-w-3xl mx-auto shadow-2xl shadow-indigo-500/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-slate-400">bash</span>
+                        <button class="text-slate-400 hover:text-white" onclick="copyCode(this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                    </div>
+                    <pre><code id="code-content" class="language-bash text-slate-300"></code></pre>
+                </div>
+                 <div id="copy-message" class="text-center mt-4 text-green-400 opacity-0 transition-opacity">代码已复制！</div>
+            </div>
+        </section>
+
+        <!-- For Developers Section -->
+        <section id="developers" class="py-20 md:py-32 relative overflow-hidden">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-full bg-gradient-to-r from-transparent via-indigo-900/30 to-transparent animate-[aurora_10s_linear_infinite]"></div>
+            <div class="container mx-auto px-6 relative">
+                <h2 class="section-title">为开发者而生</h2>
+                <p class="section-subtitle">清晰的模块化架构，让二次开发和算法研究变得简单、直观。</p>
+                <div class="animated-element glass-effect rounded-2xl p-8 md:p-12">
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h3 class="text-3xl font-bold mb-6 text-white">架构概览</h3>
+                            <ul class="space-y-4">
+                                <li class="flex items-start"><span class="text-indigo-400 mr-3 mt-1">▶</span><div><strong class="text-slate-200">src/core:</strong> 核心 DFT 引擎，包括 SCF 求解器、基组、积分等。</div></li>
+                                <li class="flex items-start"><span class="text-indigo-400 mr-3 mt-1">▶</span><div><strong class="text-slate-200">src/math:</strong> 自研数值库，包含线性代数、FFT、Boys 函数等。</div></li>
+                                <li class="flex items-start"><span class="text-indigo-400 mr-3 mt-1">▶</span><div><strong class="text-slate-200">src/io:</strong> 负责解析与写入各种文件格式。</div></li>
+                                <li class="flex items-start"><span class="text-indigo-400 mr-3 mt-1">▶</span><div><strong class="text-slate-200">src/utils:</strong> 配置、化学分析、XC 泛函等实用工具。</div></li>
+                                <li class="flex items-start"><span class="text-indigo-400 mr-3 mt-1">▶</span><div><strong class="text-slate-200">src/ai & src/parallel:</strong> 为 AI 泛函与并行计算预留的接口。</div></li>
+                            </ul>
+                        </div>
+                        <div class="relative h-64 md:h-80">
+                           <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 bg-indigo-500 rounded-full blur-3xl opacity-50"></div>
+                           <svg class="absolute w-full h-full text-slate-600 animate-spin" style="animation-duration: 20s;" fill="none" viewBox="0 0 200 200">
+                              <path d="M100 0 A100 100 0 0 1 100 200" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+                              <path d="M100 200 A100 100 0 0 1 100 0" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+                              <circle cx="100" cy="100" r="60" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+                           </svg>
+                           <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-lg">Core</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <style>@keyframes aurora { from { transform: translateX(-50%) skewX(-15deg); } to { transform: translateX(-25%) skewX(-15deg); } }</style>
+        </section>
+
+        <!-- Roadmap Section -->
+        <section id="roadmap" class="py-20 md:py-32 bg-gray-900/50">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">发展路线图</h2>
+                <p class="section-subtitle">我们对 AutoDFT 的未来有清晰的规划，旨在构建一个功能完备、性能卓越的计算化学平台。</p>
+                <div class="relative max-w-2xl mx-auto">
+                    <div class="absolute left-4 md:left-1/2 top-0 h-full w-0.5 bg-slate-700"></div>
+                    <div class="timeline-item animated-element relative mb-12">
+                        <div class="dot absolute left-4 md:left-1/2 top-1 w-4 h-4 rounded-full bg-green-500 -translate-x-1/2 -translate-y-1/2 ring-8 ring-green-500/20"></div>
+                        <div class="content ml-10 md:ml-0 md:w-1/2 md:pl-10 md:pr-4 md:text-right">
+                            <span class="text-sm font-semibold text-green-400">已完成</span>
+                            <h3 class="text-xl font-bold text-white mt-1 mb-2">阶段一：奠定基础</h3>
+                            <p class="text-slate-400">完成核心数值模块自研，打通从能量计算到几何优化、振动分析的闭环工作流。</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item animated-element relative mb-12">
+                        <div class="dot absolute left-4 md:left-1/2 top-1 w-4 h-4 rounded-full bg-yellow-500 -translate-x-1/2 -translate-y-1/2 ring-8 ring-yellow-500/20"></div>
+                        <div class="content ml-10 md:ml-auto md:w-1/2 md:pl-10">
+                            <span class="text-sm font-semibold text-yellow-400">进行中</span>
+                            <h3 class="text-xl font-bold text-white mt-1 mb-2">阶段二：原型开发</h3>
+                            <p class="text-slate-400">实现最小基+ERI/SCF架构，集成LDA泛函与DIIS收敛加速技术，提升稳定性。</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item animated-element relative">
+                        <div class="dot absolute left-4 md:left-1/2 top-1 w-4 h-4 rounded-full bg-indigo-500 -translate-x-1/2 -translate-y-1/2 ring-8 ring-indigo-500/20"></div>
+                        <div class="content ml-10 md:ml-0 md:w-1/2 md:pl-10 md:pr-4 md:text-right">
+                            <span class="text-sm font-semibold text-indigo-400">未来规划</span>
+                            <h3 class="text-xl font-bold text-white mt-1 mb-2">阶段三：迭代与完善</h3>
+                            <p class="text-slate-400">扩展基组与积分库，完备GGA泛函，开发完整的KS能带结构计算，并进行并行化与性能优化。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900/50">
+        <div class="container mx-auto px-6 py-8 text-center text-slate-400">
+            <p>&copy; 2025 AutoDFT 项目. 保留所有权利。</p>
+            <p class="text-sm mt-2">一个为探索、学习和研究而生的量子化学工具。</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Enhanced Background Animation ---
+        const canvas = document.getElementById('bg-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 50;
+
+        const particlesCount = 500;
+        const positions = new Float32Array(particlesCount * 3);
+        for (let i = 0; i < particlesCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 100;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+        }
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ color: 0x818cf8, size: 0.2, sizeAttenuation: true });
+        const particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particleSystem);
+
+        const lineGeometry = new THREE.BufferGeometry();
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.3 });
+        const linePositions = new Float32Array(particlesCount * particlesCount * 3);
+        lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+        const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+        scene.add(lines);
+
+        const mouse = new THREE.Vector2();
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        
+        const raycaster = new THREE.Raycaster();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            particleSystem.rotation.y += 0.0002;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(particleSystem);
+            
+            let lineVertexIndex = 0;
+            const interactionRadius = 10;
+            const localPositions = particleSystem.geometry.attributes.position.array;
+
+            for (let i = 0; i < particlesCount; i++) {
+                for (let j = i + 1; j < particlesCount; j++) {
+                    const dx = localPositions[i * 3] - localPositions[j * 3];
+                    const dy = localPositions[i * 3 + 1] - localPositions[j * 3 + 1];
+                    const dz = localPositions[i * 3 + 2] - localPositions[j * 3 + 2];
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance < 4) {
+                        const mouseDistanceToI = Math.sqrt(
+                            Math.pow(localPositions[i * 3] - (mouse.x * 50), 2) + 
+                            Math.pow(localPositions[i * 3 + 1] - (mouse.y * 50), 2)
+                        );
+                        if (mouseDistanceToI < interactionRadius) {
+                            linePositions[lineVertexIndex++] = localPositions[i * 3];
+                            linePositions[lineVertexIndex++] = localPositions[i * 3 + 1];
+                            linePositions[lineVertexIndex++] = localPositions[i * 3 + 2];
+                            linePositions[lineVertexIndex++] = localPositions[j * 3];
+                            linePositions[lineVertexIndex++] = localPositions[j * 3 + 1];
+                            linePositions[lineVertexIndex++] = localPositions[j * 3 + 2];
+                        }
+                    }
+                }
+            }
+            // Clear unused part of the array
+            for (let i = lineVertexIndex; i < linePositions.length; i++) {
+                linePositions[i] = 0;
+            }
+
+            lines.geometry.attributes.position.needsUpdate = true;
+            lines.geometry.setDrawRange(0, lineVertexIndex / 3);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- Sticky Header ---
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('glass-effect', window.scrollY > 50);
+            header.classList.toggle('shadow-lg', window.scrollY > 50);
+        });
+
+        // --- Mobile Menu ---
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+
+        // --- Scroll Animations ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.animated-element').forEach(el => observer.observe(el));
+        
+        // --- Card Glow Effect ---
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--x', `${x}px`);
+                card.style.setProperty('--y', `${y}px`);
+            });
+        });
+
+        // --- Typing Effect for Code Block ---
+        const codeToType = `
+<span class="text-gray-500"># 1. 构建 (以 Windows MSVC 为例)</span>
+<span class="text-blue-400">cd</span> E:\\Autodft\\AutoDFT
+scripts\\build_cl.bat
+
+<span class="text-gray-500"># 2. 运行 H2 单点能计算</span>
+bin\\autodft.exe data\\inputs\\h2.xyz
+
+<span class="text-gray-500"># 3. 查看结果</span>
+<span class="text-green-400">start</span> data\\outputs\\energy.txt
+<span class="text-green-400">start</span> data\\outputs\\scf_energy.svg`;
+
+        const codeElement = document.getElementById('code-content');
+        let typingObserver;
+        
+        function typeCode() {
+            codeElement.innerHTML = '';
+            let fullText = codeToType.replace(/<[^>]*>/g, ''); // Get raw text for length
+            let rawLines = codeToType.trim().split('\n');
+            let currentHTML = '';
+            let charIndex = 0;
+
+            function type() {
+                if (charIndex < rawLines.length) {
+                    currentHTML += rawLines[charIndex] + '\n';
+                    codeElement.innerHTML = currentHTML + '<span class="cursor"></span>';
+                    charIndex++;
+                    setTimeout(type, Math.random() * 100 + 50);
+                } else {
+                     codeElement.innerHTML = currentHTML; // Remove cursor at the end
+                }
+            }
+            type();
+        }
+
+        typingObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setTimeout(typeCode, 500); // Start after a short delay
+                    typingObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.8 });
+        typingObserver.observe(document.querySelector('.code-block'));
+
+
+        // --- Copy to clipboard ---
+        function copyCode(button) {
+            const rawText = codeToType.replace(/<[^>]*>/g, '');
+            navigator.clipboard.writeText(rawText.trim()).then(() => {
+                const message = document.getElementById('copy-message');
+                message.style.opacity = '1';
+                setTimeout(() => { message.style.opacity = '0'; }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
